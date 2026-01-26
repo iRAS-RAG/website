@@ -1,22 +1,23 @@
-import React, { useState } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
-  InputAdornment,
-  Stack,
-  Link,
-} from "@mui/material";
 import {
   Email,
   Lock,
+  Login,
   Visibility,
   VisibilityOff,
-  Login,
 } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  IconButton,
+  InputAdornment,
+  Link,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -148,7 +149,8 @@ const LoginPage = () => {
           >
             Bạn chưa có tài khoản?{" "}
             <Link
-              href="#"
+              component={RouterLink}
+              to="/auth/register"
               underline="hover"
               sx={{ fontWeight: 800, color: "primary.main" }}
             >
