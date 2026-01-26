@@ -1,14 +1,11 @@
-import { AppBar, Toolbar, Box, Button, Stack, Typography } from "@mui/material";
-import { Link } from "react-router-dom";
 import LoginIcon from "@mui/icons-material/Login";
+import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
+import { Link } from "react-router-dom";
+import logo from "../../../assets/logo.png";
 
 export const Header = () => {
   return (
-    <AppBar
-      position="fixed"
-      color="inherit"
-      sx={{ borderBottom: "1px solid #D1D5DB", zIndex: 1201 }}
-    >
+    <AppBar position="fixed" color="inherit" sx={{ borderBottom: "1px solid #D1D5DB", zIndex: 1201 }}>
       <Toolbar sx={{ justifyContent: "space-between" }}>
         {/* Logo góc trái */}
         <Stack
@@ -20,11 +17,7 @@ export const Header = () => {
           sx={{ textDecoration: "none" }}
         >
           {/* Logo cho to lên (tăng từ 45 lên 60 hoặc tùy chỉnh theo ý bạn) */}
-          <Box
-            component="img"
-            src="/src/assets/logo.png"
-            sx={{ height: 65, transition: "all 0.3s ease" }}
-          />
+          <Box component="img" src={logo} sx={{ height: 65, transition: "all 0.3s ease" }} />
 
           <Typography variant="h6" sx={{ fontWeight: 800, display: "flex" }}>
             {/* Chữ iRAS màu primary */}
@@ -54,14 +47,7 @@ export const Header = () => {
         </Stack>
 
         {/* Nút Đăng nhập với Icon */}
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<LoginIcon />}
-          component={Link}
-          to="/auth/login"
-          sx={{ fontWeight: 700 }}
-        >
+        <Button variant="contained" color="primary" startIcon={<LoginIcon />} component={Link} to="/auth/login" sx={{ fontWeight: 700 }}>
           Đăng nhập
         </Button>
       </Toolbar>
