@@ -1,26 +1,8 @@
-import {
-  Email,
-  Lock,
-  Person,
-  PersonAdd,
-  Visibility,
-  VisibilityOff,
-} from "@mui/icons-material";
-import {
-  Alert,
-  Box,
-  Button,
-  IconButton,
-  InputAdornment,
-  Link,
-  Paper,
-  Snackbar,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Email, Lock, Person, PersonAdd, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Alert, Box, Button, IconButton, InputAdornment, Link, Paper, Snackbar, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import bg from "../../assets/backgrounds.png";
 
 const RegisterPage = () => {
   const [name, setName] = useState("");
@@ -37,13 +19,11 @@ const RegisterPage = () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = "Vui lòng nhập họ và tên.";
     if (!email.trim()) e.email = "Vui lòng nhập email.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      e.email = "Email không hợp lệ.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Email không hợp lệ.";
     if (!password) e.password = "Vui lòng nhập mật khẩu.";
     else if (password.length < 6) e.password = "Mật khẩu phải ít nhất 6 ký tự.";
     if (!confirmPassword) e.confirmPassword = "Vui lòng xác nhận mật khẩu.";
-    else if (password && password !== confirmPassword)
-      e.confirmPassword = "Mật khẩu không khớp.";
+    else if (password && password !== confirmPassword) e.confirmPassword = "Mật khẩu không khớp.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -77,7 +57,7 @@ const RegisterPage = () => {
         sx={{
           position: "absolute",
           inset: 0,
-          backgroundImage: `url(/src/assets/backgrounds.png)`,
+          backgroundImage: `url(${bg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           filter: "blur(8px)",
@@ -106,11 +86,7 @@ const RegisterPage = () => {
           boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
         }}
       >
-        <Stack
-          justifyContent="center"
-          alignItems="center"
-          sx={{ mb: 5, textAlign: "center" }}
-        >
+        <Stack justifyContent="center" alignItems="center" sx={{ mb: 5, textAlign: "center" }}>
           <Typography
             variant="h6"
             sx={{
@@ -121,10 +97,7 @@ const RegisterPage = () => {
             }}
           ></Typography>
 
-          <Typography
-            variant="h2"
-            sx={{ fontSize: "1.7rem", fontWeight: 700, mt: 1 }}
-          >
+          <Typography variant="h2" sx={{ fontSize: "1.7rem", fontWeight: 700, mt: 1 }}>
             Đăng ký
           </Typography>
         </Stack>
@@ -180,11 +153,7 @@ const RegisterPage = () => {
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                    type="button"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" type="button">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -208,11 +177,7 @@ const RegisterPage = () => {
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    edge="end"
-                    type="button"
-                  >
+                  <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" type="button">
                     {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -235,35 +200,17 @@ const RegisterPage = () => {
             Đăng ký
           </Button>
 
-          <Typography
-            variant="body2"
-            align="center"
-            color="text.secondary"
-            sx={{ fontSize: "1rem" }}
-          >
+          <Typography variant="body2" align="center" color="text.secondary" sx={{ fontSize: "1rem" }}>
             Đã có tài khoản?{" "}
-            <Link
-              component={RouterLink}
-              to="/auth/login"
-              underline="hover"
-              sx={{ fontWeight: 800, color: "primary.main" }}
-            >
+            <Link component={RouterLink} to="/auth/login" underline="hover" sx={{ fontWeight: 800, color: "primary.main" }}>
               Đăng nhập
             </Link>
           </Typography>
         </Stack>
       </Paper>
 
-      <Snackbar
-        open={openSuccess}
-        autoHideDuration={4000}
-        onClose={() => setOpenSuccess(false)}
-      >
-        <Alert
-          severity="success"
-          onClose={() => setOpenSuccess(false)}
-          sx={{ width: "100%" }}
-        >
+      <Snackbar open={openSuccess} autoHideDuration={4000} onClose={() => setOpenSuccess(false)}>
+        <Alert severity="success" onClose={() => setOpenSuccess(false)} sx={{ width: "100%" }}>
           Đăng ký thành công (chỉ là placeholder).
         </Alert>
       </Snackbar>

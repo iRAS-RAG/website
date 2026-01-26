@@ -1,23 +1,8 @@
-import {
-  Email,
-  Lock,
-  Login,
-  Visibility,
-  VisibilityOff,
-} from "@mui/icons-material";
-import {
-  Box,
-  Button,
-  IconButton,
-  InputAdornment,
-  Link,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Box, Button, IconButton, InputAdornment, Link, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import bg from "../../assets/backgrounds.png";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +22,7 @@ const LoginPage = () => {
         sx={{
           position: "absolute",
           inset: 0,
-          backgroundImage: `url(/src/assets/backgrounds.png)`,
+          backgroundImage: `url(${bg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           filter: "blur(8px)",
@@ -66,11 +51,7 @@ const LoginPage = () => {
           boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
         }}
       >
-        <Stack
-          justifyContent="center"
-          alignItems="center"
-          sx={{ mb: 5, textAlign: "center" }}
-        >
+        <Stack justifyContent="center" alignItems="center" sx={{ mb: 5, textAlign: "center" }}>
           <Typography
             variant="h6"
             sx={{
@@ -81,10 +62,7 @@ const LoginPage = () => {
             }}
           ></Typography>
 
-          <Typography
-            variant="h2"
-            sx={{ fontSize: "1.7rem", fontWeight: 700, mt: 1 }}
-          >
+          <Typography variant="h2" sx={{ fontSize: "1.7rem", fontWeight: 700, mt: 1 }}>
             Đăng nhập
           </Typography>
         </Stack>
@@ -116,10 +94,7 @@ const LoginPage = () => {
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -141,19 +116,9 @@ const LoginPage = () => {
             Đăng nhập
           </Button>
 
-          <Typography
-            variant="body2"
-            align="center"
-            color="text.secondary"
-            sx={{ fontSize: "1rem" }}
-          >
+          <Typography variant="body2" align="center" color="text.secondary" sx={{ fontSize: "1rem" }}>
             Bạn chưa có tài khoản?{" "}
-            <Link
-              component={RouterLink}
-              to="/auth/register"
-              underline="hover"
-              sx={{ fontWeight: 800, color: "primary.main" }}
-            >
+            <Link component={RouterLink} to="/auth/register" underline="hover" sx={{ fontWeight: 800, color: "primary.main" }}>
               Đăng ký ngay
             </Link>
           </Typography>
