@@ -12,6 +12,7 @@ import {
 import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
 import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
 import { SensorCard } from "../../components/technician/SensorCard";
+import { ConfirmActionModal } from "../../components/technician/ConfirmActionModal";
 import {
   LineChart,
   Line,
@@ -36,7 +37,6 @@ import CompressIcon from "@mui/icons-material/Compress";
 import BoltIcon from "@mui/icons-material/Bolt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-// Dữ liệu mô phỏng 30 phút gần nhất
 const trendData = [
   { time: "10:00", temp: 28.5, ph: 7.2, do: 5.4, nh3: 0.2 },
   { time: "10:05", temp: 28.8, ph: 7.1, do: 5.2, nh3: 0.3 },
@@ -49,6 +49,18 @@ const trendData = [
 const RealTimeSensors = () => {
   const theme = useTheme();
   const [selectedTank, setSelectedTank] = useState("B-02");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState("");
+
+  const handleOpenModal = (title: string) => {
+    setSelectedAction(title);
+    setModalOpen(true);
+  };
+
+  const handleConfirmAction = () => {
+    console.log("Đã kích hoạt hành động:", selectedAction);
+    setModalOpen(false);
+  };
 
   return (
     <Box
@@ -71,7 +83,6 @@ const RealTimeSensors = () => {
         <TechnicianHeader />
 
         <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 4 }}>
-          {/* MAIN CONTENT AREA */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ mb: 4 }}>
               <Typography
@@ -92,7 +103,7 @@ const RealTimeSensors = () => {
               </Typography>
             </Box>
 
-            {/* KHU VỰC CHỌN BỂ NUÔI */}
+            {/* CHỌN BỂ NUÔI */}
             <Typography
               variant="subtitle2"
               sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}
@@ -167,7 +178,7 @@ const RealTimeSensors = () => {
               </Button>
             </Stack>
 
-            {/* CHỈ SỐ CẢM BIẾN HIỆN TẠI */}
+            {/* CHỈ SỐ CẢM BIẾN */}
             <Typography
               variant="h6"
               sx={{
@@ -228,17 +239,7 @@ const RealTimeSensors = () => {
               />
             </Box>
 
-            {/* BIỂU ĐỒ THỜI GIAN THỰC */}
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                mb: 2.5,
-                color: theme.palette.text.primary,
-              }}
-            >
-              Biểu đồ thời gian thực - Bể {selectedTank} (30 phút gần nhất)
-            </Typography>
+            {/* BIỂU ĐỒ */}
             <Box
               sx={{
                 display: "grid",
@@ -255,7 +256,7 @@ const RealTimeSensors = () => {
                 }}
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 3 }}>
-                  Nhiệt độ & pH (30 phút gần nhất)
+                  Nhiệt độ & pH
                 </Typography>
                 <Box sx={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -331,7 +332,7 @@ const RealTimeSensors = () => {
                 }}
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 3 }}>
-                  DO & Ammonia (30 phút gần nhất)
+                  DO & Ammonia
                 </Typography>
                 <Box sx={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -417,35 +418,30 @@ const RealTimeSensors = () => {
                   label: "Tốc độ RPM",
                   value: "1450",
                   icon: <SpeedIcon />,
-                  sub: "1500 RPM",
                   color: theme.palette.primary.main,
                 },
                 {
                   label: "Rung động",
                   value: "2.3",
                   icon: <VibrationIcon />,
-                  sub: "Ổn định",
                   color: theme.palette.success.main,
                 },
                 {
                   label: "Áp suất",
                   value: "2.4 bar",
                   icon: <CompressIcon />,
-                  sub: "bar",
                   color: theme.palette.warning.main,
                 },
                 {
                   label: "Công suất",
                   value: "85%",
                   icon: <BoltIcon />,
-                  sub: "Tải ưu tiên",
                   color: theme.palette.primary.main,
                 },
                 {
                   label: "Trạng thái",
                   value: "OK",
                   icon: <CheckCircleIcon />,
-                  sub: "Đang chạy",
                   color: theme.palette.success.main,
                 },
               ].map((item, idx) => (
@@ -482,13 +478,7 @@ const RealTimeSensors = () => {
                       >
                         {item.label}
                       </Typography>
-                      <Typography
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: "1.1rem",
-                          color: theme.palette.text.primary,
-                        }}
-                      >
+                      <Typography sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
                         {item.value}
                       </Typography>
                     </Box>
@@ -531,7 +521,7 @@ const RealTimeSensors = () => {
                 variant="determinate"
                 value={85}
                 sx={{
-                  height: 8,
+                  height: 10,
                   borderRadius: 6,
                   mb: 1.5,
                   bgcolor: theme.palette.background.paper,
@@ -565,30 +555,41 @@ const RealTimeSensors = () => {
                   title="Xử lý khẩn cấp DO thấp"
                   desc="Tăng công suất sục khí lên 100% tại Bể B-02."
                   type="error"
+                  onAction={() => handleOpenModal("Xử lý khẩn cấp DO thấp")}
                 />
                 <ActionCard
                   title="Xử lý Ammonia cao"
                   desc="Thay nước 30% và bổ sung vi sinh Bacillus."
                   type="warning"
+                  onAction={() => handleOpenModal("Xử lý Ammonia cao")}
                 />
               </Stack>
             </Paper>
           </Box>
         </Box>
       </Box>
+
+      {/* MODAL XÁC NHẬN */}
+      <ConfirmActionModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmAction}
+        actionTitle={selectedAction}
+      />
     </Box>
   );
 };
 
-// COMPONENT ACTION CARD ĐÃ GIẢM CHIỀU CAO BUTTON
 const ActionCard = ({
   title,
   desc,
   type,
+  onAction,
 }: {
   title: string;
   desc: string;
   type: "error" | "warning";
+  onAction: () => void;
 }) => {
   const theme = useTheme();
   return (
@@ -622,6 +623,7 @@ const ActionCard = ({
       </Typography>
       <Stack direction="row" spacing={1.5} mt={1.5}>
         <Button
+          onClick={onAction}
           size="small"
           variant="contained"
           color={type === "error" ? "error" : "primary"}
@@ -632,9 +634,9 @@ const ActionCard = ({
             borderRadius: "8px",
             fontWeight: 600,
             flex: 1,
-            py: 0.5, // Giảm chiều cao qua padding-y
-            minHeight: "32px", // Cố định chiều cao tối thiểu thấp hơn
-            fontSize: "0.75rem", // Giảm font size để cân đối
+            py: 0.5,
+            minHeight: "32px",
+            fontSize: "0.75rem",
           }}
         >
           Thực hiện
@@ -647,9 +649,9 @@ const ActionCard = ({
             borderRadius: "8px",
             fontWeight: 600,
             flex: 1,
-            py: 0.5, // Giảm chiều cao qua padding-y
-            minHeight: "32px", // Cố định chiều cao tối thiểu thấp hơn
-            fontSize: "0.75rem", // Giảm font size để cân đối
+            py: 0.5,
+            minHeight: "32px",
+            fontSize: "0.75rem",
           }}
         >
           SOP
