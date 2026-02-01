@@ -8,6 +8,10 @@ const COLOR_SECONDARY = "#27C4A8"; // Aqua
 const COLOR_WARNING = "#FFB547";
 const COLOR_DANGER = "#F04438";
 const COLOR_SUCCESS = "#32D583";
+const COLOR_PRIMARY_LIGHT = "#EAF3FF";
+const COLOR_SUCCESS_LIGHT = "#E8FDF0";
+const COLOR_WARNING_LIGHT = "#FFF7EB";
+const COLOR_DANGER_LIGHT = "#FFF2F1";
 
 const NEUTRAL_TEXT = "#1F2937";
 const NEUTRAL_TEXT_SECONDARY = "#6B7280";
@@ -16,11 +20,11 @@ const NEUTRAL_BG = "#F4F7FA";
 
 export const theme = createTheme({
   palette: {
-    primary: { main: COLOR_PRIMARY },
+    primary: { main: COLOR_PRIMARY, light: COLOR_PRIMARY_LIGHT },
     secondary: { main: COLOR_SECONDARY },
-    warning: { main: COLOR_WARNING },
-    error: { main: COLOR_DANGER },
-    success: { main: COLOR_SUCCESS },
+    warning: { main: COLOR_WARNING, light: COLOR_WARNING_LIGHT },
+    error: { main: COLOR_DANGER, light: COLOR_DANGER_LIGHT },
+    success: { main: COLOR_SUCCESS, light: COLOR_SUCCESS_LIGHT },
     background: {
       default: NEUTRAL_BG,
       paper: "#FFFFFF",
@@ -33,7 +37,7 @@ export const theme = createTheme({
   },
 
   typography: {
-    fontFamily: '"Inter", sans-serif',
+    fontFamily: "'Be Vietnam Pro', sans-serif",
     h1: { fontWeight: 800, fontSize: "2.5rem" },
     h2: { fontWeight: 700, fontSize: "2rem" },
     h3: { fontWeight: 600, fontSize: "1.25rem" },
