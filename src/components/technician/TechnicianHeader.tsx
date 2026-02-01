@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import { useNavigate } from "react-router-dom";
 
 // --- Interface cho từng notification ---
 interface NotificationItemProps {
@@ -77,9 +78,14 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
 
 export const TechnicianHeader: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
+  const handleSeeAll = () => {
+    setAnchorEl(null); // Đóng menu trước khi chuyển trang
+    navigate("/technician/alerts"); // Điều hướng đến AlertCenter
+  };
   return (
     <Box
       sx={{
@@ -170,6 +176,7 @@ export const TechnicianHeader: React.FC = () => {
               Cảnh báo mới nhất
             </Typography>
             <Typography
+              onClick={handleSeeAll} //
               sx={{
                 fontSize: "0.75rem",
                 color: theme.palette.primary.main,
