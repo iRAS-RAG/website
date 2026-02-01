@@ -1,46 +1,17 @@
-import {
-  Email,
-  Lock,
-  Login,
-  Visibility,
-  VisibilityOff,
-} from "@mui/icons-material";
-import {
-  Box,
-  Button,
-  IconButton,
-  InputAdornment,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-  Alert,
-} from "@mui/material";
+import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Alert, Box, Button, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import bg from "../../assets/backgrounds.png";
+import type { Role } from "../../mocks/auth";
+import { clearCurrentUser, currentUser, setCurrentUser } from "../../mocks/auth";
 
-// 1. Tạo danh sách tài khoản mẫu cho 3 vai trò
-const MOCK_USERS = {
-  ADMIN: {
-    email: "admin@iras.com",
-    password: "123",
-    role: "admin",
-    path: "/admin/dashboard",
-  },
-  MANAGER: {
-    email: "manager@iras.com",
-    password: "123",
-    role: "manager",
-    path: "/manager/dashboard",
-  },
-  TECHNICIAN: {
-    email: "tech@iras.com",
-    password: "123",
-    role: "technician",
-    path: "/technician/dashboard",
-  },
-};
+// Mock accounts (single source of truth for login stubs)
+const MOCK_USERS = [
+  { email: "admin@iras.com", password: "123", role: "Admin", path: "/admin/users", id: "u-admin", name: "System Admin" },
+  { email: "manager@iras.com", password: "123", role: "Manager", path: "/", id: "u-manager", name: "Manager" },
+  { email: "tech@iras.com", password: "123", role: "Technician", path: "/technician/dashboard", id: "u-tech", name: "Technician" },
+];
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -49,23 +20,30 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const isLoggedIn = Boolean(currentUser.id);
+
   const handleLogin = () => {
     setError("");
 
-    // Tìm kiếm user trong danh sách mock
-    const user = Object.values(MOCK_USERS).find(
-      (u) => u.email === email && u.password === password,
-    );
+    // Find user in mock list
+    const user = MOCK_USERS.find((u) => u.email === email && u.password === password);
 
     if (user) {
-      // Lưu thông tin role vào localStorage để các trang khác có thể sử dụng (tạm thời)
+      // Update mock current user so guarded routes work in-app
+      setCurrentUser({ id: user.id, name: user.name, role: user.role as Role });
+      // keep role in localStorage for other pages that inspect it
       localStorage.setItem("userRole", user.role);
-      // Điều hướng đến đúng trang dựa trên vai trò
       navigate(user.path);
     } else {
       setError("Email hoặc mật khẩu không chính xác!");
     }
   };
+
+  function handleLogout() {
+    clearCurrentUser();
+    localStorage.removeItem("userRole");
+    navigate("/");
+  }
 
   return (
     <Box
@@ -111,11 +89,7 @@ const LoginPage = () => {
         }}
       >
         <Stack spacing={3}>
-          <Typography
-            variant="h2"
-            align="center"
-            sx={{ fontSize: "1.7rem", fontWeight: 700 }}
-          >
+          <Typography variant="h2" align="center" sx={{ fontSize: "1.7rem", fontWeight: 700 }}>
             Đăng nhập iRAS-RAG
           </Typography>
 
@@ -149,10 +123,7 @@ const LoginPage = () => {
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -160,16 +131,15 @@ const LoginPage = () => {
             }}
           />
 
-          <Button
-            variant="contained"
-            fullWidth
-            size="large"
-            startIcon={<Login />}
-            onClick={handleLogin}
-            sx={{ py: 1.8 }}
-          >
-            Đăng nhập
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="outlined" fullWidth size="large" onClick={handleLogout} sx={{ py: 1.8 }}>
+              Đăng xuất
+            </Button>
+          ) : (
+            <Button variant="contained" fullWidth size="large" startIcon={<Login />} onClick={handleLogin} sx={{ py: 1.8 }}>
+              Đăng nhập
+            </Button>
+          )}
 
           <Typography variant="body2" align="center">
             Mẹo: Dùng <b>tech@iras.com</b> / <b>123</b>

@@ -1,27 +1,22 @@
-import { ThemeProvider, CssBaseline, Box } from "@mui/material";
-import { theme } from "./theme/theme";
-import AppRouter from "./router/router";
-import Header from "./components/public/public/Header";
-import Footer from "./components/public/public/Footer";
+import { Box, CssBaseline, ThemeProvider } from "@mui/material";
 import { useLocation } from "react-router-dom";
+import Footer from "./components/public/public/Footer";
+import Header from "./components/public/public/Header";
+import AppRouter from "./router/router";
+import { theme } from "./theme/theme";
 
 function App() {
   const location = useLocation();
-  // Kiểm tra nếu là trang dashboard thì ẩn header/footer public
-  const isDashboard = location.pathname.startsWith("/technician");
+  // Kiểm tra nếu là một trang dashboard/admin thì ẩn header/footer public
+  const isDashboard = location.pathname.startsWith("/technician") || location.pathname.startsWith("/admin");
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-      >
+      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         {!isDashboard && <Header />}
 
-        <Box
-          component="main"
-          sx={{ flexGrow: 1, pt: isDashboard ? 0 : "64px" }}
-        >
+        <Box component="main" sx={{ flexGrow: 1, pt: isDashboard ? 0 : "64px" }}>
           <AppRouter />
         </Box>
 
