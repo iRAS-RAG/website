@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -20,6 +21,7 @@ import {
 } from "@mui/material";
 import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
 import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
+import { AlertDetailModal } from "../../components/technician/AlertDetailModal";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -28,9 +30,7 @@ import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 // import SearchIcon from "@mui/icons-material/Search";
-import type { JSX } from "react";
 
-// 1. Định nghĩa Interface cho dữ liệu Cảnh báo
 interface AlertData {
   time: string;
   sensor: string;
@@ -44,16 +44,22 @@ interface AlertData {
   levelColor: "error" | "warning" | "info" | "success" | "primary";
 }
 
-// 2. Định nghĩa Interface cho Props của SummaryCard
 interface SummaryCardProps {
   label: string;
   value: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
   color: keyof Palette;
 }
 
-const AlertCenter = () => {
+const AlertCenter: React.FC = () => {
   const theme = useTheme();
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<AlertData | null>(null);
+
+  const handleOpenDetail = (alert: AlertData) => {
+    setSelectedAlert(alert);
+    setDetailOpen(true);
+  };
 
   const alerts: AlertData[] = [
     {
@@ -109,6 +115,7 @@ const AlertCenter = () => {
           ml: "240px",
           display: "flex",
           flexDirection: "column",
+          minWidth: 0,
         }}
       >
         <TechnicianHeader />
@@ -129,11 +136,11 @@ const AlertCenter = () => {
               variant="body2"
               sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
             >
-              Quản lý và xử lý các cảnh báo từ hệ thống
+              Quản lý và xử lý các cảnh báo từ hệ thống iRAS-RAG
             </Typography>
           </Box>
 
-          {/* 1. SUMMARY CARDS - Cải thiện màu sắc icon/nền nhận diện nhanh */}
+          {/* 1. Summary Cards */}
           <Box
             sx={{
               display: "grid",
@@ -168,7 +175,7 @@ const AlertCenter = () => {
             />
           </Box>
 
-          {/* 2. FILTERS & EXPORT - Nâng cấp Toolbar UX */}
+          {/* 2. Toolbar */}
           <Paper
             sx={{
               p: 2,
@@ -184,6 +191,18 @@ const AlertCenter = () => {
               alignItems="center"
             >
               <Stack direction="row" spacing={2}>
+                {/* <TextField
+                  size="small"
+                  placeholder="Mã cảm biến..."
+                  sx={{ width: 220, bgcolor: "white" }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                /> */}
                 <TextField
                   select
                   size="small"
@@ -198,8 +217,6 @@ const AlertCenter = () => {
                   startIcon={<FilterListIcon />}
                   sx={{
                     borderRadius: "10px",
-                    borderColor: theme.palette.divider,
-                    color: theme.palette.text.primary,
                     fontWeight: 600,
                     textTransform: "none",
                   }}
@@ -214,7 +231,6 @@ const AlertCenter = () => {
                   bgcolor: theme.palette.secondary.main,
                   borderRadius: "10px",
                   fontWeight: 600,
-                  "&:hover": { bgcolor: theme.palette.secondary.dark },
                 }}
               >
                 Xuất báo cáo
@@ -222,7 +238,7 @@ const AlertCenter = () => {
             </Stack>
           </Paper>
 
-          {/* 3. ALERT LOG TABLE - Cải thiện Bold dữ liệu chính và Căn lề số */}
+          {/* 3. Table */}
           <TableContainer
             component={Paper}
             sx={{
@@ -241,7 +257,7 @@ const AlertCenter = () => {
                     "Giá trị",
                     "Ngưỡng",
                     "Mức độ",
-                    "Bể ảnh hưởng",
+                    "Bể",
                     "Kỹ thuật viên",
                     "Trạng thái",
                     "Hành động",
@@ -273,13 +289,7 @@ const AlertCenter = () => {
                       {row.time}
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: "0.85rem",
-                          color: theme.palette.text.primary,
-                        }}
-                      >
+                      <Typography sx={{ fontWeight: 700, fontSize: "0.85rem" }}>
                         {row.sensor}
                       </Typography>
                       <Typography
@@ -289,18 +299,12 @@ const AlertCenter = () => {
                         {row.type}
                       </Typography>
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{ fontWeight: 700, fontSize: "0.95rem" }}
-                    >
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>
                       {row.value}
                     </TableCell>
                     <TableCell
                       align="center"
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontWeight: 500,
-                      }}
+                      sx={{ color: theme.palette.text.secondary }}
                     >
                       {row.limit}
                     </TableCell>
@@ -309,20 +313,21 @@ const AlertCenter = () => {
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>{row.tank}</TableCell>
                     <TableCell sx={{ fontSize: "0.85rem" }}>
-                      {row.staff || "Chưa phân công"}
+                      {row.staff}
                     </TableCell>
                     <TableCell>
                       <Chip
                         label={row.status}
                         variant="outlined"
                         size="small"
-                        sx={{ fontWeight: 600, borderRadius: "6px" }}
+                        sx={{ fontWeight: 600 }}
                       />
                     </TableCell>
                     <TableCell>
                       <Button
                         size="small"
                         variant="contained"
+                        onClick={() => handleOpenDetail(row)}
                         startIcon={
                           <VisibilityIcon
                             sx={{ fontSize: "16px !important" }}
@@ -332,7 +337,6 @@ const AlertCenter = () => {
                           borderRadius: "6px",
                           textTransform: "none",
                           fontWeight: 600,
-                          px: 2,
                         }}
                       >
                         Xem
@@ -344,7 +348,7 @@ const AlertCenter = () => {
             </Table>
           </TableContainer>
 
-          {/* 4. PAGINATION - Thêm thông tin quy mô dữ liệu */}
+          {/* 4. Pagination */}
           <Stack
             direction="row"
             justifyContent="space-between"
@@ -361,15 +365,25 @@ const AlertCenter = () => {
           </Stack>
         </Box>
       </Box>
+
+      {/* Modal chi tiết */}
+      <AlertDetailModal
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        data={selectedAlert}
+      />
     </Box>
   );
 };
 
 // --- Sub-components ---
-
-const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
+const SummaryCard: React.FC<SummaryCardProps> = ({
+  label,
+  value,
+  icon,
+  color,
+}) => {
   const theme = useTheme();
-
   return (
     <Paper
       sx={{
@@ -379,8 +393,6 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        transition: "transform 0.2s",
-        "&:hover": { transform: "translateY(-4px)" },
       }}
     >
       <Box>
@@ -388,9 +400,8 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
           variant="caption"
           sx={{
             color: theme.palette.text.secondary,
-            fontWeight: 600,
+            fontWeight: 700,
             textTransform: "uppercase",
-            letterSpacing: "0.5px",
           }}
         >
           {label}
@@ -414,15 +425,14 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
   );
 };
 
-const LevelChip = ({ level }: { level: AlertData["level"] }) => {
+const LevelChip: React.FC<{ level: AlertData["level"] }> = ({ level }) => {
   const theme = useTheme();
-
   const getStyle = () => {
     switch (level) {
       case "Nghiêm trọng":
-        return { bgcolor: theme.palette.error.main, color: "#FFFFFF" };
+        return { bgcolor: theme.palette.error.main, color: "#FFF" };
       case "Cao":
-        return { bgcolor: theme.palette.warning.main, color: "#FFFFFF" };
+        return { bgcolor: theme.palette.warning.main, color: "#FFF" };
       case "Trung bình":
         return {
           bgcolor: theme.palette.warning.light,
@@ -435,9 +445,7 @@ const LevelChip = ({ level }: { level: AlertData["level"] }) => {
         };
     }
   };
-
   const style = getStyle();
-
   return (
     <Chip
       label={level}

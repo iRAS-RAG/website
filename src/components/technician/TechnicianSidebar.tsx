@@ -20,8 +20,8 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 import WarningIcon from "@mui/icons-material/Warning";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+// import InventoryIcon from "@mui/icons-material/Inventory";
+// import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import SettingsIcon from "@mui/icons-material/Settings";
 import type { JSX } from "react";
 
@@ -62,16 +62,16 @@ const menuItems: MenuItemType[] = [
     icon: <AssignmentIcon />,
     path: "/technician/maintenance",
   },
-  {
-    text: "Kho phụ tùng",
-    icon: <InventoryIcon />,
-    path: "/technician/inventory",
-  },
-  {
-    text: "Quản trị hệ thống",
-    icon: <AdminPanelSettingsIcon />,
-    path: "/technician/admin",
-  },
+  // {
+  //   text: "Kho phụ tùng",
+  //   icon: <InventoryIcon />,
+  //   path: "/technician/inventory",
+  // },
+  // {
+  //   text: "Quản trị hệ thống",
+  //   icon: <AdminPanelSettingsIcon />,
+  //   path: "/technician/admin",
+  // },
   {
     text: "Cài đặt",
     icon: <SettingsIcon />,
