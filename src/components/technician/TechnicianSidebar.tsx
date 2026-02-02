@@ -11,6 +11,7 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
+import { Link, useLocation } from "react-router-dom"; // QUAN TRỌNG: Thêm các import này
 import logo from "../../assets/logo.png";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -27,23 +28,60 @@ import type { JSX } from "react";
 interface MenuItemType {
   text: string;
   icon: JSX.Element;
-  active?: boolean;
+  path: string; // Bắt buộc có path để điều hướng
 }
 
 const menuItems: MenuItemType[] = [
-  { text: "Bảng điều khiển", icon: <DashboardIcon />, active: true },
-  { text: "Bể nuôi", icon: <WaterIcon /> },
-  { text: "Cảm biến", icon: <SensorsIcon /> },
-  { text: "Cảnh báo", icon: <WarningIcon /> },
-  { text: "Tư vấn AI", icon: <PsychologyIcon /> },
-  { text: "Nhật ký bảo trì", icon: <AssignmentIcon /> },
-  { text: "Kho phụ tùng", icon: <InventoryIcon /> },
-  { text: "Quản trị hệ thống", icon: <AdminPanelSettingsIcon /> },
-  { text: "Cài đặt", icon: <SettingsIcon /> },
+  {
+    text: "Bảng điều khiển",
+    icon: <DashboardIcon />,
+    path: "/technician/dashboard",
+  },
+  {
+    text: "Bể nuôi",
+    icon: <WaterIcon />,
+    path: "/technician/tanks",
+  },
+  {
+    text: "Cảm biến",
+    icon: <SensorsIcon />,
+    path: "/technician/sensors",
+  },
+  {
+    text: "Cảnh báo",
+    icon: <WarningIcon />,
+    path: "/technician/alerts",
+  },
+  {
+    text: "Tư vấn AI",
+    icon: <PsychologyIcon />,
+    path: "/technician/ai-advisory",
+  },
+  {
+    text: "Nhật ký bảo trì",
+    icon: <AssignmentIcon />,
+    path: "/technician/maintenance",
+  },
+  {
+    text: "Kho phụ tùng",
+    icon: <InventoryIcon />,
+    path: "/technician/inventory",
+  },
+  {
+    text: "Quản trị hệ thống",
+    icon: <AdminPanelSettingsIcon />,
+    path: "/technician/admin",
+  },
+  {
+    text: "Cài đặt",
+    icon: <SettingsIcon />,
+    path: "/technician/settings",
+  },
 ];
 
 export const TechnicianSidebar = () => {
   const theme = useTheme();
+  const location = useLocation(); // Hook lấy thông tin đường dẫn hiện tại
 
   return (
     <Box
@@ -51,14 +89,16 @@ export const TechnicianSidebar = () => {
         width: 240,
         height: "100vh",
         position: "fixed",
-        bgcolor: theme.palette.background.paper,
+        left: 0,
+        top: 0,
+        bgcolor: "#FFFFFF",
         borderRight: `1px solid ${theme.palette.divider}`,
         display: "flex",
         flexDirection: "column",
-        zIndex: 1100,
+        zIndex: 1200,
       }}
     >
-      {/* LOGO */}
+      {/* LOGO SECTION */}
       <Stack
         direction="row"
         alignItems="center"
@@ -78,13 +118,17 @@ export const TechnicianSidebar = () => {
         </Typography>
       </Stack>
 
-      {/* MENU */}
+      {/* MENU ITEMS */}
       <List sx={{ flexGrow: 1, px: 1.5 }}>
         {menuItems.map((item) => {
-          const isActive = item.active;
+          // Kiểm tra xem item này có đang được chọn không dựa trên URL
+          const isActive = location.pathname === item.path;
+
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
+                component={Link} // Biến button thành thẻ Link của React Router
+                to={item.path} // Đường dẫn đích
                 sx={{
                   borderRadius: "10px",
                   py: 1.2,
@@ -94,6 +138,9 @@ export const TechnicianSidebar = () => {
                   color: isActive
                     ? theme.palette.primary.main
                     : theme.palette.text.secondary,
+                  "&:hover": {
+                    bgcolor: isActive ? theme.palette.primary.light : "#F8FAFC",
+                  },
                   "& .MuiListItemIcon-root": {
                     color: isActive
                       ? theme.palette.primary.main

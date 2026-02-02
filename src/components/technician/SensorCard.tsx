@@ -1,7 +1,5 @@
 import { Paper, Box, Typography, Chip, Stack, useTheme } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 
 interface SensorCardProps {
   label: string;
@@ -9,8 +7,9 @@ interface SensorCardProps {
   unit: string;
   trend: string;
   status: string;
-  statusColor: "success" | "warning" | "error"; // Khớp với key trong theme palette
+  statusColor: "success" | "warning" | "error";
   icon?: React.ElementType<SvgIconProps>;
+  optimalRange?: string;
 }
 
 export const SensorCard = ({
@@ -21,107 +20,92 @@ export const SensorCard = ({
   status,
   statusColor,
   icon: Icon,
+  optimalRange,
 }: SensorCardProps) => {
   const theme = useTheme();
-  const isUp = trend.startsWith("+");
 
   return (
     <Paper
       sx={{
-        p: "16px",
-        borderRadius: "16px",
+        p: 2.5,
+        borderRadius: "16px", // Bo góc đồng nhất 16px
         border: `1px solid ${theme.palette.divider}`,
+        position: "relative",
         bgcolor: "background.paper",
-        transition: "all 0.3s ease",
+        transition: "transform 0.2s",
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow: "0 12px 20px rgba(0,0,0,0.05)",
+          boxShadow: "0 8px 16px rgba(0,0,0,0.05)",
         },
       }}
     >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        sx={{ mb: 1.5 }}
-      >
+      <Stack direction="row" justifyContent="space-between" mb={1.5}>
         <Box
           sx={{
             p: 1,
             borderRadius: "10px",
-            bgcolor: "background.default",
-            color: "primary.main",
+            bgcolor: theme.palette.background.default,
+            color: `${statusColor}.main`,
             display: "flex",
           }}
         >
-          {Icon && <Icon sx={{ fontSize: 20 }} />}
+          {Icon && <Icon sx={{ fontSize: 22 }} />}
         </Box>
         <Chip
           label={status}
           size="small"
           sx={{
             fontWeight: 700,
-            fontSize: "10px",
-            // Cập nhật quan trọng: MUI sx tự hiểu shorthand "success.light"
+            fontSize: "7px",
             bgcolor: `${statusColor}.light`,
             color: `${statusColor}.main`,
-            borderRadius: "8px",
-            border: "none",
+            borderRadius: "6px",
           }}
         />
       </Stack>
 
       <Typography
         variant="caption"
-        color="text.secondary"
-        sx={{ fontWeight: 600 }}
+        sx={{
+          color: "#94A3B8",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+        }}
       >
         {label}
       </Typography>
-      <Typography
-        variant="h2"
-        sx={{
-          color: "text.primary",
-          my: 0.5,
-          fontSize: "1.8rem",
-          fontWeight: 800,
-        }}
-      >
-        {value}
-        <Box
-          component="span"
-          sx={{
-            fontSize: "1rem",
-            ml: 0.5,
-            fontWeight: 500,
-            color: "text.secondary",
-          }}
+
+      <Box sx={{ display: "flex", alignItems: "baseline", my: 0.5 }}>
+        <Typography
+          sx={{ fontWeight: 800, fontSize: "2rem", color: "#1E293B" }}
+        >
+          {value}
+        </Typography>
+        <Typography
+          sx={{ ml: 0.5, fontSize: "14px", fontWeight: 600, color: "#94A3B8" }}
         >
           {unit}
-        </Box>
+        </Typography>
+      </Box>
+
+      <Typography
+        variant="caption"
+        sx={{ display: "block", color: "#64748B", mb: 1.5, fontWeight: 500 }}
+      >
+        {trend}
       </Typography>
 
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            color: isUp ? "success.main" : "error.main",
-          }}
-        >
-          {isUp ? (
-            <TrendingUpIcon sx={{ fontSize: 14 }} />
-          ) : (
-            <TrendingDownIcon sx={{ fontSize: 14 }} />
-          )}
-          <Typography variant="caption" sx={{ fontWeight: 700, ml: 0.2 }}>
-            {trend}
+      {optimalRange && (
+        <Box sx={{ pt: 1.5, borderTop: `1px dashed ${theme.palette.divider}` }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "#94A3B8", fontStyle: "italic", fontSize: "11px" }}
+          >
+            Ngưỡng tối ưu: {optimalRange}
           </Typography>
         </Box>
-        <Typography variant="caption" color="text.secondary">
-          vs hôm qua
-        </Typography>
-      </Stack>
+      )}
     </Paper>
   );
 };
