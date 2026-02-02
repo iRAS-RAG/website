@@ -11,7 +11,7 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
-import { Link, useLocation } from "react-router-dom"; // QUAN TRỌNG: Thêm các import này
+import { Link, useLocation } from "react-router-dom"; // Hook để nhận diện trang hiện tại
 import logo from "../../assets/logo.png";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -20,15 +20,13 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 import WarningIcon from "@mui/icons-material/Warning";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-// import InventoryIcon from "@mui/icons-material/Inventory";
-// import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import SettingsIcon from "@mui/icons-material/Settings";
 import type { JSX } from "react";
 
 interface MenuItemType {
   text: string;
   icon: JSX.Element;
-  path: string; // Bắt buộc có path để điều hướng
+  path: string; // Đường dẫn điều hướng bắt buộc
 }
 
 const menuItems: MenuItemType[] = [
@@ -40,7 +38,7 @@ const menuItems: MenuItemType[] = [
   {
     text: "Bể nuôi",
     icon: <WaterIcon />,
-    path: "/technician/tanks",
+    path: "/technician/tanks", // Đã cập nhật đường dẫn đến TankManagement
   },
   {
     text: "Cảm biến",
@@ -62,16 +60,6 @@ const menuItems: MenuItemType[] = [
     icon: <AssignmentIcon />,
     path: "/technician/maintenance",
   },
-  // {
-  //   text: "Kho phụ tùng",
-  //   icon: <InventoryIcon />,
-  //   path: "/technician/inventory",
-  // },
-  // {
-  //   text: "Quản trị hệ thống",
-  //   icon: <AdminPanelSettingsIcon />,
-  //   path: "/technician/admin",
-  // },
   {
     text: "Cài đặt",
     icon: <SettingsIcon />,
@@ -81,7 +69,7 @@ const menuItems: MenuItemType[] = [
 
 export const TechnicianSidebar = () => {
   const theme = useTheme();
-  const location = useLocation(); // Hook lấy thông tin đường dẫn hiện tại
+  const location = useLocation(); // Lấy URL hiện tại để kiểm tra trạng thái Active
 
   return (
     <Box
@@ -121,14 +109,14 @@ export const TechnicianSidebar = () => {
       {/* MENU ITEMS */}
       <List sx={{ flexGrow: 1, px: 1.5 }}>
         {menuItems.map((item) => {
-          // Kiểm tra xem item này có đang được chọn không dựa trên URL
+          // Tự động kích hoạt trạng thái sáng màu khi URL khớp với path
           const isActive = location.pathname === item.path;
 
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
-                component={Link} // Biến button thành thẻ Link của React Router
-                to={item.path} // Đường dẫn đích
+                component={Link} // Tích hợp React Router Link
+                to={item.path}
                 sx={{
                   borderRadius: "10px",
                   py: 1.2,
