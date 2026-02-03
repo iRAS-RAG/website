@@ -3,7 +3,7 @@ import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar
 import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
 import { SensorCard } from "../../components/technician/SensorCard";
 
-import SmartToyIcon from "@mui/icons-material/SmartToy";
+// import SmartToyIcon from "@mui/icons-material/SmartToy";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
 import ScienceIcon from "@mui/icons-material/Science";
 import AirIcon from "@mui/icons-material/Air";
@@ -178,6 +178,7 @@ const TechnicianDashboard = () => {
           </Box>
 
           {/* Sensor Cards */}
+          {/* Sensor Cards */}
           <Box
             sx={{
               display: "grid",
@@ -186,54 +187,64 @@ const TechnicianDashboard = () => {
               mb: 6,
             }}
           >
+            {/* Card 1: Nhiệt độ */}
             <SensorCard
               label="Nhiệt độ"
               value="28.5"
               unit="°C"
-              trend="+1.2%"
+              trend="+2.1% so với hôm qua"
               status="An toàn"
               statusColor="success"
               icon={ThermostatIcon}
+              optimalRange="26-29°C" // Added purely to match the component interface, though not explicitly in the specific screenshot, it's good practice based on previous designs.
             />
 
+            {/* Card 2: Độ pH */}
             <SensorCard
               label="Độ pH"
               value="7.2"
               unit="pH"
-              trend="-0.5%"
+              trend="-0.3% so với hôm qua"
               status="An toàn"
               statusColor="success"
               icon={ScienceIcon}
+              optimalRange="7.0-7.5"
             />
 
+            {/* Card 3: Oxy hòa tan */}
             <SensorCard
               label="Oxy hòa tan"
-              value="5.1"
+              value="5.8"
               unit="mg/L"
-              trend="-2.1%"
+              trend="-5.2% so với hôm qua"
               status="Cảnh báo"
               statusColor="warning"
               icon={AirIcon}
+              optimalRange="> 5.0 mg/L"
             />
 
+            {/* Card 4: Ammonia */}
             <SensorCard
               label="Ammonia"
-              value="0.01"
-              unit="mg/L"
-              trend="+10%"
+              value="0.8"
+              unit="ppm"
+              trend="+12.5% so với hôm qua"
               status="Nguy hiểm"
               statusColor="error"
               icon={WaterDropIcon}
+              optimalRange="< 0.5 ppm"
             />
 
+            {/* Card 5: Tốc độ động cơ */}
             <SensorCard
-              label="Tốc độ máy"
-              value="1450"
-              unit="rpm"
-              trend="+0.0%"
+              label="Tốc độ động cơ"
+              value="1,450"
+              unit="RPM"
+              trend="+0.5% so với hôm qua"
               status="An toàn"
               statusColor="success"
               icon={SpeedIcon}
+              optimalRange="1400-1500 RPM"
             />
           </Box>
 
@@ -266,34 +277,65 @@ const TechnicianDashboard = () => {
           >
             {/* DO Chart */}
             <Paper
+              variant="outlined"
               sx={{
-                p: 2.5,
+                p: 3,
                 borderRadius: "16px",
                 border: `1px solid ${theme.palette.divider}`,
                 boxShadow: "none",
               }}
             >
-              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>
-                Xu hướng Oxy hòa tan (DO) - 24h
+              <Typography
+                variant="body1"
+                sx={{
+                  mb: 3,
+                  fontWeight: 700,
+                  color: theme.palette.text.primary,
+                }}
+              >
+                Xu hướng DO (24 giờ)
               </Typography>
 
-              <Box sx={{ height: 260 }}>
+              <Box sx={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}>
+                  <LineChart
+                    data={trendData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke={theme.palette.divider}
+                      vertical={true}
+                      stroke="#E5E7EB"
                     />
-                    <XAxis dataKey="time" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} />
-                    <Tooltip />
-
+                    <XAxis
+                      dataKey="time"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                      dy={10}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                      domain={[0, 8]}
+                      ticks={[0, 2, 4, 6, 8]}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "8px",
+                        border: "none",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                      }}
+                      cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="do"
-                      stroke={theme.palette.secondary.main}
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: theme.palette.secondary.main }}
+                      stroke="#10B981" // Xanh ngọc
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -302,34 +344,65 @@ const TechnicianDashboard = () => {
 
             {/* pH Chart */}
             <Paper
+              variant="outlined"
               sx={{
-                p: 2.5,
+                p: 3,
                 borderRadius: "16px",
                 border: `1px solid ${theme.palette.divider}`,
                 boxShadow: "none",
               }}
             >
-              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>
-                Xu hướng nồng độ pH - 24h
+              <Typography
+                variant="body1"
+                sx={{
+                  mb: 3,
+                  fontWeight: 700,
+                  color: theme.palette.text.primary,
+                }}
+              >
+                Xu hướng pH (24 giờ)
               </Typography>
 
-              <Box sx={{ height: 260 }}>
+              <Box sx={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}>
+                  <LineChart
+                    data={trendData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke={theme.palette.divider}
+                      vertical={true}
+                      stroke="#E5E7EB"
                     />
-                    <XAxis dataKey="time" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} />
-                    <Tooltip />
-
+                    <XAxis
+                      dataKey="time"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                      dy={10}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                      domain={[0, 8]}
+                      ticks={[0, 2, 4, 6, 8]}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "8px",
+                        border: "none",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                      }}
+                      cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="ph"
-                      stroke={theme.palette.primary.main}
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: theme.palette.primary.main }}
+                      stroke="#3B82F6" // Xanh dương
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#3B82F6", strokeWidth: 0 }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -338,130 +411,124 @@ const TechnicianDashboard = () => {
           </Box>
 
           {/* Comparison Chart + AI Advisory */}
+          {/* Comparison Chart + AI Advisory */}
           <Paper
+            variant="outlined"
             sx={{
               p: 3,
-              borderRadius: "20px",
+              borderRadius: "16px",
               border: `1px solid ${theme.palette.divider}`,
               boxShadow: "none",
             }}
           >
-            <Typography variant="subtitle2" sx={{ mb: 4, fontWeight: 700 }}>
-              So sánh hiệu suất và chỉ số tối ưu
+            <Typography
+              variant="body1"
+              sx={{ mb: 4, fontWeight: 500, color: theme.palette.text.primary }}
+            >
+              So sánh chỉ số giữa các bể (Bể A vs Bể B)
             </Typography>
 
             {/* Bar chart */}
-            <Box sx={{ height: 380, mb: 4 }}>
+            <Box sx={{ height: 320, mb: 2 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={comparisonData}
-                  barGap={10}
-                  barCategoryGap="20%"
+                  barCategoryGap="25%"
+                  barGap={6}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke={theme.palette.divider}
+                    vertical={false}
+                    stroke="#E5E7EB"
                   />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip />
-                  <Legend />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "#6B7280" }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "#6B7280" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "transparent" }}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "none",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="square"
+                    iconSize={10}
+                    formatter={(value) => (
+                      <span
+                        style={{
+                          color: "#6B7280",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          marginLeft: "4px",
+                        }}
+                      >
+                        {value}
+                      </span>
+                    )}
+                  />
 
                   <Bar
                     dataKey="beA"
                     name="Bể A"
-                    fill={theme.palette.primary.main}
-                    radius={[6, 6, 0, 0]}
+                    fill="#3B82F6" // Xanh dương (Blue-500)
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={50}
                   />
                   <Bar
                     dataKey="beB"
                     name="Bể B"
-                    fill={theme.palette.secondary.main}
-                    radius={[6, 6, 0, 0]}
+                    fill="#10B981" // Xanh ngọc (Emerald-500) - Khớp với ảnh mẫu hơn
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={50}
                   />
                   <Bar
                     dataKey="toiUu"
-                    name="Mức tối ưu"
-                    fill={theme.palette.success.main}
-                    radius={[6, 6, 0, 0]}
+                    name="Tối ưu"
+                    fill="#34D399" // Xanh lá nhạt (Emerald-400)
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={50}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
 
-            {/* AI Advisory */}
+            {/* AI Analysis Box - Style tối giản như ảnh mẫu */}
             <Box
               sx={{
-                p: 3,
-                borderRadius: "16px",
-                bgcolor: theme.palette.primary.light,
-                border: `1px solid ${theme.palette.primary.main}33`,
+                p: 2,
+                borderRadius: "8px",
+                bgcolor: "#F9FAFB", // Nền xám rất nhạt
+                mt: 2,
               }}
             >
-              <Stack
-                direction="row"
-                spacing={1.5}
-                alignItems="center"
-                sx={{ mb: 2 }}
+              <Typography
+                variant="body2"
+                sx={{ color: "#374151", fontSize: "0.85rem", lineHeight: 1.6 }}
               >
                 <Box
-                  sx={{
-                    p: 0.8,
-                    bgcolor: theme.palette.primary.main,
-                    borderRadius: "8px",
-                    display: "flex",
-                  }}
+                  component="span"
+                  sx={{ fontWeight: 700, color: "#111827" }}
                 >
-                  <SmartToyIcon sx={{ color: "white", fontSize: 20 }} />
+                  Phân tích:{" "}
                 </Box>
-
-                <Typography
-                  variant="subtitle1"
-                  color={theme.palette.primary.dark}
-                  fontWeight={600}
-                >
-                  Phân tích và tư vấn từ AI iRAS-RAG
-                </Typography>
-              </Stack>
-
-              <Box
-                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}
-              >
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 600,
-                      color: theme.palette.primary.main,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Tình trạng nhận diện
-                  </Typography>
-
-                  <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.7 }}>
-                    Dựa trên truy xuất dữ liệu <b>RAG</b>, bể <b>A-03</b> có
-                    nồng độ Oxy giảm nhẹ…
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 600,
-                      color: theme.palette.error.main,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Hành động đề xuất
-                  </Typography>
-
-                  <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.7 }}>
-                    Kích hoạt thêm <b>máy sục khí dự phòng</b> tại phân khu Ươm…
-                  </Typography>
-                </Box>
-              </Box>
+                Bể B đang có nhiều chỉ số vượt mức tối ưu. Cần kiểm tra và điều
+                chỉnh DO và pH ngay lập tức để đảm bảo môi trường nuôi trồng ổn
+                định.
+              </Typography>
             </Box>
           </Paper>
         </Box>

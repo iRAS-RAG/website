@@ -142,23 +142,25 @@ const AIAdvisory: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ display: "flex", bgcolor: "#F8FAFC", minHeight: "100vh" }}>
-      {/* Sidebar chính */}
+    <Box
+      sx={{
+        display: "flex",
+        bgcolor: theme.palette.background.default,
+        minHeight: "100vh",
+      }}
+    >
       <TechnicianSidebar />
-
       <Box
         sx={{
           flexGrow: 1,
           ml: "240px",
           display: "flex",
           flexDirection: "column",
-          height: "100vh",
         }}
       >
         <TechnicianHeader />
 
         <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
-          {/* ================= CỘT TRÁI: LỊCH SỬ (280px) ================= */}
           {/* ================= CỘT TRÁI: LỊCH SỬ (280px) ================= */}
           <Box
             sx={{

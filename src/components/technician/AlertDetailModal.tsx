@@ -28,20 +28,21 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// 1. Định nghĩa Interface cho dữ liệu cảnh báo để thay thế 'any'
-interface AlertData {
+// 1. Cập nhật Interface khớp với AlertCenter.tsx
+export interface AlertData {
+  id: number;
   time: string;
-  sensor: string;
-  type: string;
+  sensorCode: string;
+  sensorName: string;
   value: string;
   limit: string;
   level: "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp";
   tank: string;
   staff: string;
-  status: string;
-  levelColor: "error" | "warning" | "info" | "success" | "primary";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đã xử lý";
 }
 
+// Dữ liệu biểu đồ giả lập (Trong thực tế sẽ lấy từ API dựa trên id cảnh báo)
 const shortTermData = [
   { time: "08:00", value: 6.5 },
   { time: "08:30", value: 6.2 },
@@ -54,7 +55,7 @@ const shortTermData = [
 interface AlertDetailModalProps {
   open: boolean;
   onClose: () => void;
-  data: AlertData | null; // Sử dụng AlertData thay vì any
+  data: AlertData | null;
 }
 
 export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
@@ -65,6 +66,38 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   const theme = useTheme();
 
   if (!data) return null;
+
+  // Helper để lấy màu dựa trên mức độ cảnh báo
+  const getLevelColorInfo = (level: string) => {
+    switch (level) {
+      case "Nghiêm trọng":
+        return {
+          main: theme.palette.error.main,
+          light: theme.palette.error.light,
+          bg: "#FEF2F2",
+        };
+      case "Cao":
+        return {
+          main: theme.palette.warning.main,
+          light: theme.palette.warning.light,
+          bg: "#FFF7ED",
+        };
+      case "Trung bình":
+        return {
+          main: theme.palette.warning.main,
+          light: theme.palette.warning.light,
+          bg: "#FFFBEB",
+        };
+      default:
+        return {
+          main: theme.palette.text.secondary,
+          light: theme.palette.action.hover,
+          bg: "#F3F4F6",
+        };
+    }
+  };
+
+  const levelColor = getLevelColorInfo(data.level);
 
   return (
     <Dialog
@@ -94,7 +127,8 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             Chi tiết cảnh báo
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Mã: ALT-2024-001
+            Mã: ALT-{new Date().getFullYear()}-
+            {data.id.toString().padStart(3, "0")}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -103,6 +137,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: 2 }}>
+        {/* Thông tin cơ bản */}
         <Stack direction="row" spacing={2} mb={2}>
           <Box
             sx={{
@@ -110,7 +145,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               p: 1.5,
               bgcolor: "#F8FAFC",
               borderRadius: "12px",
-              border: "1px solid #E2E8F0",
+              border: `1px solid ${theme.palette.divider}`,
             }}
           >
             <Typography
@@ -134,7 +169,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               p: 1.5,
               bgcolor: "#F8FAFC",
               borderRadius: "12px",
-              border: "1px solid #E2E8F0",
+              border: `1px solid ${theme.palette.divider}`,
             }}
           >
             <Typography
@@ -173,41 +208,51 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               Cảm biến
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {data.sensor}
+              {data.sensorCode}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {data.type}
+              {data.sensorName}
             </Typography>
           </Box>
+
           <Chip
             label={data.level}
-            color={data.levelColor} // Sử dụng levelColor từ theme
-            sx={{ fontWeight: 700, borderRadius: "8px" }}
+            sx={{
+              fontWeight: 700,
+              borderRadius: "8px",
+              bgcolor: levelColor.bg,
+              color: levelColor.main,
+              border: `1px solid ${levelColor.light}`,
+            }}
           />
         </Stack>
 
+        {/* Thông báo phân tích */}
         <Typography
           variant="body2"
           sx={{
             p: 2,
-            bgcolor: theme.palette.error.light,
+            bgcolor: levelColor.bg,
             borderRadius: "12px",
-            color: theme.palette.error.main,
+            color: levelColor.main,
             mb: 3,
             fontWeight: 500,
+            border: `1px solid ${levelColor.light}`,
           }}
         >
-          Mức DO giảm mạnh xuống dưới ngưỡng an toàn. Nguy cơ thiếu oxy cho tôm.
-          Cần can thiệp khẩn cấp.
+          Giá trị <strong>{data.sensorName}</strong> đang ở mức {data.value},
+          vượt ngưỡng an toàn ({data.limit}). Cần kiểm tra và xử lý ngay.
         </Typography>
 
+        {/* So sánh giá trị */}
         <Stack direction="row" spacing={2} mb={3}>
           <Box
             sx={{
               flex: 1,
               p: 2,
-              border: `1px solid ${theme.palette.error.light}`,
+              border: `1px solid ${levelColor.light}`,
               borderRadius: "16px",
+              bgcolor: "#fff",
             }}
           >
             <Typography
@@ -219,7 +264,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             </Typography>
             <Typography
               variant="h4"
-              sx={{ fontWeight: 800, color: theme.palette.error.main }}
+              sx={{ fontWeight: 800, color: levelColor.main }}
             >
               {data.value}
             </Typography>
@@ -227,11 +272,11 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               direction="row"
               alignItems="center"
               spacing={0.5}
-              sx={{ color: theme.palette.error.main }}
+              sx={{ color: levelColor.main }}
             >
               <TrendingDownIcon sx={{ fontSize: 16 }} />
               <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                Giảm 35% trong 2 giờ
+                Bất thường
               </Typography>
             </Stack>
           </Box>
@@ -260,13 +305,13 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               variant="caption"
               sx={{ color: theme.palette.success.main, fontWeight: 600 }}
             >
-              Mức tối ưu cho nuôi trồng
+              Mức tối ưu
             </Typography>
           </Box>
         </Stack>
 
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-          Xu hướng 3 giờ gần đây
+          Xu hướng gần đây
         </Typography>
         <Box sx={{ height: 200, mb: 3 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -286,20 +331,27 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                 fontSize={10}
                 tickLine={false}
                 axisLine={false}
-                domain={[0, 8]}
+                domain={[0, "auto"]}
               />
-              <Tooltip />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "8px",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                }}
+              />
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke={theme.palette.error.main}
+                stroke={levelColor.main}
                 strokeWidth={3}
-                dot={{ r: 4, fill: theme.palette.error.main }}
+                dot={{ r: 4, fill: levelColor.main }}
               />
             </LineChart>
           </ResponsiveContainer>
         </Box>
 
+        {/* AI Suggestion */}
         <Box
           sx={{
             p: 2,
@@ -324,20 +376,22 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               Hướng dẫn từ AI Advisor
             </Typography>
             <Typography variant="body2" sx={{ my: 0.5, lineHeight: 1.5 }}>
-              Tăng công suất sục khí lên 100% ngay lập tức. Kiểm tra hệ thống
-              đầu sục và máy thổi khí.
+              Dựa trên dữ liệu cảm biến {data.sensorCode}, hệ thống đề xuất kiểm
+              tra thiết bị và thực hiện quy trình SOP tương ứng.
             </Typography>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: theme.palette.primary.main }}
+            <Button
+              size="small"
+              variant="text"
+              sx={{ p: 0, minWidth: 0, fontWeight: 700 }}
             >
-              Mục tiêu: Đạt DO ≥ 5.5 mg/L trong 30 phút.
-            </Typography>
+              Xem chi tiết SOP &rarr;
+            </Button>
           </Box>
         </Box>
 
         <Divider sx={{ mb: 3 }} />
 
+        {/* Footer Actions */}
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -353,7 +407,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                 fontWeight: 700,
               }}
             >
-              {data.staff.charAt(0)}
+              {data.staff ? data.staff.charAt(0) : "?"}
             </Avatar>
             <Box>
               <Typography
@@ -364,7 +418,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                 KỸ THUẬT VIÊN PHỤ TRÁCH
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {data.staff}
+                {data.staff || "Chưa phân công"}
               </Typography>
             </Box>
           </Stack>
@@ -376,6 +430,8 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                 borderRadius: "8px",
                 textTransform: "none",
                 fontWeight: 600,
+                borderColor: theme.palette.divider,
+                color: theme.palette.text.secondary,
               }}
             >
               Gửi hỗ trợ
@@ -388,6 +444,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                 borderRadius: "8px",
                 textTransform: "none",
                 fontWeight: 700,
+                boxShadow: "none",
               }}
             >
               Đã xử lý
