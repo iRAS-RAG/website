@@ -1,30 +1,22 @@
-import { Box, Typography, useTheme } from "@mui/material";
 import React from "react";
+import DashboardHeader from "../common/DashboardHeader";
 
 export const AdminHeader: React.FC = () => {
-  const theme = useTheme();
+  type Notification = { type: "error" | "warning" | "success"; title: string; time: string };
+  const adminNotifications: Notification[] = [
+    { type: "error", title: "Người dùng X đăng ký tài khoản", time: "5 phút trước" },
+    { type: "warning", title: "Thiết bị Y mất kết nối", time: "30 phút trước" },
+    { type: "success", title: "Cập nhật cấu hình thành công", time: "1 giờ trước" },
+  ];
 
   return (
-    <Box
-      sx={{
-        height: "70px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        px: 3,
-        bgcolor: theme.palette.background.paper,
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        position: "sticky",
-        top: 0,
-        zIndex: 1000,
-      }}
-    >
-      <Typography variant="h6" sx={{ fontWeight: 800 }}>
-        Quản trị hệ thống
-      </Typography>
-
-      <Box />
-    </Box>
+    <DashboardHeader
+      title="Quản trị hệ thống"
+      badgeCount={adminNotifications.length}
+      searchPlaceholder="Tìm nhanh người dùng, thiết bị..."
+      notifications={adminNotifications}
+      seeAllRoute="/admin/alerts"
+    />
   );
 };
 
