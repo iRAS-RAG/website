@@ -37,7 +37,6 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import BuildIcon from "@mui/icons-material/Build";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import TimelineIcon from "@mui/icons-material/Timeline";
-// Icons cho tab Thiết bị & Bảo trì
 import AddIcon from "@mui/icons-material/Add";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
@@ -47,7 +46,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
 import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
 
-// --- INTERFACES (Định nghĩa kiểu dữ liệu chuẩn xác) ---
+// --- INTERFACES ---
 interface Tank {
   id: string;
   code: string;
@@ -186,664 +185,708 @@ const TankManagement = () => {
       >
         <TechnicianHeader />
 
+        {/* MAIN CONTENT AREA */}
         <Box
           sx={{
             display: "flex",
+            flexDirection: "column", // Đổi thành column để Header nằm trên
             flexGrow: 1,
             p: 3,
             gap: 3,
             height: "calc(100vh - 80px)",
           }}
         >
-          {/* ================= COL 1: DANH SÁCH BỂ (35%) ================= */}
-          <Box
-            sx={{
-              flex: 3.5,
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              minWidth: 320,
-            }}
+          {/* --- PAGE HEADER MỚI --- */}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
           >
-            {/* Filter Section */}
-            <Paper
-              elevation={0}
+            <Box>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 600, color: theme.palette.text.primary }}
+              >
+                Quản lý bể nuôi
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
+              >
+                Giám sát và quản lý vòng đời tài sản
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
               sx={{
-                p: 2,
-                borderRadius: "12px",
-                border: `1px solid ${theme.palette.divider}`,
-              }}
-            >
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Tìm kiếm bể..."
-                sx={{ mb: 1.5 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon
-                        fontSize="small"
-                        sx={{ color: theme.palette.text.secondary }}
-                      />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Stack direction="row" spacing={1.5}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  defaultValue="all"
-                  sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}
-                >
-                  <MenuItem value="all">Tất cả trạng thái</MenuItem>
-                  <MenuItem value="active">Đang nuôi</MenuItem>
-                  <MenuItem value="warning">Cảnh báo</MenuItem>
-                </TextField>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  defaultValue="all"
-                  sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}
-                >
-                  <MenuItem value="all">Tất cả loài</MenuItem>
-                  <MenuItem value="shrimp">Tôm</MenuItem>
-                  <MenuItem value="fish">Cá</MenuItem>
-                </TextField>
-              </Stack>
-            </Paper>
-
-            {/* List Tanks */}
-            <Box
-              sx={{
-                flexGrow: 1,
-                overflowY: "auto",
-                pr: 1,
-                "&::-webkit-scrollbar": { width: "6px" },
-                "&::-webkit-scrollbar-thumb": {
-                  bgcolor: theme.palette.divider,
-                  borderRadius: "4px",
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: "8px",
+                bgcolor: theme.palette.primary.main,
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: theme.palette.primary.dark,
+                  boxShadow: "none",
                 },
               }}
             >
-              <Stack spacing={2}>
-                {tankList.map((tank) => (
-                  <TankListItem
-                    key={tank.code}
-                    data={tank}
-                    selected={selectedTank.code === tank.code}
-                    onClick={() => setSelectedTank(tank)}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          </Box>
+              Thêm bể mới
+            </Button>
+          </Stack>
 
-          {/* ================= COL 2: CHI TIẾT BỂ (65%) ================= */}
-          <Box sx={{ flex: 6.5, display: "flex", flexDirection: "column" }}>
-            <Paper
-              elevation={0}
+          {/* --- CONTENT 2 COLUMNS --- */}
+          <Box sx={{ display: "flex", gap: 3, flexGrow: 1, minHeight: 0 }}>
+            {/* ================= COL 1: DANH SÁCH BỂ (35%) ================= */}
+            <Box
               sx={{
-                flexGrow: 1,
-                borderRadius: "16px",
-                border: `1px solid ${theme.palette.divider}`,
+                flex: 3.5,
                 display: "flex",
                 flexDirection: "column",
-                overflow: "hidden",
+                gap: 2,
+                minWidth: 320,
               }}
             >
-              {/* Header Details */}
-              <Box
+              {/* Filter Section */}
+              <Paper
+                elevation={0}
                 sx={{
-                  p: 3,
-                  pb: 0,
-                  borderBottom: `1px solid ${theme.palette.divider}`,
+                  p: 2,
+                  borderRadius: "12px",
+                  border: `1px solid ${theme.palette.divider}`,
                 }}
               >
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="flex-start"
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm bể..."
+                  sx={{ mb: 1.5 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon
+                          fontSize="small"
+                          sx={{ color: theme.palette.text.secondary }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <Stack direction="row" spacing={1.5}>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    defaultValue="all"
+                    sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}
+                  >
+                    <MenuItem value="all">Tất cả trạng thái</MenuItem>
+                    <MenuItem value="active">Đang nuôi</MenuItem>
+                    <MenuItem value="warning">Cảnh báo</MenuItem>
+                  </TextField>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    defaultValue="all"
+                    sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}
+                  >
+                    <MenuItem value="all">Tất cả loài</MenuItem>
+                    <MenuItem value="shrimp">Tôm</MenuItem>
+                    <MenuItem value="fish">Cá</MenuItem>
+                  </TextField>
+                </Stack>
+              </Paper>
+
+              {/* List Tanks */}
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  overflowY: "auto",
+                  pr: 1,
+                  "&::-webkit-scrollbar": { width: "6px" },
+                  "&::-webkit-scrollbar-thumb": {
+                    bgcolor: theme.palette.divider,
+                    borderRadius: "4px",
+                  },
+                }}
+              >
+                <Stack spacing={2}>
+                  {tankList.map((tank) => (
+                    <TankListItem
+                      key={tank.code}
+                      data={tank}
+                      selected={selectedTank.code === tank.code}
+                      onClick={() => setSelectedTank(tank)}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            </Box>
+
+            {/* ================= COL 2: CHI TIẾT BỂ (65%) ================= */}
+            <Box sx={{ flex: 6.5, display: "flex", flexDirection: "column" }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  flexGrow: 1,
+                  borderRadius: "16px",
+                  border: `1px solid ${theme.palette.divider}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header Details */}
+                <Box
+                  sx={{
+                    p: 3,
+                    pb: 0,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  }}
                 >
-                  <Box>
-                    <Typography
-                      variant="h5"
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                  >
+                    <Box>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          fontWeight: 700,
+                          color: theme.palette.text.primary,
+                        }}
+                      >
+                        {selectedTank.id}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          fontWeight: 500,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {selectedTank.code}
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      size="small"
                       sx={{
-                        fontWeight: 700,
+                        textTransform: "none",
                         color: theme.palette.text.primary,
+                        borderColor: theme.palette.divider,
+                        fontWeight: 600,
+                        "&:hover": {
+                          borderColor: theme.palette.text.secondary,
+                          bgcolor: theme.palette.action.hover,
+                        },
                       }}
                     >
-                      {selectedTank.id}
-                    </Typography>
-                    <Typography
-                      variant="caption"
+                      Chỉnh sửa
+                    </Button>
+                  </Stack>
+
+                  <Tabs
+                    value={tabValue}
+                    onChange={(_, v) => setTabValue(v)}
+                    sx={{ mt: 2 }}
+                    indicatorColor="primary"
+                    textColor="primary"
+                  >
+                    <Tab
+                      label="Tổng quan"
                       sx={{
-                        color: theme.palette.text.secondary,
-                        fontWeight: 500,
-                        textTransform: "uppercase",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: "0.95rem",
                       }}
-                    >
-                      {selectedTank.code}
-                    </Typography>
-                  </Box>
+                    />
+                    <Tab
+                      label="Thiết bị & Bảo trì"
+                      sx={{
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                  </Tabs>
+                </Box>
+
+                {/* Body Content */}
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto" }}>
+                  {tabValue === 0 ? (
+                    // --- TAB 1: TỔNG QUAN ---
+                    <Stack spacing={4}>
+                      {/* KPI Section */}
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 2,
+                            color: theme.palette.text.primary,
+                          }}
+                        >
+                          KPI Tóm tắt (Tháng này)
+                        </Typography>
+                        <Stack direction="row" spacing={2}>
+                          <KPICard
+                            icon={
+                              <Inventory2OutlinedIcon
+                                sx={{ color: theme.palette.primary.main }}
+                              />
+                            }
+                            label="Lượng cám tiêu thụ"
+                            value="450 kg"
+                            trend="+12% so với tháng trước"
+                            trendColor="success"
+                          />
+                          <KPICard
+                            icon={
+                              <BoltIcon
+                                sx={{ color: theme.palette.warning.main }}
+                              />
+                            }
+                            label="Chi phí điện"
+                            value="2500.0K VND"
+                            trend="+5% so với tháng trước"
+                            trendColor="error"
+                          />
+                        </Stack>
+                      </Box>
+
+                      {/* Environment Section */}
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 2,
+                            color: theme.palette.text.primary,
+                          }}
+                        >
+                          Tình trạng Môi trường (Trung bình 24h)
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(4, 1fr)",
+                            gap: 2,
+                          }}
+                        >
+                          <EnvironmentCard
+                            icon={<ThermostatIcon fontSize="small" />}
+                            label="Nhiệt độ"
+                            value="28.5°C"
+                            statusColor="success"
+                          />
+                          <EnvironmentCard
+                            icon={<ScienceIcon fontSize="small" />}
+                            label="pH"
+                            value="7.2"
+                            statusColor="success"
+                          />
+                          <EnvironmentCard
+                            icon={<AirIcon fontSize="small" />}
+                            label="DO"
+                            value="6.8 mg/L"
+                            statusColor="success"
+                          />
+                          <EnvironmentCard
+                            icon={<WaterDropIcon fontSize="small" />}
+                            label="NH3"
+                            value="0.02 mg/L"
+                            statusColor="success"
+                          />
+                        </Box>
+                      </Box>
+
+                      {/* Lifecycle Section */}
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 2,
+                            color: theme.palette.text.primary,
+                          }}
+                        >
+                          Vòng đời Bể nuôi
+                        </Typography>
+
+                        <LinearProgress
+                          variant="determinate"
+                          value={60}
+                          sx={{
+                            height: 8,
+                            borderRadius: 4,
+                            bgcolor: theme.palette.action.hover,
+                            mb: 3,
+                            "& .MuiLinearProgress-bar": {
+                              bgcolor: theme.palette.primary.main,
+                            },
+                          }}
+                        />
+
+                        <Stack spacing={0}>
+                          <StepItem
+                            title="Giai đoạn 1: Thả giống"
+                            desc="Giai đoạn cá/tôm còn nhỏ, cần chăm sóc đặc biệt"
+                            date="Ngày 0-50"
+                            status="completed"
+                          />
+                          <StepItem
+                            title="Giai đoạn 2: Phát triển"
+                            desc="Giai đoạn tăng trưởng nhanh, tăng cường cho ăn"
+                            date="Ngày 51-100"
+                            status="completed"
+                          />
+                          <StepItem
+                            title="Giai đoạn 3: Thu hoạch"
+                            desc="Cá/tôm đạt kích thước thương phẩm, chuẩn bị thu hoạch"
+                            date="Ngày 101-150"
+                            status="upcoming"
+                          />
+                          <StepItem
+                            title="Thu hoạch hoàn tất"
+                            desc="Kết thúc vụ nuôi, làm sạch bể và chuẩn bị cho vụ mới"
+                            date="Ngày 150"
+                            status="upcoming"
+                            isLast
+                          />
+                        </Stack>
+
+                        <Box
+                          sx={{
+                            mt: 3,
+                            p: 2,
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            border: `1px solid ${alpha(
+                              theme.palette.primary.main,
+                              0.2,
+                            )}`,
+                            borderRadius: "12px",
+                            display: "flex",
+                            gap: 2,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              p: 1,
+                              bgcolor: theme.palette.background.paper,
+                              borderRadius: "8px",
+                              color: theme.palette.primary.main,
+                              display: "flex",
+                            }}
+                          >
+                            <TimelineIcon />
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{
+                                fontWeight: 700,
+                                color: theme.palette.primary.main,
+                              }}
+                            >
+                              Trạng thái hiện tại
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: theme.palette.primary.main,
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              Ngày 80 - Giai đoạn 2/3 - Dự kiến thu hoạch sau 70
+                              ngày
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Stack>
+                  ) : (
+                    // --- TAB 2: THIẾT BỊ & BẢO TRÌ ---
+                    <Stack spacing={4}>
+                      {/* 1. Danh sách thiết bị */}
+                      <Box>
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={2}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: 700,
+                              color: theme.palette.text.primary,
+                            }}
+                          >
+                            Danh sách Thiết bị
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<AddIcon />}
+                            sx={{
+                              textTransform: "none",
+                              fontWeight: 600,
+                              borderRadius: "8px",
+                              boxShadow: "none",
+                              bgcolor: theme.palette.primary.main,
+                            }}
+                          >
+                            Gán cảm biến
+                          </Button>
+                        </Stack>
+
+                        {/* Header Row */}
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr",
+                            p: 1.5,
+                            bgcolor: theme.palette.action.hover,
+                            borderRadius: "8px 8px 0 0",
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                          }}
+                        >
+                          {[
+                            "Thiết bị",
+                            "Loại",
+                            "Trạng thái",
+                            "Bảo trì cuối",
+                            "Hành động",
+                          ].map((h) => (
+                            <Typography
+                              key={h}
+                              variant="caption"
+                              sx={{
+                                fontWeight: 700,
+                                color: theme.palette.text.secondary,
+                              }}
+                            >
+                              {h}
+                            </Typography>
+                          ))}
+                        </Box>
+
+                        {/* Device List */}
+                        <Stack
+                          spacing={0}
+                          sx={{
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: "0 0 8px 8px",
+                          }}
+                        >
+                          <DeviceRow
+                            name="Máy bơm chính #1"
+                            code="PUMP-001"
+                            type="Water Pump"
+                            status="active"
+                            lastMaintenance="2026-01-15"
+                          />
+                          <DeviceRow
+                            name="Quạt sục khí #1"
+                            code="AERATOR-001"
+                            type="Aerator"
+                            status="active"
+                            lastMaintenance="2026-01-20"
+                          />
+                          <DeviceRow
+                            name="Bộ lọc sinh học"
+                            code="FILTER-001"
+                            type="Bio Filter"
+                            status="maintenance"
+                            lastMaintenance="2026-01-25"
+                          />
+                          <DeviceRow
+                            name="Cảm biến DO"
+                            code="SENSOR-001"
+                            type="DO Sensor"
+                            status="active"
+                            lastMaintenance="2026-01-10"
+                            isLast
+                          />
+                        </Stack>
+                      </Box>
+
+                      {/* 2. Lịch sử bảo trì */}
+                      <Box>
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={2}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: 700,
+                              color: theme.palette.text.primary,
+                            }}
+                          >
+                            Lịch sử Bảo trì
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              textTransform: "none",
+                              fontWeight: 600,
+                              borderRadius: "8px",
+                              color: theme.palette.text.primary,
+                              borderColor: theme.palette.divider,
+                            }}
+                          >
+                            Xem tất cả
+                          </Button>
+                        </Stack>
+
+                        <Stack spacing={1.5}>
+                          <MaintenanceItem
+                            title="Thay thế bộ lọc sinh học"
+                            desc="Bộ lọc cũ đã sử dụng 6 tháng, thay thế theo lịch định kỳ."
+                            device="FILTER-001"
+                            tech="Nguyễn Văn A"
+                            date="25/01/2026"
+                            type="repair"
+                          />
+                          <MaintenanceItem
+                            title="Hiệu chuẩn cảm biến DO"
+                            desc="Hiệu chuẩn định kỳ để đảm bảo độ chính xác của cảm biến."
+                            device="SENSOR-001"
+                            tech="Trần Thị B"
+                            date="20/01/2026"
+                            type="check"
+                          />
+                          <MaintenanceItem
+                            title="Bảo dưỡng máy bơm"
+                            desc="Kiểm tra và bôi trơn các bộ phận cơ khí của máy bơm."
+                            device="PUMP-001"
+                            tech="Lê Văn C"
+                            date="15/01/2026"
+                            type="check"
+                          />
+                        </Stack>
+                      </Box>
+
+                      {/* 3. Thống kê Thiết bị */}
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 700,
+                            color: theme.palette.text.primary,
+                            mb: 2,
+                          }}
+                        >
+                          Thống kê Thiết bị
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr 1fr",
+                            gap: 2,
+                          }}
+                        >
+                          <StatCard
+                            icon={
+                              <CheckCircleOutlineIcon
+                                sx={{ color: theme.palette.success.main }}
+                              />
+                            }
+                            label="Hoạt động"
+                            value="3/4"
+                            bg={alpha(theme.palette.success.main, 0.05)}
+                          />
+                          <StatCard
+                            icon={
+                              <BuildIcon
+                                sx={{
+                                  color: theme.palette.warning.main,
+                                  fontSize: 20,
+                                }}
+                              />
+                            }
+                            label="Bảo trì"
+                            value="1/4"
+                            bg={alpha(theme.palette.warning.main, 0.05)}
+                          />
+                          <StatCard
+                            icon={
+                              <CalendarTodayIcon
+                                sx={{
+                                  color: theme.palette.primary.main,
+                                  fontSize: 20,
+                                }}
+                              />
+                            }
+                            label="Bảo trì gần nhất"
+                            value="25/01/2026"
+                            bg={alpha(theme.palette.primary.main, 0.05)}
+                          />
+                        </Box>
+                      </Box>
+                    </Stack>
+                  )}
+                </Box>
+
+                {/* Footer Actions */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderTop: `1px solid ${theme.palette.divider}`,
+                    display: "flex",
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    startIcon={<VisibilityIcon />}
+                    sx={{
+                      bgcolor: theme.palette.primary.main,
+                      textTransform: "none",
+                      fontWeight: 600,
+                      height: 44,
+                      boxShadow: "none",
+                      "&:hover": {
+                        bgcolor: theme.palette.primary.dark,
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    Giám sát Real-time
+                  </Button>
                   <Button
                     variant="outlined"
-                    startIcon={<EditIcon />}
-                    size="small"
+                    fullWidth
+                    startIcon={<BuildIcon />}
                     sx={{
                       textTransform: "none",
+                      fontWeight: 600,
+                      height: 44,
                       color: theme.palette.text.primary,
                       borderColor: theme.palette.divider,
-                      fontWeight: 600,
                       "&:hover": {
                         borderColor: theme.palette.text.secondary,
                         bgcolor: theme.palette.action.hover,
                       },
                     }}
                   >
-                    Chỉnh sửa
+                    Tạo nhật ký bảo trì
                   </Button>
-                </Stack>
-
-                <Tabs
-                  value={tabValue}
-                  onChange={(_, v) => setTabValue(v)}
-                  sx={{ mt: 2 }}
-                  indicatorColor="primary"
-                  textColor="primary"
-                >
-                  <Tab
-                    label="Tổng quan"
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: 600,
-                      fontSize: "0.95rem",
-                    }}
-                  />
-                  <Tab
-                    label="Thiết bị & Bảo trì"
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: 600,
-                      fontSize: "0.95rem",
-                    }}
-                  />
-                </Tabs>
-              </Box>
-
-              {/* Body Content */}
-              <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto" }}>
-                {tabValue === 0 ? (
-                  // --- TAB 1: TỔNG QUAN ---
-                  <Stack spacing={4}>
-                    {/* KPI Section */}
-                    <Box>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          mb: 2,
-                          color: theme.palette.text.primary,
-                        }}
-                      >
-                        KPI Tóm tắt (Tháng này)
-                      </Typography>
-                      <Stack direction="row" spacing={2}>
-                        <KPICard
-                          icon={
-                            <Inventory2OutlinedIcon
-                              sx={{ color: theme.palette.primary.main }}
-                            />
-                          }
-                          label="Lượng cám tiêu thụ"
-                          value="450 kg"
-                          trend="+12% so với tháng trước"
-                          trendColor="success"
-                        />
-                        <KPICard
-                          icon={
-                            <BoltIcon
-                              sx={{ color: theme.palette.warning.main }}
-                            />
-                          }
-                          label="Chi phí điện"
-                          value="2500.0K VND"
-                          trend="+5% so với tháng trước"
-                          trendColor="error"
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* Environment Section */}
-                    <Box>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          mb: 2,
-                          color: theme.palette.text.primary,
-                        }}
-                      >
-                        Tình trạng Môi trường (Trung bình 24h)
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(4, 1fr)",
-                          gap: 2,
-                        }}
-                      >
-                        <EnvironmentCard
-                          icon={<ThermostatIcon fontSize="small" />}
-                          label="Nhiệt độ"
-                          value="28.5°C"
-                          statusColor="success"
-                        />
-                        <EnvironmentCard
-                          icon={<ScienceIcon fontSize="small" />}
-                          label="pH"
-                          value="7.2"
-                          statusColor="success"
-                        />
-                        <EnvironmentCard
-                          icon={<AirIcon fontSize="small" />}
-                          label="DO"
-                          value="6.8 mg/L"
-                          statusColor="success"
-                        />
-                        <EnvironmentCard
-                          icon={<WaterDropIcon fontSize="small" />}
-                          label="NH3"
-                          value="0.02 mg/L"
-                          statusColor="success"
-                        />
-                      </Box>
-                    </Box>
-
-                    {/* Lifecycle Section */}
-                    <Box>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          mb: 2,
-                          color: theme.palette.text.primary,
-                        }}
-                      >
-                        Vòng đời Bể nuôi
-                      </Typography>
-
-                      <LinearProgress
-                        variant="determinate"
-                        value={60}
-                        sx={{
-                          height: 8,
-                          borderRadius: 4,
-                          bgcolor: theme.palette.action.hover,
-                          mb: 3,
-                          "& .MuiLinearProgress-bar": {
-                            bgcolor: theme.palette.primary.main,
-                          },
-                        }}
-                      />
-
-                      <Stack spacing={0}>
-                        <StepItem
-                          title="Giai đoạn 1: Thả giống"
-                          desc="Giai đoạn cá/tôm còn nhỏ, cần chăm sóc đặc biệt"
-                          date="Ngày 0-50"
-                          status="completed"
-                        />
-                        <StepItem
-                          title="Giai đoạn 2: Phát triển"
-                          desc="Giai đoạn tăng trưởng nhanh, tăng cường cho ăn"
-                          date="Ngày 51-100"
-                          status="completed"
-                        />
-                        <StepItem
-                          title="Giai đoạn 3: Thu hoạch"
-                          desc="Cá/tôm đạt kích thước thương phẩm, chuẩn bị thu hoạch"
-                          date="Ngày 101-150"
-                          status="upcoming"
-                        />
-                        <StepItem
-                          title="Thu hoạch hoàn tất"
-                          desc="Kết thúc vụ nuôi, làm sạch bể và chuẩn bị cho vụ mới"
-                          date="Ngày 150"
-                          status="upcoming"
-                          isLast
-                        />
-                      </Stack>
-
-                      <Box
-                        sx={{
-                          mt: 3,
-                          p: 2,
-                          bgcolor: alpha(theme.palette.primary.main, 0.08),
-                          border: `1px solid ${alpha(
-                            theme.palette.primary.main,
-                            0.2,
-                          )}`,
-                          borderRadius: "12px",
-                          display: "flex",
-                          gap: 2,
-                          alignItems: "center",
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            p: 1,
-                            bgcolor: theme.palette.background.paper,
-                            borderRadius: "8px",
-                            color: theme.palette.primary.main,
-                            display: "flex",
-                          }}
-                        >
-                          <TimelineIcon />
-                        </Box>
-                        <Box>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: 700,
-                              color: theme.palette.primary.main,
-                            }}
-                          >
-                            Trạng thái hiện tại
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: theme.palette.primary.main,
-                              fontSize: "0.85rem",
-                            }}
-                          >
-                            Ngày 80 - Giai đoạn 2/3 - Dự kiến thu hoạch sau 70
-                            ngày
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Stack>
-                ) : (
-                  // --- TAB 2: THIẾT BỊ & BẢO TRÌ ---
-                  <Stack spacing={4}>
-                    {/* 1. Danh sách thiết bị */}
-                    <Box>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                        mb={2}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: 700,
-                            color: theme.palette.text.primary,
-                          }}
-                        >
-                          Danh sách Thiết bị
-                        </Typography>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<AddIcon />}
-                          sx={{
-                            textTransform: "none",
-                            fontWeight: 600,
-                            borderRadius: "8px",
-                            boxShadow: "none",
-                            bgcolor: theme.palette.primary.main,
-                          }}
-                        >
-                          Gán cảm biến
-                        </Button>
-                      </Stack>
-
-                      {/* Header Row */}
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: "2fr 1fr 1fr 1fr 0.5fr",
-                          p: 1.5,
-                          bgcolor: theme.palette.action.hover,
-                          borderRadius: "8px 8px 0 0",
-                          borderBottom: `1px solid ${theme.palette.divider}`,
-                        }}
-                      >
-                        {[
-                          "Thiết bị",
-                          "Loại",
-                          "Trạng thái",
-                          "Bảo trì cuối",
-                          "Hành động",
-                        ].map((h) => (
-                          <Typography
-                            key={h}
-                            variant="caption"
-                            sx={{
-                              fontWeight: 700,
-                              color: theme.palette.text.secondary,
-                            }}
-                          >
-                            {h}
-                          </Typography>
-                        ))}
-                      </Box>
-
-                      {/* Device List */}
-                      <Stack
-                        spacing={0}
-                        sx={{
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: "0 0 8px 8px",
-                        }}
-                      >
-                        <DeviceRow
-                          name="Máy bơm chính #1"
-                          code="PUMP-001"
-                          type="Water Pump"
-                          status="active"
-                          lastMaintenance="2026-01-15"
-                        />
-                        <DeviceRow
-                          name="Quạt sục khí #1"
-                          code="AERATOR-001"
-                          type="Aerator"
-                          status="active"
-                          lastMaintenance="2026-01-20"
-                        />
-                        <DeviceRow
-                          name="Bộ lọc sinh học"
-                          code="FILTER-001"
-                          type="Bio Filter"
-                          status="maintenance"
-                          lastMaintenance="2026-01-25"
-                        />
-                        <DeviceRow
-                          name="Cảm biến DO"
-                          code="SENSOR-001"
-                          type="DO Sensor"
-                          status="active"
-                          lastMaintenance="2026-01-10"
-                          isLast
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* 2. Lịch sử bảo trì */}
-                    <Box>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                        mb={2}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: 700,
-                            color: theme.palette.text.primary,
-                          }}
-                        >
-                          Lịch sử Bảo trì
-                        </Typography>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{
-                            textTransform: "none",
-                            fontWeight: 600,
-                            borderRadius: "8px",
-                            color: theme.palette.text.primary,
-                            borderColor: theme.palette.divider,
-                          }}
-                        >
-                          Xem tất cả
-                        </Button>
-                      </Stack>
-
-                      <Stack spacing={1.5}>
-                        <MaintenanceItem
-                          title="Thay thế bộ lọc sinh học"
-                          desc="Bộ lọc cũ đã sử dụng 6 tháng, thay thế theo lịch định kỳ."
-                          device="FILTER-001"
-                          tech="Nguyễn Văn A"
-                          date="25/01/2026"
-                          type="repair"
-                        />
-                        <MaintenanceItem
-                          title="Hiệu chuẩn cảm biến DO"
-                          desc="Hiệu chuẩn định kỳ để đảm bảo độ chính xác của cảm biến."
-                          device="SENSOR-001"
-                          tech="Trần Thị B"
-                          date="20/01/2026"
-                          type="check"
-                        />
-                        <MaintenanceItem
-                          title="Bảo dưỡng máy bơm"
-                          desc="Kiểm tra và bôi trơn các bộ phận cơ khí của máy bơm."
-                          device="PUMP-001"
-                          tech="Lê Văn C"
-                          date="15/01/2026"
-                          type="check"
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* 3. Thống kê Thiết bị */}
-                    <Box>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: 700,
-                          color: theme.palette.text.primary,
-                          mb: 2,
-                        }}
-                      >
-                        Thống kê Thiết bị
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr 1fr",
-                          gap: 2,
-                        }}
-                      >
-                        <StatCard
-                          icon={
-                            <CheckCircleOutlineIcon
-                              sx={{ color: theme.palette.success.main }}
-                            />
-                          }
-                          label="Hoạt động"
-                          value="3/4"
-                          bg={alpha(theme.palette.success.main, 0.05)}
-                        />
-                        <StatCard
-                          icon={
-                            <BuildIcon
-                              sx={{
-                                color: theme.palette.warning.main,
-                                fontSize: 20,
-                              }}
-                            />
-                          }
-                          label="Bảo trì"
-                          value="1/4"
-                          bg={alpha(theme.palette.warning.main, 0.05)}
-                        />
-                        <StatCard
-                          icon={
-                            <CalendarTodayIcon
-                              sx={{
-                                color: theme.palette.primary.main,
-                                fontSize: 20,
-                              }}
-                            />
-                          }
-                          label="Bảo trì gần nhất"
-                          value="25/01/2026"
-                          bg={alpha(theme.palette.primary.main, 0.05)}
-                        />
-                      </Box>
-                    </Box>
-                  </Stack>
-                )}
-              </Box>
-
-              {/* Footer Actions */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderTop: `1px solid ${theme.palette.divider}`,
-                  display: "flex",
-                  gap: 2,
-                }}
-              >
-                <Button
-                  variant="contained"
-                  fullWidth
-                  startIcon={<VisibilityIcon />}
-                  sx={{
-                    bgcolor: theme.palette.primary.main,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    height: 44,
-                    boxShadow: "none",
-                    "&:hover": {
-                      bgcolor: theme.palette.primary.dark,
-                      boxShadow: "none",
-                    },
-                  }}
-                >
-                  Giám sát Real-time
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<BuildIcon />}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 600,
-                    height: 44,
-                    color: theme.palette.text.primary,
-                    borderColor: theme.palette.divider,
-                    "&:hover": {
-                      borderColor: theme.palette.text.secondary,
-                      bgcolor: theme.palette.action.hover,
-                    },
-                  }}
-                >
-                  Tạo nhật ký bảo trì
-                </Button>
+                </Paper>
               </Paper>
-            </Paper>
+            </Box>
           </Box>
         </Box>
       </Box>
