@@ -1,24 +1,24 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import ManagerHeader from "../../components/manager/ManagerHeader";
-import ManagerSidebar from "../../components/manager/ManagerSidebar";
-import { isManager } from "../../mocks/auth";
+import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
+import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
+import { isSupervisor } from "../../mocks/auth";
 import FeedsTab from "./FeedsTab";
 import ScheduleTab from "./ScheduleTab";
 import SpeciesTab from "./SpeciesTab";
 import ThresholdsTab from "./ThresholdsTab";
 // (data loaded via fetch* mocks)
 
-const ManagerDashboard: React.FC<{ section?: string }> = ({ section }) => {
-  if (!isManager()) return <Navigate to="/" replace />;
+const SupervisorDashboard: React.FC<{ section?: string }> = ({ section }) => {
+  if (!isSupervisor()) return <Navigate to="/" replace />;
 
   return (
     <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
-      <ManagerSidebar />
+      <SupervisorSidebar />
 
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <ManagerHeader />
+        <SupervisorHeader />
 
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           <Stack spacing={2}>
@@ -46,4 +46,4 @@ const SectionRenderer: React.FC<{ section?: string }> = ({ section: propSection 
   );
 };
 
-export default ManagerDashboard;
+export default SupervisorDashboard;

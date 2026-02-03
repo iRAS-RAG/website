@@ -31,7 +31,7 @@ import { isAdmin } from "../../mocks/auth";
 import type { User } from "../../mocks/users";
 import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../mocks/users";
 
-const roles = ["Admin", "Manager", "Operator"] as const;
+const roles = ["Admin", "Supervisor", "Operator"] as const;
 
 const UserManagement: React.FC = () => {
   const [data, setData] = useState<User[]>([]);

@@ -9,15 +9,7 @@ export const AdminHeader: React.FC = () => {
     { type: "success", title: "Cập nhật cấu hình thành công", time: "1 giờ trước" },
   ];
 
-  return (
-    <DashboardHeader
-      title="Quản trị hệ thống"
-      badgeCount={adminNotifications.length}
-      searchPlaceholder="Tìm nhanh người dùng, thiết bị..."
-      notifications={adminNotifications}
-      seeAllRoute="/admin/alerts"
-    />
-  );
+  return <DashboardHeader badgeCount={adminNotifications.length} searchPlaceholder="Tìm nhanh người dùng, thiết bị..." notifications={adminNotifications} seeAllRoute="/admin/alerts" />;
 };
 
 export default AdminHeader;
