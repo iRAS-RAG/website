@@ -8,7 +8,7 @@ import { clearCurrentUser, currentUser, setCurrentUser } from "../../mocks/auth"
 
 // Mock accounts (single source of truth for login stubs)
 const MOCK_USERS = [
-  { email: "admin@iras.com", password: "123", role: "Admin", path: "/admin/users", id: "u-admin", name: "System Admin" },
+  { email: "admin@iras.com", password: "123", role: "Admin", path: "/admin/dashboard", id: "u-admin", name: "System Admin" },
   { email: "manager@iras.com", password: "123", role: "Manager", path: "/manager/dashboard", id: "u-manager", name: "Manager" },
   { email: "tech@iras.com", password: "123", role: "Technician", path: "/technician/dashboard", id: "u-tech", name: "Technician" },
 ];
