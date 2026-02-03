@@ -1,7 +1,7 @@
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import ArticleIcon from "@mui/icons-material/Article";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PeopleIcon from "@mui/icons-material/People";
-import SecurityIcon from "@mui/icons-material/Security";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
@@ -10,10 +10,10 @@ import logo from "../../assets/logo.png";
 import { clearCurrentUser } from "../../mocks/auth";
 
 const menu = [
-  { text: "Người dùng", icon: <PeopleIcon /> },
-  { text: "Vai trò", icon: <AssignmentIndIcon /> },
-  { text: "Quyền", icon: <SecurityIcon /> },
-  { text: "Cài đặt", icon: <SettingsIcon /> },
+  { text: "Bảng điều khiển", icon: <DashboardIcon />, path: "/admin/dashboard" },
+  { text: "Quản lý người dùng", icon: <PeopleIcon />, path: "/admin/users" },
+  { text: "AI & Cơ sở tri thức", icon: <ArticleIcon />, path: "/admin/ai" },
+  { text: "Phần cứng & Cảm biến", icon: <SettingsIcon />, path: "/admin/hardware" },
 ];
 
 export const AdminSidebar: React.FC = () => {
@@ -43,7 +43,7 @@ export const AdminSidebar: React.FC = () => {
       <List sx={{ flexGrow: 1, px: 1.5 }}>
         {menu.map((m) => (
           <ListItem key={m.text} disablePadding sx={{ mb: 1 }}>
-            <ListItemButton sx={{ borderRadius: "10px", py: 1.2 }}>
+            <ListItemButton sx={{ borderRadius: "10px", py: 1.2 }} onClick={() => navigate(m.path)}>
               <ListItemIcon>{m.icon}</ListItemIcon>
               <ListItemText primary={m.text} primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: 600 }} />
             </ListItemButton>
