@@ -22,7 +22,8 @@ const LoginPage = () => {
 
   const isLoggedIn = Boolean(currentUser.id);
 
-  const handleLogin = () => {
+  const handleLogin = (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) e.preventDefault();
     setError("");
 
     // Find user in mock list
@@ -88,63 +89,65 @@ const LoginPage = () => {
           bgcolor: "rgba(255, 255, 255, 0.95)",
         }}
       >
-        <Stack spacing={3}>
-          <Typography variant="h2" align="center" sx={{ fontSize: "1.7rem", fontWeight: 700 }}>
-            Đăng nhập iRAS-RAG
-          </Typography>
+        <Box component="form" onSubmit={handleLogin}>
+          <Stack spacing={3}>
+            <Typography variant="h2" align="center" sx={{ fontSize: "1.7rem", fontWeight: 700 }}>
+              Đăng nhập iRAS-RAG
+            </Typography>
 
-          {error && <Alert severity="error">{error}</Alert>}
+            {error && <Alert severity="error">{error}</Alert>}
 
-          <TextField
-            fullWidth
-            label="Địa chỉ email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email color="primary" />
-                </InputAdornment>
-              ),
-            }}
-          />
+            <TextField
+              fullWidth
+              label="Địa chỉ email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+            />
 
-          <TextField
-            fullWidth
-            label="Mật khẩu"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock color="primary" />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+            <TextField
+              fullWidth
+              label="Mật khẩu"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color="primary" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
 
-          {isLoggedIn ? (
-            <Button variant="outlined" fullWidth size="large" onClick={handleLogout} sx={{ py: 1.8 }}>
-              Đăng xuất
-            </Button>
-          ) : (
-            <Button variant="contained" fullWidth size="large" startIcon={<Login />} onClick={handleLogin} sx={{ py: 1.8 }}>
-              Đăng nhập
-            </Button>
-          )}
+            {isLoggedIn ? (
+              <Button variant="outlined" fullWidth size="large" onClick={handleLogout} sx={{ py: 1.8 }}>
+                Đăng xuất
+              </Button>
+            ) : (
+              <Button type="submit" variant="contained" fullWidth size="large" startIcon={<Login />} sx={{ py: 1.8 }}>
+                Đăng nhập
+              </Button>
+            )}
 
-          <Typography variant="body2" align="center">
-            Mẹo: Dùng <b>op@iras.com</b> / <b>123</b>
-          </Typography>
-        </Stack>
+            <Typography variant="body2" align="center">
+              Mẹo: Dùng <b>op@iras.com</b> / <b>123</b>
+            </Typography>
+          </Stack>
+        </Box>
       </Paper>
     </Box>
   );
