@@ -1,11 +1,49 @@
 import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-material";
-import { Box, Button, IconButton, InputAdornment, Link, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import bg from "../../assets/backgrounds.png";
+import type { Role } from "../../mocks/auth";
+import { clearCurrentUser, currentUser, setCurrentUser } from "../../mocks/auth";
+
+// Mock accounts (single source of truth for login stubs)
+const MOCK_USERS = [
+  { email: "admin@iras.com", password: "123", role: "Admin", path: "/admin/dashboard", id: "u-admin", name: "System Admin" },
+  { email: "manager@iras.com", password: "123", role: "Manager", path: "/manager/dashboard", id: "u-manager", name: "Manager" },
+  { email: "tech@iras.com", password: "123", role: "Technician", path: "/technician/dashboard", id: "u-tech", name: "Technician" },
+];
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const isLoggedIn = Boolean(currentUser.id);
+
+  const handleLogin = () => {
+    setError("");
+
+    // Find user in mock list
+    const user = MOCK_USERS.find((u) => u.email === email && u.password === password);
+
+    if (user) {
+      // Update mock current user so guarded routes work in-app
+      setCurrentUser({ id: user.id, name: user.name, role: user.role as Role });
+      // keep role in localStorage for other pages that inspect it
+      localStorage.setItem("userRole", user.role);
+      navigate(user.path);
+    } else {
+      setError("Email hoặc mật khẩu không chính xác!");
+    }
+  };
+
+  function handleLogout() {
+    clearCurrentUser();
+    localStorage.removeItem("userRole");
+    navigate("/");
+  }
 
   return (
     <Box
@@ -48,35 +86,24 @@ const LoginPage = () => {
           maxWidth: 480,
           borderRadius: 4,
           bgcolor: "rgba(255, 255, 255, 0.95)",
-          boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
         }}
       >
-        <Stack justifyContent="center" alignItems="center" sx={{ mb: 5, textAlign: "center" }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 800,
-              display: "flex",
-              gap: 0.5,
-              fontSize: "1.6rem",
-            }}
-          ></Typography>
-
-          <Typography variant="h2" sx={{ fontSize: "1.7rem", fontWeight: 700, mt: 1 }}>
-            Đăng nhập
+        <Stack spacing={3}>
+          <Typography variant="h2" align="center" sx={{ fontSize: "1.7rem", fontWeight: 700 }}>
+            Đăng nhập iRAS-RAG
           </Typography>
-        </Stack>
 
-        {/* FORM */}
-        <Stack spacing={3.5}>
+          {error && <Alert severity="error">{error}</Alert>}
+
           <TextField
             fullWidth
             label="Địa chỉ email"
-            placeholder="example@gmail.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Email sx={{ color: "primary.main" }} />
+                  <Email color="primary" />
                 </InputAdornment>
               ),
             }}
@@ -86,10 +113,12 @@ const LoginPage = () => {
             fullWidth
             label="Mật khẩu"
             type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Lock sx={{ color: "primary.main" }} />
+                  <Lock color="primary" />
                 </InputAdornment>
               ),
               endAdornment: (
@@ -102,25 +131,18 @@ const LoginPage = () => {
             }}
           />
 
-          <Button
-            variant="contained"
-            fullWidth
-            size="large"
-            startIcon={<Login />}
-            sx={{
-              py: 1.8,
-              fontSize: "1rem",
-              boxShadow: "0 8px 16px rgba(42,133,255,0.3)",
-            }}
-          >
-            Đăng nhập
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="outlined" fullWidth size="large" onClick={handleLogout} sx={{ py: 1.8 }}>
+              Đăng xuất
+            </Button>
+          ) : (
+            <Button variant="contained" fullWidth size="large" startIcon={<Login />} onClick={handleLogin} sx={{ py: 1.8 }}>
+              Đăng nhập
+            </Button>
+          )}
 
-          <Typography variant="body2" align="center" color="text.secondary" sx={{ fontSize: "1rem" }}>
-            Bạn chưa có tài khoản?{" "}
-            <Link component={RouterLink} to="/auth/register" underline="hover" sx={{ fontWeight: 800, color: "primary.main" }}>
-              Đăng ký ngay
-            </Link>
+          <Typography variant="body2" align="center">
+            Mẹo: Dùng <b>tech@iras.com</b> / <b>123</b>
           </Typography>
         </Stack>
       </Paper>

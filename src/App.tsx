@@ -1,27 +1,26 @@
-// src/App.tsx
-import Header from "./components/layout/public/Header";
-import Footer from "./components/layout/public/Footer";
-import { ThemeProvider, CssBaseline, Box } from "@mui/material";
-import { theme } from "./theme/theme";
+import { Box, CssBaseline, ThemeProvider } from "@mui/material";
+import { useLocation } from "react-router-dom";
+import Footer from "./components/public/public/Footer";
+import Header from "./components/public/public/Header";
 import AppRouter from "./router/router";
+import { theme } from "./theme/theme";
 
 function App() {
+  const location = useLocation();
+  // Kiểm tra nếu là một trang dashboard/admin thì ẩn header/footer public
+  const isDashboard = location.pathname.startsWith("/technician") || location.pathname.startsWith("/admin") || location.pathname.startsWith("/manager");
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-      >
-        {/* Đảm bảo có Header ở đây */}
-        <Header />
+      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        {!isDashboard && <Header />}
 
-        <Box component="main" sx={{ flexGrow: 1, pt: "64px" }}>
-          {/* AppRouter sẽ hiển thị HomePage */}
+        <Box component="main" sx={{ flexGrow: 1, pt: isDashboard ? 0 : "64px" }}>
           <AppRouter />
         </Box>
 
-        {/* Đảm bảo có Footer ở đây */}
-        <Footer />
+        {!isDashboard && <Footer />}
       </Box>
     </ThemeProvider>
   );
