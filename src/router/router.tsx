@@ -8,6 +8,7 @@ import TechnicianDashboard from "../pages/technician/TechnicianDashboard";
 import RealTimeSensors from "../pages/technician/RealTimeSensors";
 import AlertCenter from "../pages/technician/AlertCenter";
 import TankManagement from "../pages/technician/TankManagement";
+import AIAdvisory from "../pages/technician/AIAdvisory";
 
 const AppRouter = () => {
   return (
@@ -20,6 +21,7 @@ const AppRouter = () => {
       <Route path="/technician/sensors" element={<RealTimeSensors />} />
       <Route path="/technician/alerts" element={<AlertCenter />} />
       <Route path="/technician/tanks" element={<TankManagement />} />
+      <Route path="/technician/ai-advisory" element={<AIAdvisory />} />
       <Route
         path="/admin/users"
         element={isAdmin() ? <UserManagement /> : <Navigate to="/" replace />}
