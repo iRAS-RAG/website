@@ -12,10 +12,10 @@ import HomePage from "../pages/public/HomePage";
 
 import AIAdvisory from "../pages/technician/AIAdvisory";
 import AlertCenter from "../pages/technician/AlertCenter";
+import MaintenanceLog from "../pages/technician/MaintenanceLog";
 import RealTimeSensors from "../pages/technician/RealTimeSensors";
 import TankManagement from "../pages/technician/TankManagement";
 import TechnicianDashboard from "../pages/technician/TechnicianDashboard";
-import MaintenanceLog from "../pages/technician/MaintenanceLog";
 
 const AppRouter = () => {
   return (
@@ -41,12 +41,11 @@ const AppRouter = () => {
       <Route path="/admin/hardware" element={isAdmin() ? <HardwareSensors /> : <Navigate to="/" replace />} />
 
       {/* Manager */}
-      <Route
-        path="/manager/dashboard"
-        element={
-          isManager() ? <ManagerDashboard /> : <Navigate to="/" replace />
-        }
-      />
+      <Route path="/manager/dashboard" element={isManager() ? <ManagerDashboard /> : <Navigate to="/" replace />} />
+      <Route path="/manager/species" element={isManager() ? <ManagerDashboard section="species" /> : <Navigate to="/" replace />} />
+      <Route path="/manager/feeds" element={isManager() ? <ManagerDashboard section="feeds" /> : <Navigate to="/" replace />} />
+      <Route path="/manager/thresholds" element={isManager() ? <ManagerDashboard section="thresholds" /> : <Navigate to="/" replace />} />
+      <Route path="/manager/schedule" element={isManager() ? <ManagerDashboard section="schedule" /> : <Navigate to="/" replace />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

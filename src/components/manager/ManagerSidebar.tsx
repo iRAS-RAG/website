@@ -12,10 +12,10 @@ import { clearCurrentUser } from "../../mocks/auth";
 
 const menu = [
   { text: "Tổng quan", icon: <DashboardIcon />, path: "/manager/dashboard" },
-  { text: "Loài", icon: <PetsIcon />, path: "/manager/dashboard#species" },
-  { text: "Thức ăn", icon: <FastfoodIcon />, path: "/manager/dashboard#feeds" },
-  { text: "Ngưỡng cảm biến", icon: <NotificationsActiveIcon />, path: "/manager/dashboard#thresholds" },
-  { text: "Lịch cho ăn", icon: <ScheduleIcon />, path: "/manager/dashboard#schedule" },
+  { text: "Loài", icon: <PetsIcon />, path: "/manager/species" },
+  { text: "Thức ăn", icon: <FastfoodIcon />, path: "/manager/feeds" },
+  { text: "Ngưỡng cảm biến", icon: <NotificationsActiveIcon />, path: "/manager/thresholds" },
+  { text: "Lịch cho ăn", icon: <ScheduleIcon />, path: "/manager/schedule" },
 ];
 
 export const ManagerSidebar: React.FC = () => {
@@ -45,7 +45,7 @@ export const ManagerSidebar: React.FC = () => {
 
       <List sx={{ flexGrow: 1, px: 1.5 }}>
         {menu.map((m) => {
-          const isSelected = m.path === `${location.pathname}${location.hash || ""}`;
+          const isSelected = m.path === location.pathname;
           return (
             <ListItem key={m.text} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
