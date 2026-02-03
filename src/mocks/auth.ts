@@ -1,9 +1,9 @@
-export type Role = "Admin" | "Manager" | "Technician";
+export type Role = "Admin" | "Manager" | "Operator";
 
 export const currentUser: { id: string; name: string; role: Role } = {
   id: "",
   name: "Guest",
-  role: "Technician",
+  role: "Operator",
 };
 
 export function setCurrentUser(user: { id: string; name: string; role: Role }) {
@@ -15,8 +15,9 @@ export function setCurrentUser(user: { id: string; name: string; role: Role }) {
 export function clearCurrentUser() {
   currentUser.id = "";
   currentUser.name = "Guest";
-  currentUser.role = "Technician";
+  currentUser.role = "Operator";
 }
 
 export const isAdmin = () => currentUser.role === "Admin";
 export const isManager = () => currentUser.role === "Manager";
+export const isOperator = () => currentUser.role === "Operator";

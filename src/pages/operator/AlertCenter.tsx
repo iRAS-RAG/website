@@ -18,9 +18,9 @@ import {
   type PaletteColor,
 } from "@mui/material";
 import { useState } from "react";
-import { AlertDetailModal } from "../../components/technician/AlertDetailModal";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
+import { AlertDetailModal } from "../../components/operator/AlertDetailModal";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // Icons
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -174,7 +174,7 @@ const AlertCenter = () => {
         minHeight: "100vh",
       }}
     >
-      <TechnicianSidebar />
+      <OperatorSidebar />
       <Box
         sx={{
           flexGrow: 1,
@@ -183,7 +183,7 @@ const AlertCenter = () => {
           flexDirection: "column",
         }}
       >
-        <TechnicianHeader />
+        <OperatorHeader />
 
         <Box sx={{ p: 3 }}>
           <Box sx={{ mb: 4 }}>

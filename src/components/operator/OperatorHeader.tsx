@@ -1,19 +1,7 @@
-import React, { useState } from "react";
-import {
-  Box,
-  IconButton,
-  InputBase,
-  Badge,
-  Avatar,
-  Typography,
-  Stack,
-  Paper,
-  Menu,
-  Divider,
-  useTheme,
-} from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import SearchIcon from "@mui/icons-material/Search";
+import { Avatar, Badge, Box, Divider, IconButton, InputBase, Menu, Paper, Stack, Typography, useTheme } from "@mui/material";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // --- Interface cho từng notification ---
@@ -24,11 +12,7 @@ interface NotificationItemProps {
 }
 
 // --- Sub-component thông báo dùng màu từ theme ---
-const NotificationItem: React.FC<NotificationItemProps> = ({
-  type,
-  title,
-  time,
-}) => {
+const NotificationItem: React.FC<NotificationItemProps> = ({ type, title, time }) => {
   const theme = useTheme();
 
   const colors = {
@@ -65,18 +49,14 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
           >
             {title}
           </Typography>
-          <Typography
-            sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
-          >
-            {time}
-          </Typography>
+          <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>{time}</Typography>
         </Box>
       </Stack>
     </Box>
   );
 };
 
-export const TechnicianHeader: React.FC = () => {
+export const OperatorHeader: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -84,7 +64,7 @@ export const TechnicianHeader: React.FC = () => {
 
   const handleSeeAll = () => {
     setAnchorEl(null); // Đóng menu trước khi chuyển trang
-    navigate("/technician/alerts"); // Điều hướng đến AlertCenter
+    navigate("/operator/alerts"); // Điều hướng đến AlertCenter
   };
   return (
     <Box
@@ -115,13 +95,8 @@ export const TechnicianHeader: React.FC = () => {
           border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <SearchIcon
-          sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 20 }}
-        />
-        <InputBase
-          placeholder="Tìm nhanh mã bể, cảm biến..."
-          sx={{ flex: 1, fontSize: "0.875rem" }}
-        />
+        <SearchIcon sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 20 }} />
+        <InputBase placeholder="Tìm nhanh mã bể, cảm biến..." sx={{ flex: 1, fontSize: "0.875rem" }} />
       </Paper>
 
       {/* NOTIF + USER */}
@@ -130,18 +105,14 @@ export const TechnicianHeader: React.FC = () => {
         <IconButton
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
-            bgcolor: open
-              ? theme.palette.primary.light
-              : theme.palette.background.default,
+            bgcolor: open ? theme.palette.primary.light : theme.palette.background.default,
             border: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Badge badgeContent={3} color="error">
             <NotificationsIcon
               sx={{
-                color: open
-                  ? theme.palette.primary.main
-                  : theme.palette.text.secondary,
+                color: open ? theme.palette.primary.main : theme.palette.text.secondary,
               }}
             />
           </Badge>
@@ -172,9 +143,7 @@ export const TechnicianHeader: React.FC = () => {
               alignItems: "center",
             }}
           >
-            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>
-              Cảnh báo mới nhất
-            </Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>Cảnh báo mới nhất</Typography>
             <Typography
               onClick={handleSeeAll} //
               sx={{
@@ -190,43 +159,21 @@ export const TechnicianHeader: React.FC = () => {
 
           <Divider />
 
-          <NotificationItem
-            type="error"
-            title="Bể A-03: Ammonia vượt ngưỡng"
-            time="2 phút trước"
-          />
-          <NotificationItem
-            type="warning"
-            title="Bể B-01: Oxy hòa tan thấp"
-            time="15 phút trước"
-          />
-          <NotificationItem
-            type="success"
-            title="Bể A-01: Đã ổn định trở lại"
-            time="1 giờ trước"
-          />
+          <NotificationItem type="error" title="Bể A-03: Ammonia vượt ngưỡng" time="2 phút trước" />
+          <NotificationItem type="warning" title="Bể B-01: Oxy hòa tan thấp" time="15 phút trước" />
+          <NotificationItem type="success" title="Bể A-01: Đã ổn định trở lại" time="1 giờ trước" />
 
           <Divider />
           <Box sx={{ p: 1, textAlign: "center" }}>
-            <Typography
-              sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
-            >
-              Bạn có 3 thông báo chưa đọc
-            </Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Bạn có 3 thông báo chưa đọc</Typography>
           </Box>
         </Menu>
 
         {/* USER INFO */}
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box sx={{ textAlign: "right" }}>
-            <Typography sx={{ fontSize: "0.875rem", fontWeight: 700 }}>
-              Nguyễn Văn A
-            </Typography>
-            <Typography
-              sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
-            >
-              Kỹ thuật viên
-            </Typography>
+            <Typography sx={{ fontSize: "0.875rem", fontWeight: 700 }}>Nguyễn Văn A</Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Kỹ thuật viên</Typography>
           </Box>
           <Avatar
             sx={{

@@ -1,49 +1,30 @@
+import { Box, Button, IconButton, LinearProgress, Paper, Stack, Typography, useTheme } from "@mui/material";
 import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Stack,
-  Button,
-  LinearProgress,
-  useTheme,
-  IconButton,
-} from "@mui/material";
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
-import { SensorCard } from "../../components/technician/SensorCard";
-import { ConfirmActionModal } from "../../components/technician/ConfirmActionModal";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  // ReferenceArea,
-} from "recharts";
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ConfirmActionModal } from "../../components/operator/ConfirmActionModal";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { SensorCard } from "../../components/operator/SensorCard";
 
 // --- ICONS ---
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import ScienceIcon from "@mui/icons-material/Science";
 import AirIcon from "@mui/icons-material/Air";
-import ThermostatIcon from "@mui/icons-material/Thermostat";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
-import SpeedIcon from "@mui/icons-material/Speed";
-import VibrationIcon from "@mui/icons-material/Vibration";
-import CompressIcon from "@mui/icons-material/Compress";
 import BoltIcon from "@mui/icons-material/Bolt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CompressIcon from "@mui/icons-material/Compress";
+import ScienceIcon from "@mui/icons-material/Science";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import SpeedIcon from "@mui/icons-material/Speed";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import VibrationIcon from "@mui/icons-material/Vibration";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 // Icons cho AI Advisor
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import CloudQueueIcon from "@mui/icons-material/CloudQueue";
 import AdjustIcon from "@mui/icons-material/Adjust";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import CloudQueueIcon from "@mui/icons-material/CloudQueue";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 // --- DATA MẪU ---
 const trendData = [
@@ -90,7 +71,7 @@ const RealTimeSensors = () => {
         minHeight: "100vh",
       }}
     >
-      <TechnicianSidebar />
+      <OperatorSidebar />
       <Box
         sx={{
           flexGrow: 1,
@@ -100,7 +81,7 @@ const RealTimeSensors = () => {
           minWidth: 0,
         }}
       >
-        <TechnicianHeader />
+        <OperatorHeader />
 
         <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 4 }}>
           {/* ================= CỘT TRÁI: DỮ LIỆU CẢM BIẾN (Flex Grow) ================= */}
@@ -116,19 +97,13 @@ const RealTimeSensors = () => {
               >
                 Giám sát cảm biến thời gian thực
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
-              >
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
                 Theo dõi chi tiết từng bể và nhận hướng dẫn can thiệp từ AI
               </Typography>
             </Box>
 
             {/* CHỌN BỂ NUÔI */}
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}
-            >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
               CHỌN BỂ NUÔI
             </Typography>
             <Box
@@ -147,14 +122,8 @@ const RealTimeSensors = () => {
                     p: 2.5,
                     cursor: "pointer",
                     borderRadius: "16px",
-                    border:
-                      selectedTank === id
-                        ? `2px solid ${theme.palette.primary.main}`
-                        : `1px solid ${theme.palette.divider}`,
-                    bgcolor:
-                      selectedTank === id
-                        ? theme.palette.primary.light
-                        : theme.palette.background.paper,
+                    border: selectedTank === id ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+                    bgcolor: selectedTank === id ? theme.palette.primary.light : theme.palette.background.paper,
                     position: "relative",
                   }}
                 >
@@ -167,10 +136,7 @@ const RealTimeSensors = () => {
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      bgcolor:
-                        id === "B-02"
-                          ? theme.palette.error.main
-                          : theme.palette.success.main,
+                      bgcolor: id === "B-02" ? theme.palette.error.main : theme.palette.success.main,
                     }}
                   />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -190,11 +156,7 @@ const RealTimeSensors = () => {
             </Box>
 
             <Stack direction="row" spacing={2} sx={{ mb: 5 }}>
-              <Button
-                variant="contained"
-                startIcon={<SmartToyIcon />}
-                sx={{ borderRadius: "12px", px: 3, fontWeight: 600 }}
-              >
+              <Button variant="contained" startIcon={<SmartToyIcon />} sx={{ borderRadius: "12px", px: 3, fontWeight: 600 }}>
                 Chạy chẩn đoán AI
               </Button>
             </Stack>
@@ -218,46 +180,10 @@ const RealTimeSensors = () => {
                 mb: 5,
               }}
             >
-              <SensorCard
-                label="Nhiệt độ"
-                value="28.5"
-                unit="°C"
-                trend="+2.1% so với hôm qua"
-                status="An toàn"
-                statusColor="success"
-                icon={ThermostatIcon}
-                optimalRange="26-29°C"
-              />
-              <SensorCard
-                label="Độ pH"
-                value="7.2"
-                unit="pH"
-                trend="-0.3% so với hôm qua"
-                status="An toàn"
-                statusColor="success"
-                icon={ScienceIcon}
-                optimalRange="7.0-7.5"
-              />
-              <SensorCard
-                label="Oxy hòa tan"
-                value="5.8"
-                unit="mg/L"
-                trend="-5.2% so với hôm qua"
-                status="Cảnh báo"
-                statusColor="warning"
-                icon={AirIcon}
-                optimalRange="> 5.0 mg/L"
-              />
-              <SensorCard
-                label="Ammonia"
-                value="0.8"
-                unit="ppm"
-                trend="+12.5% so với hôm qua"
-                status="Nguy hiểm"
-                statusColor="error"
-                icon={WaterDropIcon}
-                optimalRange="< 0.5 ppm"
-              />
+              <SensorCard label="Nhiệt độ" value="28.5" unit="°C" trend="+2.1% so với hôm qua" status="An toàn" statusColor="success" icon={ThermostatIcon} optimalRange="26-29°C" />
+              <SensorCard label="Độ pH" value="7.2" unit="pH" trend="-0.3% so với hôm qua" status="An toàn" statusColor="success" icon={ScienceIcon} optimalRange="7.0-7.5" />
+              <SensorCard label="Oxy hòa tan" value="5.8" unit="mg/L" trend="-5.2% so với hôm qua" status="Cảnh báo" statusColor="warning" icon={AirIcon} optimalRange="> 5.0 mg/L" />
+              <SensorCard label="Ammonia" value="0.8" unit="ppm" trend="+12.5% so với hôm qua" status="Nguy hiểm" statusColor="error" icon={WaterDropIcon} optimalRange="< 0.5 ppm" />
             </Box>
 
             {/* BIỂU ĐỒ - Chiều cao 240px */}
@@ -301,28 +227,10 @@ const RealTimeSensors = () => {
                   </Typography>
                   <Box sx={{ height: 240 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={trendData}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#E5E7EB"
-                        />
-                        <XAxis
-                          dataKey="time"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#6B7280" }}
-                          dy={10}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#6B7280" }}
-                          domain={["auto", "auto"]}
-                        />
+                      <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} domain={["auto", "auto"]} />
                         <Tooltip
                           contentStyle={{
                             borderRadius: "8px",
@@ -390,28 +298,10 @@ const RealTimeSensors = () => {
                   </Typography>
                   <Box sx={{ height: 240 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={trendData}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#E5E7EB"
-                        />
-                        <XAxis
-                          dataKey="time"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#6B7280" }}
-                          dy={10}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#6B7280" }}
-                          domain={[0, 10]}
-                        />
+                      <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} domain={[0, 10]} />
                         <Tooltip
                           contentStyle={{
                             borderRadius: "8px",
@@ -529,12 +419,7 @@ const RealTimeSensors = () => {
                     bgColor: theme.palette.success.light,
                   },
                 ].map((item, idx) => (
-                  <Stack
-                    key={idx}
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                  >
+                  <Stack key={idx} direction="row" spacing={2} alignItems="center">
                     <Box
                       sx={{
                         width: 48,
@@ -575,8 +460,7 @@ const RealTimeSensors = () => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color:
-                            item.subLabelColor || theme.palette.text.secondary,
+                          color: item.subLabelColor || theme.palette.text.secondary,
                           fontSize: "0.7rem",
                           display: "block",
                         }}
@@ -612,11 +496,7 @@ const RealTimeSensors = () => {
                 gap: 1,
               }}
             >
-              <WarningAmberIcon
-                fontSize="small"
-                sx={{ color: "text.secondary" }}
-              />{" "}
-              Mức độ rủi ro hiện tại
+              <WarningAmberIcon fontSize="small" sx={{ color: "text.secondary" }} /> Mức độ rủi ro hiện tại
             </Typography>
 
             <Paper
@@ -629,22 +509,11 @@ const RealTimeSensors = () => {
                 mb: 4,
               }}
             >
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                mb={1}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, color: theme.palette.error.main }}
-                >
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: theme.palette.error.main }}>
                   Rủi ro Cao
                 </Typography>
-                <IconButton
-                  size="small"
-                  sx={{ color: theme.palette.error.main }}
-                >
+                <IconButton size="small" sx={{ color: theme.palette.error.main }}>
                   <HighlightOffIcon />
                 </IconButton>
               </Stack>
@@ -663,10 +532,7 @@ const RealTimeSensors = () => {
                   mb: 1,
                 }}
               />
-              <Typography
-                variant="caption"
-                sx={{ color: theme.palette.error.main, fontSize: "0.75rem" }}
-              >
+              <Typography variant="caption" sx={{ color: theme.palette.error.main, fontSize: "0.75rem" }}>
                 Nghiêm trọng - DO thấp, NH3 cao
               </Typography>
             </Paper>
@@ -683,8 +549,7 @@ const RealTimeSensors = () => {
                 color: theme.palette.text.primary,
               }}
             >
-              <CloudQueueIcon fontSize="small" color="primary" /> Gợi ý hành
-              động từ AI
+              <CloudQueueIcon fontSize="small" color="primary" /> Gợi ý hành động từ AI
             </Typography>
 
             <Stack spacing={2}>
@@ -737,26 +602,13 @@ const RealTimeSensors = () => {
       </Box>
 
       {/* MODAL XÁC NHẬN */}
-      <ConfirmActionModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirmAction}
-        actionTitle={selectedAction}
-      />
+      <ConfirmActionModal open={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmAction} actionTitle={selectedAction} />
     </Box>
   );
 };
 
 // Component thẻ hành động chi tiết
-const DetailedActionCard: React.FC<DetailedActionCardProps> = ({
-  title,
-  risk,
-  method,
-  methodNote,
-  goal,
-  type,
-  onAction,
-}) => {
+const DetailedActionCard: React.FC<DetailedActionCardProps> = ({ title, risk, method, methodNote, goal, type, onAction }) => {
   const theme = useTheme();
   const isError = type === "error";
   const lightBg = isError ? "#FEF2F2" : "#FFFBEB";
@@ -766,9 +618,7 @@ const DetailedActionCard: React.FC<DetailedActionCardProps> = ({
       variant="outlined"
       sx={{
         borderRadius: "16px",
-        borderColor: isError
-          ? theme.palette.error.light
-          : theme.palette.warning.light,
+        borderColor: isError ? theme.palette.error.light : theme.palette.warning.light,
         overflow: "hidden",
       }}
     >
@@ -793,10 +643,7 @@ const DetailedActionCard: React.FC<DetailedActionCardProps> = ({
             />
           )}
           <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, color: theme.palette.text.primary }}
-            >
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
               {title}
             </Typography>
             <Typography
@@ -839,10 +686,7 @@ const DetailedActionCard: React.FC<DetailedActionCardProps> = ({
           >
             {method}
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary }}
-          >
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
             {methodNote}
           </Typography>
         </Box>

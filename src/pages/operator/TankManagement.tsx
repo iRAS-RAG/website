@@ -1,50 +1,33 @@
+import { alpha, Box, Button, Chip, IconButton, InputAdornment, LinearProgress, MenuItem, Paper, Stack, Tab, Tabs, TextField, Tooltip, Typography, useTheme } from "@mui/material";
 import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Stack,
-  TextField,
-  MenuItem,
-  InputAdornment,
-  Chip,
-  LinearProgress,
-  Tabs,
-  Tab,
-  Button,
-  useTheme,
-  alpha,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
 
 // --- ICONS ---
-import SearchIcon from "@mui/icons-material/Search";
-import EditIcon from "@mui/icons-material/Edit";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import WarningIcon from "@mui/icons-material/Warning";
-import ErrorIcon from "@mui/icons-material/Error";
-import SetMealIcon from "@mui/icons-material/SetMeal";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import OpacityIcon from "@mui/icons-material/Opacity";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import BoltIcon from "@mui/icons-material/Bolt";
-import ThermostatIcon from "@mui/icons-material/Thermostat";
-import ScienceIcon from "@mui/icons-material/Science";
-import AirIcon from "@mui/icons-material/Air";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import BuildIcon from "@mui/icons-material/Build";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-import TimelineIcon from "@mui/icons-material/Timeline";
 import AddIcon from "@mui/icons-material/Add";
-import SettingsIcon from "@mui/icons-material/Settings";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import AirIcon from "@mui/icons-material/Air";
+import BoltIcon from "@mui/icons-material/Bolt";
+import BuildIcon from "@mui/icons-material/Build";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import ErrorIcon from "@mui/icons-material/Error";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import OpacityIcon from "@mui/icons-material/Opacity";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import ScienceIcon from "@mui/icons-material/Science";
+import SearchIcon from "@mui/icons-material/Search";
+import SetMealIcon from "@mui/icons-material/SetMeal";
+import SettingsIcon from "@mui/icons-material/Settings";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import WarningIcon from "@mui/icons-material/Warning";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // --- INTERFACES ---
 interface Tank {
@@ -99,7 +82,7 @@ interface MaintenanceItemProps {
   title: string;
   desc: string;
   device: string;
-  tech: string;
+  operator: string;
   date: string;
   type: "repair" | "check";
 }
@@ -173,7 +156,7 @@ const TankManagement = () => {
         minHeight: "100vh",
       }}
     >
-      <TechnicianSidebar />
+      <OperatorSidebar />
       <Box
         sx={{
           flexGrow: 1,
@@ -183,7 +166,7 @@ const TankManagement = () => {
           minWidth: 0,
         }}
       >
-        <TechnicianHeader />
+        <OperatorHeader />
 
         {/* MAIN CONTENT AREA */}
         <Box
@@ -197,22 +180,12 @@ const TankManagement = () => {
           }}
         >
           {/* --- PAGE HEADER MỚI --- */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 600, color: theme.palette.text.primary }}
-              >
+              <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
                 Quản lý bể nuôi
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
-              >
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
                 Giám sát và quản lý vòng đời tài sản
               </Typography>
             </Box>
@@ -264,33 +237,18 @@ const TankManagement = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon
-                          fontSize="small"
-                          sx={{ color: theme.palette.text.secondary }}
-                        />
+                        <SearchIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
                       </InputAdornment>
                     ),
                   }}
                 />
                 <Stack direction="row" spacing={1.5}>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    defaultValue="all"
-                    sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}
-                  >
+                  <TextField select fullWidth size="small" defaultValue="all" sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}>
                     <MenuItem value="all">Tất cả trạng thái</MenuItem>
                     <MenuItem value="active">Đang nuôi</MenuItem>
                     <MenuItem value="warning">Cảnh báo</MenuItem>
                   </TextField>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    defaultValue="all"
-                    sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}
-                  >
+                  <TextField select fullWidth size="small" defaultValue="all" sx={{ "& .MuiSelect-select": { fontSize: "0.85rem" } }}>
                     <MenuItem value="all">Tất cả loài</MenuItem>
                     <MenuItem value="shrimp">Tôm</MenuItem>
                     <MenuItem value="fish">Cá</MenuItem>
@@ -313,12 +271,7 @@ const TankManagement = () => {
               >
                 <Stack spacing={2}>
                   {tankList.map((tank) => (
-                    <TankListItem
-                      key={tank.code}
-                      data={tank}
-                      selected={selectedTank.code === tank.code}
-                      onClick={() => setSelectedTank(tank)}
-                    />
+                    <TankListItem key={tank.code} data={tank} selected={selectedTank.code === tank.code} onClick={() => setSelectedTank(tank)} />
                   ))}
                 </Stack>
               </Box>
@@ -345,11 +298,7 @@ const TankManagement = () => {
                     borderBottom: `1px solid ${theme.palette.divider}`,
                   }}
                 >
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="flex-start"
-                  >
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                     <Box>
                       <Typography
                         variant="h5"
@@ -390,13 +339,7 @@ const TankManagement = () => {
                     </Button>
                   </Stack>
 
-                  <Tabs
-                    value={tabValue}
-                    onChange={(_, v) => setTabValue(v)}
-                    sx={{ mt: 2 }}
-                    indicatorColor="primary"
-                    textColor="primary"
-                  >
+                  <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mt: 2 }} indicatorColor="primary" textColor="primary">
                     <Tab
                       label="Tổng quan"
                       sx={{
@@ -435,27 +378,13 @@ const TankManagement = () => {
                         </Typography>
                         <Stack direction="row" spacing={2}>
                           <KPICard
-                            icon={
-                              <Inventory2OutlinedIcon
-                                sx={{ color: theme.palette.primary.main }}
-                              />
-                            }
+                            icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.primary.main }} />}
                             label="Lượng cám tiêu thụ"
                             value="450 kg"
                             trend="+12% so với tháng trước"
                             trendColor="success"
                           />
-                          <KPICard
-                            icon={
-                              <BoltIcon
-                                sx={{ color: theme.palette.warning.main }}
-                              />
-                            }
-                            label="Chi phí điện"
-                            value="2500.0K VND"
-                            trend="+5% so với tháng trước"
-                            trendColor="error"
-                          />
+                          <KPICard icon={<BoltIcon sx={{ color: theme.palette.warning.main }} />} label="Chi phí điện" value="2500.0K VND" trend="+5% so với tháng trước" trendColor="error" />
                         </Stack>
                       </Box>
 
@@ -478,30 +407,10 @@ const TankManagement = () => {
                             gap: 2,
                           }}
                         >
-                          <EnvironmentCard
-                            icon={<ThermostatIcon fontSize="small" />}
-                            label="Nhiệt độ"
-                            value="28.5°C"
-                            statusColor="success"
-                          />
-                          <EnvironmentCard
-                            icon={<ScienceIcon fontSize="small" />}
-                            label="pH"
-                            value="7.2"
-                            statusColor="success"
-                          />
-                          <EnvironmentCard
-                            icon={<AirIcon fontSize="small" />}
-                            label="DO"
-                            value="6.8 mg/L"
-                            statusColor="success"
-                          />
-                          <EnvironmentCard
-                            icon={<WaterDropIcon fontSize="small" />}
-                            label="NH3"
-                            value="0.02 mg/L"
-                            statusColor="success"
-                          />
+                          <EnvironmentCard icon={<ThermostatIcon fontSize="small" />} label="Nhiệt độ" value="28.5°C" statusColor="success" />
+                          <EnvironmentCard icon={<ScienceIcon fontSize="small" />} label="pH" value="7.2" statusColor="success" />
+                          <EnvironmentCard icon={<AirIcon fontSize="small" />} label="DO" value="6.8 mg/L" statusColor="success" />
+                          <EnvironmentCard icon={<WaterDropIcon fontSize="small" />} label="NH3" value="0.02 mg/L" statusColor="success" />
                         </Box>
                       </Box>
 
@@ -533,31 +442,10 @@ const TankManagement = () => {
                         />
 
                         <Stack spacing={0}>
-                          <StepItem
-                            title="Giai đoạn 1: Thả giống"
-                            desc="Giai đoạn cá/tôm còn nhỏ, cần chăm sóc đặc biệt"
-                            date="Ngày 0-50"
-                            status="completed"
-                          />
-                          <StepItem
-                            title="Giai đoạn 2: Phát triển"
-                            desc="Giai đoạn tăng trưởng nhanh, tăng cường cho ăn"
-                            date="Ngày 51-100"
-                            status="completed"
-                          />
-                          <StepItem
-                            title="Giai đoạn 3: Thu hoạch"
-                            desc="Cá/tôm đạt kích thước thương phẩm, chuẩn bị thu hoạch"
-                            date="Ngày 101-150"
-                            status="upcoming"
-                          />
-                          <StepItem
-                            title="Thu hoạch hoàn tất"
-                            desc="Kết thúc vụ nuôi, làm sạch bể và chuẩn bị cho vụ mới"
-                            date="Ngày 150"
-                            status="upcoming"
-                            isLast
-                          />
+                          <StepItem title="Giai đoạn 1: Thả giống" desc="Giai đoạn cá/tôm còn nhỏ, cần chăm sóc đặc biệt" date="Ngày 0-50" status="completed" />
+                          <StepItem title="Giai đoạn 2: Phát triển" desc="Giai đoạn tăng trưởng nhanh, tăng cường cho ăn" date="Ngày 51-100" status="completed" />
+                          <StepItem title="Giai đoạn 3: Thu hoạch" desc="Cá/tôm đạt kích thước thương phẩm, chuẩn bị thu hoạch" date="Ngày 101-150" status="upcoming" />
+                          <StepItem title="Thu hoạch hoàn tất" desc="Kết thúc vụ nuôi, làm sạch bể và chuẩn bị cho vụ mới" date="Ngày 150" status="upcoming" isLast />
                         </Stack>
 
                         <Box
@@ -565,10 +453,7 @@ const TankManagement = () => {
                             mt: 3,
                             p: 2,
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            border: `1px solid ${alpha(
-                              theme.palette.primary.main,
-                              0.2,
-                            )}`,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
                             borderRadius: "12px",
                             display: "flex",
                             gap: 2,
@@ -603,8 +488,7 @@ const TankManagement = () => {
                                 fontSize: "0.85rem",
                               }}
                             >
-                              Ngày 80 - Giai đoạn 2/3 - Dự kiến thu hoạch sau 70
-                              ngày
+                              Ngày 80 - Giai đoạn 2/3 - Dự kiến thu hoạch sau 70 ngày
                             </Typography>
                           </Box>
                         </Box>
@@ -615,12 +499,7 @@ const TankManagement = () => {
                     <Stack spacing={4}>
                       {/* 1. Danh sách thiết bị */}
                       <Box>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          mb={2}
-                        >
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
                           <Typography
                             variant="subtitle2"
                             sx={{
@@ -657,13 +536,7 @@ const TankManagement = () => {
                             borderBottom: `1px solid ${theme.palette.divider}`,
                           }}
                         >
-                          {[
-                            "Thiết bị",
-                            "Loại",
-                            "Trạng thái",
-                            "Bảo trì cuối",
-                            "Hành động",
-                          ].map((h) => (
+                          {["Thiết bị", "Loại", "Trạng thái", "Bảo trì cuối", "Hành động"].map((h) => (
                             <Typography
                               key={h}
                               variant="caption"
@@ -685,46 +558,16 @@ const TankManagement = () => {
                             borderRadius: "0 0 8px 8px",
                           }}
                         >
-                          <DeviceRow
-                            name="Máy bơm chính #1"
-                            code="PUMP-001"
-                            type="Water Pump"
-                            status="active"
-                            lastMaintenance="2026-01-15"
-                          />
-                          <DeviceRow
-                            name="Quạt sục khí #1"
-                            code="AERATOR-001"
-                            type="Aerator"
-                            status="active"
-                            lastMaintenance="2026-01-20"
-                          />
-                          <DeviceRow
-                            name="Bộ lọc sinh học"
-                            code="FILTER-001"
-                            type="Bio Filter"
-                            status="maintenance"
-                            lastMaintenance="2026-01-25"
-                          />
-                          <DeviceRow
-                            name="Cảm biến DO"
-                            code="SENSOR-001"
-                            type="DO Sensor"
-                            status="active"
-                            lastMaintenance="2026-01-10"
-                            isLast
-                          />
+                          <DeviceRow name="Máy bơm chính #1" code="PUMP-001" type="Water Pump" status="active" lastMaintenance="2026-01-15" />
+                          <DeviceRow name="Quạt sục khí #1" code="AERATOR-001" type="Aerator" status="active" lastMaintenance="2026-01-20" />
+                          <DeviceRow name="Bộ lọc sinh học" code="FILTER-001" type="Bio Filter" status="maintenance" lastMaintenance="2026-01-25" />
+                          <DeviceRow name="Cảm biến DO" code="SENSOR-001" type="DO Sensor" status="active" lastMaintenance="2026-01-10" isLast />
                         </Stack>
                       </Box>
 
                       {/* 2. Lịch sử bảo trì */}
                       <Box>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          mb={2}
-                        >
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
                           <Typography
                             variant="subtitle2"
                             sx={{
@@ -754,7 +597,7 @@ const TankManagement = () => {
                             title="Thay thế bộ lọc sinh học"
                             desc="Bộ lọc cũ đã sử dụng 6 tháng, thay thế theo lịch định kỳ."
                             device="FILTER-001"
-                            tech="Nguyễn Văn A"
+                            operator="Nguyễn Văn A"
                             date="25/01/2026"
                             type="repair"
                           />
@@ -762,18 +605,11 @@ const TankManagement = () => {
                             title="Hiệu chuẩn cảm biến DO"
                             desc="Hiệu chuẩn định kỳ để đảm bảo độ chính xác của cảm biến."
                             device="SENSOR-001"
-                            tech="Trần Thị B"
+                            operator="Trần Thị B"
                             date="20/01/2026"
                             type="check"
                           />
-                          <MaintenanceItem
-                            title="Bảo dưỡng máy bơm"
-                            desc="Kiểm tra và bôi trơn các bộ phận cơ khí của máy bơm."
-                            device="PUMP-001"
-                            tech="Lê Văn C"
-                            date="15/01/2026"
-                            type="check"
-                          />
+                          <MaintenanceItem title="Bảo dưỡng máy bơm" desc="Kiểm tra và bôi trơn các bộ phận cơ khí của máy bơm." device="PUMP-001" operator="Lê Văn C" date="15/01/2026" type="check" />
                         </Stack>
                       </Box>
 
@@ -796,16 +632,7 @@ const TankManagement = () => {
                             gap: 2,
                           }}
                         >
-                          <StatCard
-                            icon={
-                              <CheckCircleOutlineIcon
-                                sx={{ color: theme.palette.success.main }}
-                              />
-                            }
-                            label="Hoạt động"
-                            value="3/4"
-                            bg={alpha(theme.palette.success.main, 0.05)}
-                          />
+                          <StatCard icon={<CheckCircleOutlineIcon sx={{ color: theme.palette.success.main }} />} label="Hoạt động" value="3/4" bg={alpha(theme.palette.success.main, 0.05)} />
                           <StatCard
                             icon={
                               <BuildIcon
@@ -901,35 +728,21 @@ const TankListItem = ({ data, selected, onClick }: TankListItemProps) => {
   const theme = useTheme();
 
   // Icon trạng thái
-  let statusIcon = (
-    <CheckCircleIcon sx={{ fontSize: 18, color: theme.palette.success.main }} />
-  );
+  let statusIcon = <CheckCircleIcon sx={{ fontSize: 18, color: theme.palette.success.main }} />;
   if (data.healthStatus === "warning") {
-    statusIcon = (
-      <WarningIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
-    );
+    statusIcon = <WarningIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />;
   } else if (data.healthStatus === "critical") {
-    statusIcon = (
-      <ErrorIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />
-    );
+    statusIcon = <ErrorIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />;
   }
 
   // Style cho trạng thái Active/Empty
   const isActive = data.status === "active";
   const statusLabel = isActive ? "Đang nuôi" : "Trống";
-  const statusChipBg = isActive
-    ? theme.palette.success.light
-    : theme.palette.action.selected;
-  const statusChipText = isActive
-    ? theme.palette.success.main
-    : theme.palette.text.secondary;
+  const statusChipBg = isActive ? theme.palette.success.light : theme.palette.action.selected;
+  const statusChipText = isActive ? theme.palette.success.main : theme.palette.text.secondary;
 
-  const borderColor = selected
-    ? theme.palette.primary.main
-    : theme.palette.divider;
-  const bgColor = selected
-    ? alpha(theme.palette.primary.main, 0.08)
-    : theme.palette.background.paper;
+  const borderColor = selected ? theme.palette.primary.main : theme.palette.divider;
+  const bgColor = selected ? alpha(theme.palette.primary.main, 0.08) : theme.palette.background.paper;
 
   return (
     <Paper
@@ -990,35 +803,20 @@ const TankListItem = ({ data, selected, onClick }: TankListItemProps) => {
 
       <Stack spacing={0.5}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <SetMealIcon
-            sx={{ fontSize: 14, color: theme.palette.text.secondary }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
-          >
+          <SetMealIcon sx={{ fontSize: 14, color: theme.palette.text.secondary }} />
+          <Typography variant="body2" sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}>
             {data.species}
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <TrendingUpIcon
-            sx={{ fontSize: 14, color: theme.palette.text.secondary }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
-          >
+          <TrendingUpIcon sx={{ fontSize: 14, color: theme.palette.text.secondary }} />
+          <Typography variant="body2" sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}>
             {data.phase}
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <OpacityIcon
-            sx={{ fontSize: 14, color: theme.palette.text.secondary }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
-          >
+          <OpacityIcon sx={{ fontSize: 14, color: theme.palette.text.secondary }} />
+          <Typography variant="body2" sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}>
             Mật độ: {data.density}%
           </Typography>
         </Stack>
@@ -1030,10 +828,7 @@ const TankListItem = ({ data, selected, onClick }: TankListItemProps) => {
 // 2. KPI Card (Cột phải)
 const KPICard = ({ icon, label, value, trend, trendColor }: KPICardProps) => {
   const theme = useTheme();
-  const trendTextColor =
-    trendColor === "success"
-      ? theme.palette.success.main
-      : theme.palette.error.main;
+  const trendTextColor = trendColor === "success" ? theme.palette.success.main : theme.palette.error.main;
 
   return (
     <Paper
@@ -1050,23 +845,14 @@ const KPICard = ({ icon, label, value, trend, trendColor }: KPICardProps) => {
     >
       <Stack direction="row" alignItems="center" spacing={1}>
         {icon}
-        <Typography
-          variant="caption"
-          sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}
-        >
+        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
           {label}
         </Typography>
       </Stack>
-      <Typography
-        variant="h6"
-        sx={{ fontWeight: 700, color: theme.palette.text.primary }}
-      >
+      <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
         {value}
       </Typography>
-      <Typography
-        variant="caption"
-        sx={{ color: trendTextColor, fontWeight: 500 }}
-      >
+      <Typography variant="caption" sx={{ color: trendTextColor, fontWeight: 500 }}>
         {trend}
       </Typography>
     </Paper>
@@ -1074,12 +860,7 @@ const KPICard = ({ icon, label, value, trend, trendColor }: KPICardProps) => {
 };
 
 // 3. Environment Card (Cột phải)
-const EnvironmentCard = ({
-  icon,
-  label,
-  value,
-  statusColor,
-}: EnvironmentCardProps) => {
+const EnvironmentCard = ({ icon, label, value, statusColor }: EnvironmentCardProps) => {
   const theme = useTheme();
   const color = theme.palette[statusColor].main;
 
@@ -1096,12 +877,7 @@ const EnvironmentCard = ({
         border: `1px solid ${theme.palette.divider}`,
       }}
     >
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ color: theme.palette.text.secondary }}
-      >
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ color: theme.palette.text.secondary }}>
         {icon}
         <Typography variant="caption" sx={{ fontWeight: 600 }}>
           {label}
@@ -1109,10 +885,7 @@ const EnvironmentCard = ({
       </Stack>
 
       <Box>
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}
-        >
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: theme.palette.text.primary }}>
           {value}
         </Typography>
         <Box
@@ -1141,12 +914,8 @@ const EnvironmentCard = ({
 const StepItem = ({ title, desc, date, status, isLast }: StepItemProps) => {
   const theme = useTheme();
   const isCompleted = status === "completed";
-  const circleColor = isCompleted
-    ? theme.palette.success.main
-    : theme.palette.divider;
-  const titleColor = isCompleted
-    ? theme.palette.text.primary
-    : theme.palette.text.secondary;
+  const circleColor = isCompleted ? theme.palette.success.main : theme.palette.divider;
+  const titleColor = isCompleted ? theme.palette.text.primary : theme.palette.text.secondary;
 
   return (
     <Box sx={{ display: "flex", minHeight: 60 }}>
@@ -1160,19 +929,13 @@ const StepItem = ({ title, desc, date, status, isLast }: StepItemProps) => {
           width: 24,
         }}
       >
-        {isCompleted ? (
-          <CheckCircleIcon sx={{ color: circleColor, fontSize: 24 }} />
-        ) : (
-          <RadioButtonUncheckedIcon sx={{ color: circleColor, fontSize: 24 }} />
-        )}
+        {isCompleted ? <CheckCircleIcon sx={{ color: circleColor, fontSize: 24 }} /> : <RadioButtonUncheckedIcon sx={{ color: circleColor, fontSize: 24 }} />}
         {!isLast && (
           <Box
             sx={{
               width: 2,
               flexGrow: 1,
-              bgcolor: isCompleted
-                ? theme.palette.success.main
-                : theme.palette.divider,
+              bgcolor: isCompleted ? theme.palette.success.main : theme.palette.divider,
               my: 0.5,
             }}
           />
@@ -1181,16 +944,9 @@ const StepItem = ({ title, desc, date, status, isLast }: StepItemProps) => {
 
       {/* Content */}
       <Box sx={{ flexGrow: 1, pb: isLast ? 0 : 3 }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="flex-start"
-        >
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
           <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, color: titleColor }}
-            >
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: titleColor }}>
               {title}
             </Typography>
             <Typography
@@ -1205,10 +961,7 @@ const StepItem = ({ title, desc, date, status, isLast }: StepItemProps) => {
               {desc}
             </Typography>
           </Box>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
-          >
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
             {date}
           </Typography>
         </Stack>
@@ -1219,14 +972,7 @@ const StepItem = ({ title, desc, date, status, isLast }: StepItemProps) => {
 
 // --- NEW COMPONENTS FOR DEVICE TAB (Typed) ---
 
-const DeviceRow = ({
-  name,
-  code,
-  type,
-  status,
-  lastMaintenance,
-  isLast,
-}: DeviceRowProps) => {
+const DeviceRow = ({ name, code, type, status, lastMaintenance, isLast }: DeviceRowProps) => {
   const theme = useTheme();
   const isActive = status === "active";
 
@@ -1242,16 +988,10 @@ const DeviceRow = ({
       }}
     >
       <Box>
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 600, color: theme.palette.text.primary }}
-        >
+        <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
           {name}
         </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: theme.palette.text.secondary, fontSize: "0.7rem" }}
-        >
+        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: "0.7rem" }}>
           {code}
         </Typography>
       </Box>
@@ -1268,19 +1008,13 @@ const DeviceRow = ({
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                bgcolor: isActive
-                  ? theme.palette.success.main
-                  : theme.palette.warning.main,
+                bgcolor: isActive ? theme.palette.success.main : theme.palette.warning.main,
               }}
             />
           }
           sx={{
-            bgcolor: isActive
-              ? theme.palette.success.light
-              : theme.palette.warning.light,
-            color: isActive
-              ? theme.palette.success.main
-              : theme.palette.warning.main,
+            bgcolor: isActive ? theme.palette.success.light : theme.palette.warning.light,
+            color: isActive ? theme.palette.success.main : theme.palette.warning.main,
             fontWeight: 600,
             fontSize: "0.7rem",
             height: 24,
@@ -1308,23 +1042,12 @@ const DeviceRow = ({
   );
 };
 
-const MaintenanceItem = ({
-  title,
-  desc,
-  device,
-  tech,
-  date,
-  type,
-}: MaintenanceItemProps) => {
+const MaintenanceItem = ({ title, desc, device, operator, date, type }: MaintenanceItemProps) => {
   const theme = useTheme();
   const isRepair = type === "repair";
   // Dùng màu Primary cho sửa chữa, Success cho kiểm tra
-  const iconColor = isRepair
-    ? theme.palette.primary.main
-    : theme.palette.success.main;
-  const iconBg = isRepair
-    ? theme.palette.primary.light
-    : theme.palette.success.light;
+  const iconColor = isRepair ? theme.palette.primary.main : theme.palette.success.main;
+  const iconBg = isRepair ? theme.palette.primary.light : theme.palette.success.light;
 
   return (
     <Paper
@@ -1350,28 +1073,14 @@ const MaintenanceItem = ({
           flexShrink: 0,
         }}
       >
-        {isRepair ? (
-          <BuildIcon fontSize="small" />
-        ) : (
-          <CheckCircleOutlineIcon fontSize="small" />
-        )}
+        {isRepair ? <BuildIcon fontSize="small" /> : <CheckCircleOutlineIcon fontSize="small" />}
       </Box>
       <Box sx={{ flexGrow: 1 }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="flex-start"
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{ fontWeight: 700, color: theme.palette.text.primary }}
-          >
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
             {title}
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary }}
-          >
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
             {date}
           </Typography>
         </Stack>
@@ -1387,34 +1096,19 @@ const MaintenanceItem = ({
           {desc}
         </Typography>
         <Stack direction="row" spacing={2}>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary }}
-          >
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
             Thiết bị:{" "}
-            <Box
-              component="span"
-              sx={{ color: theme.palette.text.primary, fontWeight: 500 }}
-            >
+            <Box component="span" sx={{ color: theme.palette.text.primary, fontWeight: 500 }}>
               {device}
             </Box>
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary }}
-          >
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
             •
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary }}
-          >
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
             Kỹ thuật viên:{" "}
-            <Box
-              component="span"
-              sx={{ color: theme.palette.text.primary, fontWeight: 500 }}
-            >
-              {tech}
+            <Box component="span" sx={{ color: theme.palette.text.primary, fontWeight: 500 }}>
+              {operator}
             </Box>
           </Typography>
         </Stack>
@@ -1437,21 +1131,13 @@ const StatCard = ({ icon, label, value, bg }: StatCardProps) => {
         gap: 1,
       }}
     >
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ color: theme.palette.text.secondary }}
-      >
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ color: theme.palette.text.secondary }}>
         {icon}
         <Typography variant="caption" fontWeight={600}>
           {label}
         </Typography>
       </Stack>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, color: theme.palette.text.primary }}
-      >
+      <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
         {value}
       </Typography>
     </Paper>
