@@ -136,7 +136,7 @@ const UserManagement: React.FC = () => {
                 Quản lý người dùng
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Quản lý tài khoản, vai trò và đặt lại mật khẩu (dữ liệu giả).
+                Quản lý tài khoản, vai trò và đặt lại mật khẩu.
               </Typography>
             </div>
 

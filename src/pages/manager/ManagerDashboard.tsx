@@ -1,4 +1,9 @@
-import { Box, Button, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import AirIcon from "@mui/icons-material/Air";
+import FastfoodIcon from "@mui/icons-material/Fastfood";
+import PetsIcon from "@mui/icons-material/Pets";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import ScienceIcon from "@mui/icons-material/Science";
+import { Avatar, Box, Button, Chip, Divider, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import ManagerHeader from "../../components/manager/ManagerHeader";
@@ -29,135 +34,114 @@ const ManagerDashboard: React.FC = () => {
   );
 };
 
-const SectionRenderer: React.FC = () => {
+const SectionRenderer: React.FC<{ section?: string }> = ({ section: propSection }) => {
+  const theme = useTheme();
   const { hash } = useLocation();
-  const section = (hash || "").replace("#", "") || "overview";
+  const section = propSection || (hash || "").replace("#", "") || "overview";
 
   // Mock data are imported from src/mocks/manager.ts
 
   if (section === "species") {
     return (
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-          Species
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+          Loài
         </Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Optimal Temp</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {species.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>{s.name}</TableCell>
-                  <TableCell>{s.optimalTemp}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small">Edit</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 2 }}>
+          {species.map((s) => (
+            <Paper key={s.id} sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
+              <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main }}>
+                <PetsIcon />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontWeight: 700 }}>{s.name}</Typography>
+                <Chip label={`Nhiệt tối ưu: ${s.optimalTemp}`} size="small" sx={{ mt: 1 }} />
+              </Box>
+              <Button size="small">Sửa</Button>
+            </Paper>
+          ))}
+        </Box>
+      </Box>
     );
   }
 
   if (section === "feeds") {
     return (
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-          Feed Types
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+          Thức ăn
         </Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Protein</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {feeds.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell>{f.name}</TableCell>
-                  <TableCell>{f.protein}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small">Edit</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 2 }}>
+          {feeds.map((f) => (
+            <Paper key={f.id} sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
+              <Avatar sx={{ bgcolor: theme.palette.secondary.light, color: theme.palette.secondary.main }}>
+                <FastfoodIcon />
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontWeight: 700 }}>{f.name}</Typography>
+                <Chip label={`Protein: ${f.protein}`} size="small" sx={{ mt: 1 }} color="info" />
+              </Box>
+              <Button size="small">Sửa</Button>
+            </Paper>
+          ))}
+        </Box>
+      </Box>
     );
   }
 
   if (section === "thresholds") {
+    const iconFor = (sensor: string) => {
+      if (/pH/i.test(sensor)) return <ScienceIcon />;
+      if (/DO/i.test(sensor)) return <AirIcon />;
+      return <ScienceIcon />;
+    };
+
     return (
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-          Thresholds
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+          Ngưỡng cảm biến
         </Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Sensor</TableCell>
-                <TableCell>Min</TableCell>
-                <TableCell>Max</TableCell>
-                <TableCell>Unit</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {thresholds.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{t.sensor}</TableCell>
-                  <TableCell>{t.min}</TableCell>
-                  <TableCell>{t.max}</TableCell>
-                  <TableCell>{t.unit}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+        <List sx={{ bgcolor: "background.paper", borderRadius: 2, p: 1, border: `1px solid ${theme.palette.divider}` }}>
+          {thresholds.map((t, idx) => (
+            <React.Fragment key={t.id}>
+              <ListItem sx={{ alignItems: "center" }}>
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main }}>{iconFor(t.sensor)}</Avatar>
+                </ListItemAvatar>
+                <ListItemText primary={t.sensor} secondary={`Khoảng: ${t.min} - ${t.max} ${t.unit}`} />
+                <Chip label={`${t.min} - ${t.max} ${t.unit}`} size="small" color="secondary" />
+              </ListItem>
+              {idx < thresholds.length - 1 && <Divider variant="inset" component="li" />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Box>
     );
   }
 
   if (section === "schedule") {
     return (
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-          Feeding Schedule
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+          Lịch cho ăn
         </Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Time</TableCell>
-                <TableCell>Feed</TableCell>
-                <TableCell>Amount</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {schedules.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>{s.time}</TableCell>
-                  <TableCell>{s.feed}</TableCell>
-                  <TableCell>{s.amount}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+        <List sx={{ bgcolor: "background.paper", borderRadius: 2, p: 1, border: `1px solid ${theme.palette.divider}` }}>
+          {schedules.map((s, idx) => (
+            <React.Fragment key={s.id}>
+              <ListItem secondaryAction={<Chip label={s.amount} size="small" />}>
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: theme.palette.info.light, color: theme.palette.info.main }}>
+                    <ScheduleIcon />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText primary={s.feed} secondary={`Thời gian: ${s.time}`} />
+                <Chip label={s.time} size="small" sx={{ ml: 2 }} />
+              </ListItem>
+              {idx < schedules.length - 1 && <Divider variant="inset" component="li" />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Box>
     );
   }
 

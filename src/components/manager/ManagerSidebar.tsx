@@ -4,23 +4,24 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PetsIcon from "@mui/icons-material/Pets";
 import ScheduleIcon from "@mui/icons-material/Schedule";
-import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
+import { alpha, Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { clearCurrentUser } from "../../mocks/auth";
 
 const menu = [
   { text: "Tổng quan", icon: <DashboardIcon />, path: "/manager/dashboard" },
-  { text: "Species", icon: <PetsIcon />, path: "/manager/dashboard#species" },
-  { text: "Feed Types", icon: <FastfoodIcon />, path: "/manager/dashboard#feeds" },
-  { text: "Thresholds", icon: <NotificationsActiveIcon />, path: "/manager/dashboard#thresholds" },
-  { text: "Feeding Schedule", icon: <ScheduleIcon />, path: "/manager/dashboard#schedule" },
+  { text: "Loài", icon: <PetsIcon />, path: "/manager/dashboard#species" },
+  { text: "Thức ăn", icon: <FastfoodIcon />, path: "/manager/dashboard#feeds" },
+  { text: "Ngưỡng cảm biến", icon: <NotificationsActiveIcon />, path: "/manager/dashboard#thresholds" },
+  { text: "Lịch cho ăn", icon: <ScheduleIcon />, path: "/manager/dashboard#schedule" },
 ];
 
 export const ManagerSidebar: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <Box
@@ -43,14 +44,25 @@ export const ManagerSidebar: React.FC = () => {
       </Stack>
 
       <List sx={{ flexGrow: 1, px: 1.5 }}>
-        {menu.map((m) => (
-          <ListItem key={m.text} disablePadding sx={{ mb: 1 }}>
-            <ListItemButton sx={{ borderRadius: "10px", py: 1.2 }} onClick={() => navigate(m.path)}>
-              <ListItemIcon>{m.icon}</ListItemIcon>
-              <ListItemText primary={m.text} primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: 600 }} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {menu.map((m) => {
+          const isSelected = m.path === `${location.pathname}${location.hash || ""}`;
+          return (
+            <ListItem key={m.text} disablePadding sx={{ mb: 1 }}>
+              <ListItemButton
+                sx={{
+                  borderRadius: "10px",
+                  py: 1.2,
+                  bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.08) : "transparent",
+                  borderLeft: `4px solid ${isSelected ? theme.palette.primary.main : "transparent"}`,
+                }}
+                onClick={() => navigate(m.path)}
+              >
+                <ListItemIcon sx={{ color: isSelected ? theme.palette.primary.main : "inherit" }}>{m.icon}</ListItemIcon>
+                <ListItemText primary={m.text} primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: 600 }} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
 
       <Box sx={{ p: 2, mt: "auto" }}>
