@@ -1,36 +1,36 @@
-import React, { useState } from "react";
 import {
   Box,
-  Typography,
-  Paper,
-  Stack,
   Button,
   Chip,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Typography,
   useTheme,
   // TextField,
   // MenuItem,
   type Palette,
   type PaletteColor,
 } from "@mui/material";
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
+import { useState } from "react";
 import { AlertDetailModal } from "../../components/technician/AlertDetailModal";
+import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
+import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
 
 // Icons
-import FilterListIcon from "@mui/icons-material/FilterList";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import type { JSX } from "react";
 
 // 1. CẬP NHẬT INTERFACE: Thêm id, đổi tên trường cho khớp với code JSX
@@ -197,10 +197,7 @@ const AlertCenter = () => {
             >
               Trung tâm cảnh báo
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
-            >
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
               Quản lý và xử lý các cảnh báo từ hệ thống
             </Typography>
           </Box>
@@ -214,30 +211,10 @@ const AlertCenter = () => {
               mb: 4,
             }}
           >
-            <SummaryCard
-              label="Tổng cảnh báo"
-              value="8"
-              icon={<NotificationsActiveIcon />}
-              color="primary"
-            />
-            <SummaryCard
-              label="Nghiêm trọng"
-              value="2"
-              icon={<ErrorOutlineIcon />}
-              color="error"
-            />
-            <SummaryCard
-              label="Chờ xử lý"
-              value="3"
-              icon={<PendingActionsIcon />}
-              color="warning"
-            />
-            <SummaryCard
-              label="Đã xử lý"
-              value="1"
-              icon={<CheckCircleOutlineIcon />}
-              color="success"
-            />
+            <SummaryCard label="Tổng cảnh báo" value="8" icon={<NotificationsActiveIcon />} color="primary" />
+            <SummaryCard label="Nghiêm trọng" value="2" icon={<ErrorOutlineIcon />} color="error" />
+            <SummaryCard label="Chờ xử lý" value="3" icon={<PendingActionsIcon />} color="warning" />
+            <SummaryCard label="Đã xử lý" value="1" icon={<CheckCircleOutlineIcon />} color="success" />
           </Box>
 
           {/* 2. FILTERS & EXPORT - Cập nhật theo thiết kế mới */}
@@ -308,17 +285,7 @@ const AlertCenter = () => {
             <Table>
               <TableHead sx={{ bgcolor: "#fff" }}>
                 <TableRow>
-                  {[
-                    "Thời gian",
-                    "Cảm biến",
-                    "Giá trị",
-                    "Ngưỡng",
-                    "Mức độ",
-                    "Bể ảnh hưởng",
-                    "Kỹ thuật viên",
-                    "Trạng thái",
-                    "Hành động",
-                  ].map((head, index) => (
+                  {["Thời gian", "Cảm biến", "Giá trị", "Ngưỡng", "Mức độ", "Bể ảnh hưởng", "Kỹ thuật viên", "Trạng thái", "Hành động"].map((head, index) => (
                     <TableCell
                       key={index}
                       align="left"
@@ -361,10 +328,7 @@ const AlertCenter = () => {
                             color: theme.palette.text.secondary,
                           }}
                         />
-                        <Typography
-                          variant="body2"
-                          sx={{ fontSize: "0.85rem" }}
-                        >
+                        <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
                           {row.time}
                         </Typography>
                       </Stack>
@@ -452,11 +416,7 @@ const AlertCenter = () => {
                       <Button
                         variant="contained"
                         size="small"
-                        startIcon={
-                          <VisibilityIcon
-                            sx={{ fontSize: "16px !important" }}
-                          />
-                        }
+                        startIcon={<VisibilityIcon sx={{ fontSize: "16px !important" }} />}
                         onClick={() => handleOpenDetail(row)}
                         sx={{
                           textTransform: "none",
@@ -483,16 +443,8 @@ const AlertCenter = () => {
           </TableContainer>
 
           {/* 4. PAGINATION */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mt: 3 }}
-          >
-            <Typography
-              variant="caption"
-              sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
-            >
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3 }}>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
               Hiển thị 8 / 8 cảnh báo
             </Typography>
             <Stack direction="row" spacing={1}>
@@ -556,11 +508,7 @@ const AlertCenter = () => {
       </Box>
 
       {/* Modal chi tiết */}
-      <AlertDetailModal
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        data={selectedAlert}
-      />
+      <AlertDetailModal open={detailOpen} onClose={() => setDetailOpen(false)} data={selectedAlert} />
     </Box>
   );
 };
@@ -597,10 +545,7 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
         >
           {label}
         </Typography>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 600, mt: 0.5, color: theme.palette.text.primary }}
-        >
+        <Typography variant="h4" sx={{ fontWeight: 600, mt: 0.5, color: theme.palette.text.primary }}>
           {value}
         </Typography>
       </Box>

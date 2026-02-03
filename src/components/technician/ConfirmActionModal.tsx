@@ -1,18 +1,6 @@
-import React from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  Stack,
-  Button,
-  IconButton,
-  useTheme,
-} from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircleOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography, useTheme } from "@mui/material";
 
 interface ConfirmActionModalProps {
   open: boolean;
@@ -21,12 +9,7 @@ interface ConfirmActionModalProps {
   actionTitle?: string;
 }
 
-export const ConfirmActionModal = ({
-  open,
-  onClose,
-  onConfirm,
-  actionTitle = "Xử lý khẩn cấp DO thấp",
-}: ConfirmActionModalProps) => {
+export const ConfirmActionModal = ({ open, onClose, onConfirm, actionTitle = "Xử lý khẩn cấp DO thấp" }: ConfirmActionModalProps) => {
   const theme = useTheme();
 
   return (
@@ -65,11 +48,7 @@ export const ConfirmActionModal = ({
         >
           Xác nhận thực hiện hành động
         </Typography>
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{ color: theme.palette.text.secondary }}
-        >
+        <IconButton onClick={onClose} size="small" sx={{ color: theme.palette.text.secondary }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -107,10 +86,7 @@ export const ConfirmActionModal = ({
           {/* List thông số kỹ thuật */}
           <Stack spacing={1}>
             <Box sx={{ display: "flex", gap: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}
-              >
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}>
                 Phương pháp:
               </Typography>
               <Typography variant="body2" sx={{ color: "#334155" }}>
@@ -118,10 +94,7 @@ export const ConfirmActionModal = ({
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}
-              >
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}>
                 Liều lượng:
               </Typography>
               <Typography variant="body2" sx={{ color: "#334155" }}>
@@ -129,10 +102,7 @@ export const ConfirmActionModal = ({
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}
-              >
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}>
                 Mục tiêu:
               </Typography>
               <Typography variant="body2" sx={{ color: "#334155" }}>
@@ -151,15 +121,11 @@ export const ConfirmActionModal = ({
             border: "1px solid #FFEDD5",
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{ color: "#9A3412", lineHeight: 1.6, fontSize: "0.85rem" }}
-          >
+          <Typography variant="body2" sx={{ color: "#9A3412", lineHeight: 1.6, fontSize: "0.85rem" }}>
             <Box component="span" sx={{ fontWeight: 700 }}>
               Lưu ý:{" "}
             </Box>
-            Hành động này sẽ được ghi vào nhật ký bảo trì. Vui lòng đảm bảo đã
-            chuẩn bị đầy đủ vật tư và thiết bị cần thiết.
+            Hành động này sẽ được ghi vào nhật ký bảo trì. Vui lòng đảm bảo đã chuẩn bị đầy đủ vật tư và thiết bị cần thiết.
           </Typography>
         </Box>
       </DialogContent>
