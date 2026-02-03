@@ -1,6 +1,7 @@
 import { Avatar, Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
 import { Link, useLocation } from "react-router-dom"; // Hook để nhận diện trang hiện tại
 import logo from "../../assets/logo.png";
+import LogoutButton from "../common/LogoutButton";
 
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -143,10 +144,11 @@ export const OperatorSidebar = () => {
           >
             A
           </Avatar>
-          <Box>
+          <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>Nguyễn Văn A</Typography>
             <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Kỹ thuật viên</Typography>
           </Box>
+          <LogoutButton />
         </Stack>
       </Box>
     </Box>

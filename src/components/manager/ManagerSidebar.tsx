@@ -1,14 +1,13 @@
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import FastfoodIcon from "@mui/icons-material/Fastfood";
-import LogoutIcon from "@mui/icons-material/Logout";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PetsIcon from "@mui/icons-material/Pets";
 import ScheduleIcon from "@mui/icons-material/Schedule";
-import { alpha, Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
+import { alpha, Avatar, Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { clearCurrentUser } from "../../mocks/auth";
+import LogoutButton from "../common/LogoutButton";
 
 const menu = [
   { text: "Tổng quan", icon: <DashboardIcon />, path: "/manager/dashboard" },
@@ -73,15 +72,7 @@ export const ManagerSidebar: React.FC = () => {
             <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>Manager</Typography>
             <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Quản lý</Typography>
           </Box>
-          <IconButton
-            onClick={() => {
-              clearCurrentUser();
-              localStorage.removeItem("userRole");
-              navigate("/auth/login");
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
+          <LogoutButton />
         </Stack>
       </Box>
     </Box>

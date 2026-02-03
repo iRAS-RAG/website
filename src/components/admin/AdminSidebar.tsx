@@ -1,13 +1,12 @@
 import ArticleIcon from "@mui/icons-material/Article";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
+import { Avatar, Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { clearCurrentUser } from "../../mocks/auth";
+import LogoutButton from "../common/LogoutButton";
 
 const menu = [
   { text: "Bảng điều khiển", icon: <DashboardIcon />, path: "/admin/dashboard" },
@@ -59,15 +58,7 @@ export const AdminSidebar: React.FC = () => {
             <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>Admin</Typography>
             <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Quản trị viên</Typography>
           </Box>
-          <IconButton
-            onClick={() => {
-              clearCurrentUser();
-              localStorage.removeItem("userRole");
-              navigate("/auth/login");
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
+          <LogoutButton />
         </Stack>
       </Box>
     </Box>
