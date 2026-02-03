@@ -9,15 +9,7 @@ export const OperatorHeader: React.FC = () => {
     { type: "success", title: "Bể A-01: Đã ổn định trở lại", time: "1 giờ trước" },
   ];
 
-  return (
-    <DashboardHeader
-      title="Bảng điều khiển Operator"
-      badgeCount={operatorNotifications.length}
-      searchPlaceholder="Tìm nhanh mã bể, cảm biến..."
-      notifications={operatorNotifications}
-      seeAllRoute="/operator/alerts"
-    />
-  );
+  return <DashboardHeader badgeCount={operatorNotifications.length} searchPlaceholder="Tìm nhanh mã bể, cảm biến..." notifications={operatorNotifications} seeAllRoute="/operator/alerts" />;
 };
 
 export default OperatorHeader;

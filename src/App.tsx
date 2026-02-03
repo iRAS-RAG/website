@@ -8,7 +8,7 @@ import { theme } from "./theme/theme";
 function App() {
   const location = useLocation();
   // Kiểm tra nếu là một trang dashboard/admin thì ẩn header/footer public
-  const isDashboard = location.pathname.startsWith("/operator") || location.pathname.startsWith("/admin") || location.pathname.startsWith("/manager");
+  const isDashboard = location.pathname.startsWith("/operator") || location.pathname.startsWith("/admin") || location.pathname.startsWith("/supervisor");
 
   return (
     <ThemeProvider theme={theme}>

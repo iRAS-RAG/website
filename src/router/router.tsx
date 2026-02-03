@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { isAdmin, isManager } from "../mocks/auth";
+import { isAdmin, isSupervisor } from "../mocks/auth";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AIKnowledge from "../pages/admin/AIKnowledge";
@@ -7,8 +7,8 @@ import HardwareSensors from "../pages/admin/HardwareSensors";
 import UserManagement from "../pages/admin/UserManagement";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
-import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import HomePage from "../pages/public/HomePage";
+import SupervisorDashboard from "../pages/supervisor/SupervisorDashboard";
 
 import { isOperator } from "../mocks/auth";
 import AIAdvisory from "../pages/operator/AIAdvisory";
@@ -28,7 +28,7 @@ const AppRouter = () => {
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />
 
-      {/* Operator (protected) */}
+      {/* Operator */}
       <Route
         path="/operator/dashboard"
         element={
@@ -78,7 +78,7 @@ const AppRouter = () => {
         }
       />
 
-      {/* Admin (protected) */}
+      {/* Admin */}
       <Route
         path="/admin/dashboard"
         element={
@@ -112,44 +112,44 @@ const AppRouter = () => {
         }
       />
 
-      {/* Manager (protected) */}
+      {/* Supervisor */}
       <Route
-        path="/manager/dashboard"
+        path="/supervisor/dashboard"
         element={
-          <ProtectedRoute check={isManager}>
-            <ManagerDashboard />
+          <ProtectedRoute check={isSupervisor}>
+            <SupervisorDashboard />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/manager/species"
+        path="/supervisor/species"
         element={
-          <ProtectedRoute check={isManager}>
-            <ManagerDashboard section="species" />
+          <ProtectedRoute check={isSupervisor}>
+            <SupervisorDashboard section="species" />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/manager/feeds"
+        path="/supervisor/feeds"
         element={
-          <ProtectedRoute check={isManager}>
-            <ManagerDashboard section="feeds" />
+          <ProtectedRoute check={isSupervisor}>
+            <SupervisorDashboard section="feeds" />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/manager/thresholds"
+        path="/supervisor/thresholds"
         element={
-          <ProtectedRoute check={isManager}>
-            <ManagerDashboard section="thresholds" />
+          <ProtectedRoute check={isSupervisor}>
+            <SupervisorDashboard section="thresholds" />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/manager/schedule"
+        path="/supervisor/schedule"
         element={
-          <ProtectedRoute check={isManager}>
-            <ManagerDashboard section="schedule" />
+          <ProtectedRoute check={isSupervisor}>
+            <SupervisorDashboard section="schedule" />
           </ProtectedRoute>
         }
       />

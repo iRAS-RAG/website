@@ -12,8 +12,8 @@ function roleDefaultRedirect() {
   switch (currentUser.role) {
     case "Admin":
       return "/admin/dashboard";
-    case "Manager":
-      return "/manager/dashboard";
+    case "Supervisor":
+      return "/supervisor/dashboard";
     case "Operator":
       return "/operator/dashboard";
     default:
