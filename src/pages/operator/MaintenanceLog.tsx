@@ -1,33 +1,16 @@
-import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Stack,
-  Button,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Avatar,
-  useTheme,
-  alpha,
-  type PaletteColor,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import FilterListIcon from "@mui/icons-material/FilterList";
+import AddIcon from "@mui/icons-material/Add";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import { alpha, Avatar, Box, Button, Chip, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme, type PaletteColor } from "@mui/material";
+import React, { useState } from "react";
 
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // --- Interfaces ---
 interface MaintenanceEntry {
@@ -38,7 +21,7 @@ interface MaintenanceEntry {
   issue: string;
   reason: string;
   parts: string[];
-  technician: string;
+  operator: string;
   status: "Hoàn thành" | "Đang thực hiện" | "Chờ xử lý";
 }
 
@@ -59,7 +42,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Blower quá nhiệt và rung bất thường",
     reason: "Bạc đạn bị mòn, hệ thống làm mát kém",
     parts: ["Bạc đạn Blower", "Quạt làm mát"],
-    technician: "Nguyễn Văn A",
+    operator: "Nguyễn Văn A",
     status: "Hoàn thành",
   },
   {
@@ -70,7 +53,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Áp suất nước giảm, có tiếng kêu lạ",
     reason: "Impeller bị mòn, đường ống có rò rỉ nhỏ",
     parts: ["Impeller", "Đệm cao su đường ống"],
-    technician: "Trần Thị B",
+    operator: "Trần Thị B",
     status: "Hoàn thành",
   },
   {
@@ -81,7 +64,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Hiển thị giá trị không chính xác",
     reason: "Đầu cảm biến bị bám bẩn, cần hiệu chuẩn",
     parts: ["Màng cảm biến DO"],
-    technician: "Lê Văn C",
+    operator: "Lê Văn C",
     status: "Hoàn thành",
   },
   {
@@ -92,7 +75,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Lưu lượng nước giảm đột ngột",
     reason: "Vật liệu lọc bị tắc nghẽn",
     parts: ["Vật liệu lọc sinh học"],
-    technician: "Nguyễn Văn A",
+    operator: "Nguyễn Văn A",
     status: "Hoàn thành",
   },
   {
@@ -103,7 +86,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Rò rỉ nước ở phớt trục",
     reason: "Phớt cơ khí bị hỏng",
     parts: ["Phớt cơ khí", "Vòng đệm"],
-    technician: "Trần Thị B",
+    operator: "Trần Thị B",
     status: "Đang thực hiện",
   },
   {
@@ -114,7 +97,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Một số đầu sục bị tắc",
     reason: "Cặn bẩn tích tụ lâu ngày",
     parts: ["Đầu sục khí (x3)"],
-    technician: "Lê Văn C",
+    operator: "Lê Văn C",
     status: "Hoàn thành",
   },
   {
@@ -125,7 +108,7 @@ const maintenanceData: MaintenanceEntry[] = [
     issue: "Van không đóng mở",
     reason: "Cuộn dây điện từ bị cháy",
     parts: ["Cuộn dây điện từ"],
-    technician: "Nguyễn Văn A",
+    operator: "Nguyễn Văn A",
     status: "Chờ xử lý",
   },
 ];
@@ -172,7 +155,7 @@ const MaintenanceLog: React.FC = () => {
         minHeight: "100vh",
       }}
     >
-      <TechnicianSidebar />
+      <OperatorSidebar />
       <Box
         sx={{
           flexGrow: 1,
@@ -181,16 +164,11 @@ const MaintenanceLog: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <TechnicianHeader />
+        <OperatorHeader />
 
         <Box sx={{ p: 3 }}>
           {/* 1. Header Section */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="flex-start"
-            sx={{ mb: 4 }}
-          >
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
             <Box>
               <Typography
                 variant="h1"
@@ -202,10 +180,7 @@ const MaintenanceLog: React.FC = () => {
               >
                 Nhật ký bảo trì
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
-              >
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
                 Quản lý và theo dõi lịch sử bảo trì thiết bị
               </Typography>
             </Box>
@@ -257,30 +232,10 @@ const MaintenanceLog: React.FC = () => {
               mb: 4,
             }}
           >
-            <SummaryCard
-              label="Tổng số nhật ký"
-              value="7"
-              icon={<AssignmentIcon />}
-              colorType="primary"
-            />
-            <SummaryCard
-              label="Hoàn thành"
-              value="5"
-              icon={<CheckCircleOutlineIcon />}
-              colorType="success"
-            />
-            <SummaryCard
-              label="Đang thực hiện"
-              value="1"
-              icon={<AccessTimeIcon />}
-              colorType="warning"
-            />
-            <SummaryCard
-              label="Chờ xử lý"
-              value="1"
-              icon={<ErrorOutlineIcon />}
-              colorType="info"
-            />
+            <SummaryCard label="Tổng số nhật ký" value="7" icon={<AssignmentIcon />} colorType="primary" />
+            <SummaryCard label="Hoàn thành" value="5" icon={<CheckCircleOutlineIcon />} colorType="success" />
+            <SummaryCard label="Đang thực hiện" value="1" icon={<AccessTimeIcon />} colorType="warning" />
+            <SummaryCard label="Chờ xử lý" value="1" icon={<ErrorOutlineIcon />} colorType="info" />
           </Box>
 
           {/* 3. Filter Bar */}
@@ -298,12 +253,7 @@ const MaintenanceLog: React.FC = () => {
               bgcolor: theme.palette.background.paper,
             }}
           >
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{ color: theme.palette.text.secondary }}
-            >
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: theme.palette.text.secondary }}>
               <FilterListIcon fontSize="small" />
               <Typography variant="body2" fontWeight={500}>
                 Lọc theo trạng thái:
@@ -311,36 +261,28 @@ const MaintenanceLog: React.FC = () => {
             </Stack>
 
             <Stack direction="row" spacing={1}>
-              {["Tất cả", "Hoàn thành", "Đang thực hiện", "Chờ xử lý"].map(
-                (item) => {
-                  const isActive = filter === item;
-                  return (
-                    <Button
-                      key={item}
-                      onClick={() => setFilter(item)}
-                      size="small"
-                      sx={{
-                        textTransform: "none",
-                        borderRadius: "6px",
-                        fontWeight: isActive ? 600 : 500,
-                        bgcolor: isActive
-                          ? theme.palette.primary.main
-                          : "transparent",
-                        color: isActive
-                          ? theme.palette.primary.contrastText
-                          : theme.palette.text.secondary,
-                        "&:hover": {
-                          bgcolor: isActive
-                            ? theme.palette.primary.dark
-                            : alpha(theme.palette.primary.main, 0.08),
-                        },
-                      }}
-                    >
-                      {item}
-                    </Button>
-                  );
-                },
-              )}
+              {["Tất cả", "Hoàn thành", "Đang thực hiện", "Chờ xử lý"].map((item) => {
+                const isActive = filter === item;
+                return (
+                  <Button
+                    key={item}
+                    onClick={() => setFilter(item)}
+                    size="small"
+                    sx={{
+                      textTransform: "none",
+                      borderRadius: "6px",
+                      fontWeight: isActive ? 600 : 500,
+                      bgcolor: isActive ? theme.palette.primary.main : "transparent",
+                      color: isActive ? theme.palette.primary.contrastText : theme.palette.text.secondary,
+                      "&:hover": {
+                        bgcolor: isActive ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.08),
+                      },
+                    }}
+                  >
+                    {item}
+                  </Button>
+                );
+              })}
             </Stack>
           </Paper>
 
@@ -357,15 +299,7 @@ const MaintenanceLog: React.FC = () => {
             <Table>
               <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
                 <TableRow>
-                  {[
-                    "Thời gian",
-                    "Thiết bị",
-                    "Lỗi",
-                    "Nguyên nhân",
-                    "Linh kiện thay thế",
-                    "Người sửa",
-                    "Trạng thái",
-                  ].map((head) => (
+                  {["Thời gian", "Thiết bị", "Lỗi", "Nguyên nhân", "Linh kiện thay thế", "Người sửa", "Trạng thái"].map((head) => (
                     <TableCell
                       key={head}
                       sx={{
@@ -448,12 +382,7 @@ const MaintenanceLog: React.FC = () => {
 
                     {/* Linh kiện */}
                     <TableCell>
-                      <Stack
-                        direction="row"
-                        spacing={0.5}
-                        flexWrap="wrap"
-                        useFlexGap
-                      >
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                         {row.parts.map((part) => (
                           <Chip
                             key={part}
@@ -485,7 +414,7 @@ const MaintenanceLog: React.FC = () => {
                             color: theme.palette.primary.contrastText,
                           }}
                         >
-                          {row.technician.charAt(0)}
+                          {row.operator.charAt(0)}
                         </Avatar>
                         <Typography
                           sx={{
@@ -494,7 +423,7 @@ const MaintenanceLog: React.FC = () => {
                             color: theme.palette.text.primary,
                           }}
                         >
-                          {row.technician}
+                          {row.operator}
                         </Typography>
                       </Stack>
                     </TableCell>
@@ -527,12 +456,7 @@ const MaintenanceLog: React.FC = () => {
   );
 };
 
-const SummaryCard: React.FC<SummaryCardProps> = ({
-  label,
-  value,
-  icon,
-  colorType,
-}) => {
+const SummaryCard: React.FC<SummaryCardProps> = ({ label, value, icon, colorType }) => {
   const theme = useTheme();
   // Lấy màu từ theme dựa trên colorType (primary, success, etc.)
   const colorMain = (theme.palette[colorType] as PaletteColor).main;
@@ -562,10 +486,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         >
           {label}
         </Typography>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 600, mt: 1, color: theme.palette.text.primary }}
-        >
+        <Typography variant="h4" sx={{ fontWeight: 600, mt: 1, color: theme.palette.text.primary }}>
           {value}
         </Typography>
       </Box>

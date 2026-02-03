@@ -31,7 +31,7 @@ import { isAdmin } from "../../mocks/auth";
 import type { User } from "../../mocks/users";
 import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../mocks/users";
 
-const roles = ["Admin", "Manager", "Technician"] as const;
+const roles = ["Admin", "Manager", "Operator"] as const;
 
 const UserManagement: React.FC = () => {
   const [data, setData] = useState<User[]>([]);
@@ -219,7 +219,7 @@ const UserFormDialog: React.FC<{
 }> = ({ open, onClose, onSave, initial }) => {
   const [name, setName] = useState(initial?.name ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
-  const [role, setRole] = useState<string>(initial?.role ?? "Technician");
+  const [role, setRole] = useState<string>(initial?.role ?? "Operator");
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>

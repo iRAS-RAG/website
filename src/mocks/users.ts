@@ -1,4 +1,4 @@
-export type UserRole = "Admin" | "Manager" | "Technician";
+export type UserRole = "Admin" | "Manager" | "Operator";
 
 export type User = {
   id: string;
@@ -10,7 +10,7 @@ export type User = {
 let users: User[] = [
   { id: "u1", name: "Alice Nguyen", email: "alice@example.com", role: "Admin" },
   { id: "u2", name: "Binh Tran", email: "binh@example.com", role: "Manager" },
-  { id: "u3", name: "Cuong Le", email: "cuong@example.com", role: "Technician" },
+  { id: "u3", name: "Cuong Le", email: "cuong@example.com", role: "Operator" },
 ];
 
 const wait = (ms = 250) => new Promise((r) => setTimeout(r, ms));

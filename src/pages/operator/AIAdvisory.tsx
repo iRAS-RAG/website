@@ -1,20 +1,19 @@
-import React, { useState } from "react";
 import {
+  Avatar,
   Box,
-  Typography,
-  Paper,
-  Stack,
-  TextField,
+  Button,
+  Chip,
+  Divider,
+  IconButton,
   InputAdornment,
+  LinearProgress,
   List,
   ListItem,
   ListItemButton,
-  Avatar,
-  IconButton,
-  Divider,
-  Chip,
-  LinearProgress,
-  Button,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
   // Table,
   // TableBody,
   // TableCell,
@@ -23,26 +22,27 @@ import {
   // TableRow,
   useTheme,
 } from "@mui/material";
+import React, { useState } from "react";
 
 // Icons
-import SearchIcon from "@mui/icons-material/Search";
-import InventoryIcon from "@mui/icons-material/Inventory";
 import AddIcon from "@mui/icons-material/Add";
-import PersonIcon from "@mui/icons-material/Person";
-import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
 import DescriptionIcon from "@mui/icons-material/Description";
+import InventoryIcon from "@mui/icons-material/Inventory";
 import LinkIcon from "@mui/icons-material/Link";
+import PersonIcon from "@mui/icons-material/Person";
+import SearchIcon from "@mui/icons-material/Search";
+import SendIcon from "@mui/icons-material/Send";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 // import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
 // Components (Giả sử đã có trong dự án)
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 const AIAdvisory: React.FC = () => {
   const theme = useTheme();
@@ -149,7 +149,7 @@ const AIAdvisory: React.FC = () => {
         minHeight: "100vh",
       }}
     >
-      <TechnicianSidebar />
+      <OperatorSidebar />
       <Box
         sx={{
           flexGrow: 1,
@@ -158,7 +158,7 @@ const AIAdvisory: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <TechnicianHeader />
+        <OperatorHeader />
 
         <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
           {/* ================= CỘT TRÁI: LỊCH SỬ (280px) ================= */}
@@ -173,23 +173,12 @@ const AIAdvisory: React.FC = () => {
           >
             {/* 1. Header & Search */}
             <Box sx={{ p: 2, pb: 1 }}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mb: 2 }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, fontSize: "1rem" }}
-                >
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1rem" }}>
                   Lịch sử trò chuyện
                 </Typography>
                 <IconButton size="small">
-                  <MoreHorizIcon
-                    fontSize="small"
-                    sx={{ color: "text.secondary" }}
-                  />
+                  <MoreHorizIcon fontSize="small" sx={{ color: "text.secondary" }} />
                 </IconButton>
               </Stack>
 
@@ -200,10 +189,7 @@ const AIAdvisory: React.FC = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon
-                        fontSize="small"
-                        sx={{ color: "text.secondary", fontSize: "1.1rem" }}
-                      />
+                      <SearchIcon fontSize="small" sx={{ color: "text.secondary", fontSize: "1.1rem" }} />
                     </InputAdornment>
                   ),
                   style: { fontSize: "13px" }, // Chữ nhập vào nhỏ gọn
@@ -234,22 +220,13 @@ const AIAdvisory: React.FC = () => {
                         flexDirection: "column",
                         alignItems: "flex-start",
                         borderRadius: "8px",
-                        border: isSelected
-                          ? `1px solid ${theme.palette.primary.light}`
-                          : "1px solid transparent",
-                        bgcolor: isSelected
-                          ? "#F0F7FF !important"
-                          : "transparent",
+                        border: isSelected ? `1px solid ${theme.palette.primary.light}` : "1px solid transparent",
+                        bgcolor: isSelected ? "#F0F7FF !important" : "transparent",
                         "&:hover": { bgcolor: "#F9FAFB" },
                         py: 1.5,
                       }}
                     >
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                        sx={{ width: "100%", mb: 0.5 }}
-                      >
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%", mb: 0.5 }}>
                         <Typography
                           variant="body2"
                           sx={{
@@ -346,12 +323,7 @@ const AIAdvisory: React.FC = () => {
               <Stack spacing={3}>
                 {/* --- User Message 1 --- */}
                 <Box sx={{ alignSelf: "flex-end", maxWidth: "85%" }}>
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="flex-end"
-                    justifyContent="flex-end"
-                  >
+                  <Stack direction="row" spacing={1.5} alignItems="flex-end" justifyContent="flex-end">
                     {/* Bong bóng chat */}
                     <Box>
                       <Paper
@@ -365,8 +337,7 @@ const AIAdvisory: React.FC = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
-                          Bể B-02 đang có mức DO rất thấp (3.2 mg/L) và Ammonia
-                          cao (0.9 ppm). Tôi cần hướng dẫn xử lý khẩn cấp.
+                          Bể B-02 đang có mức DO rất thấp (3.2 mg/L) và Ammonia cao (0.9 ppm). Tôi cần hướng dẫn xử lý khẩn cấp.
                         </Typography>
                       </Paper>
                       <Typography
@@ -412,17 +383,9 @@ const AIAdvisory: React.FC = () => {
 
                     <Box sx={{ flex: 1 }}>
                       {/* 1. Phần mở đầu text */}
-                      <Paper
-                        elevation={0}
-                        sx={{ p: 2, borderRadius: "12px 12px 12px 0", mb: 2 }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "text.primary" }}
-                        >
-                          Tôi đã phân tích tình trạng Bể B-02 và phát hiện đây
-                          là tình huống nghiêm trọng cần xử lý ngay. Dưới đây là
-                          hướng dẫn chi tiết từng bước:
+                      <Paper elevation={0} sx={{ p: 2, borderRadius: "12px 12px 12px 0", mb: 2 }}>
+                        <Typography variant="body2" sx={{ color: "text.primary" }}>
+                          Tôi đã phân tích tình trạng Bể B-02 và phát hiện đây là tình huống nghiêm trọng cần xử lý ngay. Dưới đây là hướng dẫn chi tiết từng bước:
                         </Typography>
                         <Typography
                           variant="caption"
@@ -450,10 +413,7 @@ const AIAdvisory: React.FC = () => {
                           <Stack direction="row" spacing={1.5}>
                             <CheckCircleOutlineIcon color="success" />
                             <Box>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 700 }}
-                              >
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                 Bước 1: Tăng oxy hòa tan ngay lập tức
                               </Typography>
                               <Typography
@@ -465,9 +425,7 @@ const AIAdvisory: React.FC = () => {
                                   lineHeight: 1.4,
                                 }}
                               >
-                                Tăng công suất hệ thống sục khí lên 100%. Kiểm
-                                tra tất cả đầu sục khí có hoạt động bình thường.
-                                Mục tiêu: Đạt DO ≥ 5.5 mg/L trong 30 phút.
+                                Tăng công suất hệ thống sục khí lên 100%. Kiểm tra tất cả đầu sục khí có hoạt động bình thường. Mục tiêu: Đạt DO ≥ 5.5 mg/L trong 30 phút.
                               </Typography>
                             </Box>
                           </Stack>
@@ -485,10 +443,7 @@ const AIAdvisory: React.FC = () => {
                           <Stack direction="row" spacing={1.5}>
                             <CheckCircleOutlineIcon color="success" />
                             <Box>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 700 }}
-                              >
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                 Bước 2: Xử lý Ammonia
                               </Typography>
                               <Typography
@@ -500,9 +455,7 @@ const AIAdvisory: React.FC = () => {
                                   lineHeight: 1.4,
                                 }}
                               >
-                                Thay nước 30% (khoảng 300 lít nếu bể 1,000 lít).
-                                Bổ sung vi sinh Bacillus với liều lượng 5g/m³
-                                nước để phân hủy NH3.
+                                Thay nước 30% (khoảng 300 lít nếu bể 1,000 lít). Bổ sung vi sinh Bacillus với liều lượng 5g/m³ nước để phân hủy NH3.
                               </Typography>
                             </Box>
                           </Stack>
@@ -537,10 +490,7 @@ const AIAdvisory: React.FC = () => {
                               3
                             </Box>
                             <Box>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 700 }}
-                              >
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                 Bước 3: Điều chỉnh pH
                               </Typography>
                               <Typography
@@ -552,9 +502,7 @@ const AIAdvisory: React.FC = () => {
                                   lineHeight: 1.4,
                                 }}
                               >
-                                Thêm vôi CaCO3 với liều lượng 500 gram/m³ để
-                                nâng pH từ 6.7 lên 7.0-7.5. Hòa tan vôi trong
-                                nước trước khi rải đều.
+                                Thêm vôi CaCO3 với liều lượng 500 gram/m³ để nâng pH từ 6.7 lên 7.0-7.5. Hòa tan vôi trong nước trước khi rải đều.
                               </Typography>
                             </Box>
                           </Stack>
@@ -589,10 +537,7 @@ const AIAdvisory: React.FC = () => {
                               4
                             </Box>
                             <Box>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 700 }}
-                              >
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                 Bước 4: Giảm nhiệt độ
                               </Typography>
                               <Typography
@@ -604,9 +549,7 @@ const AIAdvisory: React.FC = () => {
                                   lineHeight: 1.4,
                                 }}
                               >
-                                Tăng lưu lượng nước tuần hoàn 20% để giảm nhiệt
-                                độ từ 30.1°C xuống 28-29°C. Kiểm tra hệ thống
-                                làm mát.
+                                Tăng lưu lượng nước tuần hoàn 20% để giảm nhiệt độ từ 30.1°C xuống 28-29°C. Kiểm tra hệ thống làm mát.
                               </Typography>
                             </Box>
                           </Stack>
@@ -624,32 +567,15 @@ const AIAdvisory: React.FC = () => {
                           border: "1px solid #BFDBFE",
                         }}
                       >
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          sx={{ mb: 1 }}
-                        >
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                           <DescriptionIcon color="primary" fontSize="small" />
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 600, color: "primary.main" }}
-                          >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
                             Tài liệu tham khảo
                           </Typography>
                         </Stack>
                         <Stack spacing={1}>
-                          {[
-                            "SOP-001: Xử lý khẩn cấp DO thấp",
-                            "SOP-005: Quy trình xử lý Ammonia cao",
-                            "Manual: Hệ thống sục khí Blower XYZ-500",
-                          ].map((text, i) => (
-                            <Stack
-                              key={i}
-                              direction="row"
-                              justifyContent="space-between"
-                              alignItems="center"
-                            >
+                          {["SOP-001: Xử lý khẩn cấp DO thấp", "SOP-005: Quy trình xử lý Ammonia cao", "Manual: Hệ thống sục khí Blower XYZ-500"].map((text, i) => (
+                            <Stack key={i} direction="row" justifyContent="space-between" alignItems="center">
                               <Typography
                                 variant="caption"
                                 sx={{
@@ -661,68 +587,37 @@ const AIAdvisory: React.FC = () => {
                               >
                                 {text}
                               </Typography>
-                              <LinkIcon
-                                sx={{ fontSize: 14, color: "primary.main" }}
-                              />
+                              <LinkIcon sx={{ fontSize: 14, color: "primary.main" }} />
                             </Stack>
                           ))}
                         </Stack>
                       </Paper>
 
                       {/* 4. Vật tư cần thiết */}
-                      <Paper
-                        variant="outlined"
-                        sx={{ p: 2, borderRadius: "12px", bgcolor: "#FAFAFA" }}
-                      >
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          sx={{ mb: 2 }}
-                        >
+                      <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px", bgcolor: "#FAFAFA" }}>
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                           <InventoryIcon fontSize="small" color="success" />
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                             Vật tư cần thiết
                           </Typography>
                         </Stack>
 
                         <Stack spacing={2}>
                           {/* Item 1 */}
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
                             <Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 Vi sinh Bacillus
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                display="block"
-                              >
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 Mã: BIO-BAC-001
                               </Typography>
                             </Box>
                             <Box sx={{ textAlign: "right" }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 500g
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                display="block"
-                              >
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 Kho A - Kệ 3
                               </Typography>
                             </Box>
@@ -744,38 +639,20 @@ const AIAdvisory: React.FC = () => {
                           <Divider sx={{ borderStyle: "dashed" }} />
 
                           {/* Item 2 */}
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
                             <Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 Vôi CaCO3
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                display="block"
-                              >
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 Mã: CHEM-CA0-002
                               </Typography>
                             </Box>
                             <Box sx={{ textAlign: "right" }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 5kg
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                display="block"
-                              >
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 Kho B - Kệ 1
                               </Typography>
                             </Box>
@@ -797,38 +674,20 @@ const AIAdvisory: React.FC = () => {
                           <Divider sx={{ borderStyle: "dashed" }} />
 
                           {/* Item 3 */}
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
                             <Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 Đầu sục khí dự phòng
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                display="block"
-                              >
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 Mã: PART-AIR-015
                               </Typography>
                             </Box>
                             <Box sx={{ textAlign: "right" }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600 }}
-                              >
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 2 cái
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                display="block"
-                              >
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 Kho A - Kệ 5
                               </Typography>
                             </Box>
@@ -855,12 +714,7 @@ const AIAdvisory: React.FC = () => {
 
                 {/* --- User Message 2 --- */}
                 <Box sx={{ alignSelf: "flex-end", maxWidth: "85%" }}>
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="flex-end"
-                    justifyContent="flex-end"
-                  >
+                  <Stack direction="row" spacing={1.5} alignItems="flex-end" justifyContent="flex-end">
                     <Box>
                       <Paper
                         elevation={0}
@@ -872,11 +726,7 @@ const AIAdvisory: React.FC = () => {
                           mb: 0.5,
                         }}
                       >
-                        <Typography variant="body2">
-                          Đã tăng công suất sục khí lên 100% và thay nước 30%.
-                          Hiện tại DO đã tăng lên 5.3 mg/L. Tiếp theo tôi cần
-                          làm gì?
-                        </Typography>
+                        <Typography variant="body2">Đã tăng công suất sục khí lên 100% và thay nước 30%. Hiện tại DO đã tăng lên 5.3 mg/L. Tiếp theo tôi cần làm gì?</Typography>
                       </Paper>
                       <Typography
                         variant="caption"
@@ -925,14 +775,9 @@ const AIAdvisory: React.FC = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                          Rất tốt! DO đã cải thiện đáng kể. Bây giờ hãy tiếp tục
-                          với các bước tiếp theo để ổn định hoàn toàn môi trường
-                          bể:
+                          Rất tốt! DO đã cải thiện đáng kể. Bây giờ hãy tiếp tục với các bước tiếp theo để ổn định hoàn toàn môi trường bể:
                         </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "text.secondary" }}
-                        >
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
                           11:06
                         </Typography>
                       </Paper>
@@ -967,10 +812,7 @@ const AIAdvisory: React.FC = () => {
                               5
                             </Box>
                             <Box>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 700 }}
-                              >
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                 Bước 5: Theo dõi liên tục
                               </Typography>
                               <Typography
@@ -982,9 +824,7 @@ const AIAdvisory: React.FC = () => {
                                   lineHeight: 1.4,
                                 }}
                               >
-                                Kiểm tra DO mỗi 15 phút trong 2 giờ tới. Nếu DO
-                                giảm xuống dưới 5.5 mg/L, cần kiểm tra lại hệ
-                                thống sục khí.
+                                Kiểm tra DO mỗi 15 phút trong 2 giờ tới. Nếu DO giảm xuống dưới 5.5 mg/L, cần kiểm tra lại hệ thống sục khí.
                               </Typography>
                             </Box>
                           </Stack>
@@ -1019,10 +859,7 @@ const AIAdvisory: React.FC = () => {
                               6
                             </Box>
                             <Box>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ fontWeight: 700 }}
-                              >
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                 Bước 6: Ghi nhật ký
                               </Typography>
                               <Typography
@@ -1034,9 +871,7 @@ const AIAdvisory: React.FC = () => {
                                   lineHeight: 1.4,
                                 }}
                               >
-                                Ghi lại tất cả các thông số và hành động đã thực
-                                hiện vào hệ thống để theo dõi và phân tích sau
-                                này.
+                                Ghi lại tất cả các thông số và hành động đã thực hiện vào hệ thống để theo dõi và phân tích sau này.
                               </Typography>
                             </Box>
                           </Stack>
@@ -1055,16 +890,8 @@ const AIAdvisory: React.FC = () => {
                 borderTop: `1px solid ${theme.palette.divider}`,
               }}
             >
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ mb: 1.5, overflowX: "auto", pb: 0.5 }}
-              >
-                {[
-                  "Xử lý DO thấp",
-                  "Kiểm tra máy bơm",
-                  "Quy trình điều chỉnh pH",
-                ].map((prompt) => (
+              <Stack direction="row" spacing={1} sx={{ mb: 1.5, overflowX: "auto", pb: 0.5 }}>
+                {["Xử lý DO thấp", "Kiểm tra máy bơm", "Quy trình điều chỉnh pH"].map((prompt) => (
                   <Chip
                     key={prompt}
                     label={prompt}
@@ -1095,9 +922,7 @@ const AIAdvisory: React.FC = () => {
               >
                 <IconButton sx={{ p: "8px" }} aria-label="attach" size="small">
                   {/* Giảm kích thước icon đính kèm */}
-                  <AttachFileIcon
-                    sx={{ color: "text.secondary", fontSize: 20 }}
-                  />
+                  <AttachFileIcon sx={{ color: "text.secondary", fontSize: 20 }} />
                 </IconButton>
                 <TextField
                   sx={{
@@ -1133,14 +958,8 @@ const AIAdvisory: React.FC = () => {
                 </Button>
               </Paper>
 
-              <Typography
-                variant="caption"
-                display="block"
-                align="center"
-                sx={{ mt: 1, color: "text.disabled", fontSize: "0.7rem" }}
-              >
-                AI Advisor được đào tạo trên dữ liệu công nghệ nuôi trồng thủy
-                sản iRAS. Kiểm tra kỹ thông tin trước khi áp dụng.
+              <Typography variant="caption" display="block" align="center" sx={{ mt: 1, color: "text.disabled", fontSize: "0.7rem" }}>
+                AI Advisor được đào tạo trên dữ liệu công nghệ nuôi trồng thủy sản iRAS. Kiểm tra kỹ thông tin trước khi áp dụng.
               </Typography>
             </Box>
           </Box>
@@ -1157,22 +976,13 @@ const AIAdvisory: React.FC = () => {
           >
             {/* Header & Filters */}
             <Box sx={{ p: 2, pb: 1 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={1}
-                sx={{ mb: 0.5 }}
-              >
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                 <DescriptionIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                   Tài liệu tham khảo
                 </Typography>
               </Stack>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "block", mb: 2 }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
                 Tài liệu liên quan được AI gợi ý
               </Typography>
 
@@ -1192,14 +1002,10 @@ const AIAdvisory: React.FC = () => {
                         height: 28,
                         minWidth: "auto",
                         px: 2,
-                        bgcolor: isActive
-                          ? theme.palette.primary.main
-                          : "#F3F4F6",
+                        bgcolor: isActive ? theme.palette.primary.main : "#F3F4F6",
                         color: isActive ? "white" : "text.secondary",
                         "&:hover": {
-                          bgcolor: isActive
-                            ? theme.palette.primary.dark
-                            : "#E5E7EB",
+                          bgcolor: isActive ? theme.palette.primary.dark : "#E5E7EB",
                         },
                       }}
                     >
@@ -1231,12 +1037,7 @@ const AIAdvisory: React.FC = () => {
                   }}
                 >
                   {/* Top: Icon & Title */}
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="flex-start"
-                    sx={{ mb: 1.5 }}
-                  >
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 1.5 }}>
                     <Box
                       sx={{
                         width: 40,
@@ -1248,25 +1049,14 @@ const AIAdvisory: React.FC = () => {
                             : doc.type === "MANUAL"
                               ? "#ECFDF5" // Green bg
                               : "#FFF7ED", // Orange bg
-                        color:
-                          doc.type === "SOP"
-                            ? "#3B82F6"
-                            : doc.type === "MANUAL"
-                              ? "#10B981"
-                              : "#F97316",
+                        color: doc.type === "SOP" ? "#3B82F6" : doc.type === "MANUAL" ? "#10B981" : "#F97316",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
                       }}
                     >
-                      {doc.type === "SOP" ? (
-                        <DescriptionIcon fontSize="small" />
-                      ) : doc.type === "MANUAL" ? (
-                        <TextSnippetIcon fontSize="small" />
-                      ) : (
-                        <CheckCircleOutlineIcon fontSize="small" />
-                      )}
+                      {doc.type === "SOP" ? <DescriptionIcon fontSize="small" /> : doc.type === "MANUAL" ? <TextSnippetIcon fontSize="small" /> : <CheckCircleOutlineIcon fontSize="small" />}
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography
@@ -1295,11 +1085,7 @@ const AIAdvisory: React.FC = () => {
                         >
                           {doc.tag}
                         </Box>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ fontSize: "11px" }}
-                        >
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "11px" }}>
                           {doc.date}
                         </Typography>
                       </Stack>
@@ -1308,15 +1094,8 @@ const AIAdvisory: React.FC = () => {
 
                   {/* Middle: Relevance Bar */}
                   <Box sx={{ mb: 2 }}>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      sx={{ mb: 0.5 }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{ fontSize: "11px", color: "text.secondary" }}
-                      >
+                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontSize: "11px", color: "text.secondary" }}>
                         Độ liên quan
                       </Typography>
                       <Typography
@@ -1341,16 +1120,7 @@ const AIAdvisory: React.FC = () => {
                       variant="determinate"
                       value={doc.relevance}
                       // SỬA DÒNG NÀY: Thay 'as any' bằng các giá trị cụ thể
-                      color={
-                        doc.color as
-                          | "primary"
-                          | "secondary"
-                          | "error"
-                          | "info"
-                          | "success"
-                          | "warning"
-                          | "inherit"
-                      }
+                      color={doc.color as "primary" | "secondary" | "error" | "info" | "success" | "warning" | "inherit"}
                       sx={{
                         height: 6,
                         borderRadius: 3,
@@ -1360,25 +1130,14 @@ const AIAdvisory: React.FC = () => {
                   </Box>
 
                   {/* Bottom: Size & Download Button */}
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 500, color: "text.secondary" }}
-                    >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary" }}>
                       {doc.size}
                     </Typography>
                     <Button
                       variant="contained"
                       size="small"
-                      startIcon={
-                        <CloudDownloadOutlinedIcon
-                          sx={{ fontSize: "16px !important" }}
-                        />
-                      }
+                      startIcon={<CloudDownloadOutlinedIcon sx={{ fontSize: "16px !important" }} />}
                       sx={{
                         borderRadius: "8px",
                         fontSize: "11px",

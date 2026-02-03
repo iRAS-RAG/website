@@ -10,12 +10,12 @@ import RegisterPage from "../pages/auth/RegisterPage";
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import HomePage from "../pages/public/HomePage";
 
-import AIAdvisory from "../pages/technician/AIAdvisory";
-import AlertCenter from "../pages/technician/AlertCenter";
-import MaintenanceLog from "../pages/technician/MaintenanceLog";
-import RealTimeSensors from "../pages/technician/RealTimeSensors";
-import TankManagement from "../pages/technician/TankManagement";
-import TechnicianDashboard from "../pages/technician/TechnicianDashboard";
+import AIAdvisory from "../pages/operator/AIAdvisory";
+import AlertCenter from "../pages/operator/AlertCenter";
+import MaintenanceLog from "../pages/operator/MaintenanceLog";
+import OperatorDashboard from "../pages/operator/OperatorDashboard";
+import RealTimeSensors from "../pages/operator/RealTimeSensors";
+import TankManagement from "../pages/operator/TankManagement";
 
 const AppRouter = () => {
   return (
@@ -26,13 +26,13 @@ const AppRouter = () => {
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />
 
-      {/* Technician */}
-      <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
-      <Route path="/technician/sensors" element={<RealTimeSensors />} />
-      <Route path="/technician/alerts" element={<AlertCenter />} />
-      <Route path="/technician/tanks" element={<TankManagement />} />
-      <Route path="/technician/ai-advisory" element={<AIAdvisory />} />
-      <Route path="/technician/maintenance" element={<MaintenanceLog />} />
+      {/* Operator */}
+      <Route path="/operator/dashboard" element={<OperatorDashboard />} />
+      <Route path="/operator/sensors" element={<RealTimeSensors />} />
+      <Route path="/operator/alerts" element={<AlertCenter />} />
+      <Route path="/operator/tanks" element={<TankManagement />} />
+      <Route path="/operator/ai-advisory" element={<AIAdvisory />} />
+      <Route path="/operator/maintenance" element={<MaintenanceLog />} />
 
       {/* Admin */}
       <Route path="/admin/dashboard" element={isAdmin() ? <AdminDashboard /> : <Navigate to="/" replace />} />

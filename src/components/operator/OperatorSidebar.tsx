@@ -1,26 +1,14 @@
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  Avatar,
-  Divider,
-  Stack,
-  useTheme,
-} from "@mui/material";
+import { Avatar, Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
 import { Link, useLocation } from "react-router-dom"; // Hook để nhận diện trang hiện tại
 import logo from "../../assets/logo.png";
 
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import WaterIcon from "@mui/icons-material/Water";
-import SensorsIcon from "@mui/icons-material/Sensors";
-import WarningIcon from "@mui/icons-material/Warning";
-import PsychologyIcon from "@mui/icons-material/Psychology";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import SensorsIcon from "@mui/icons-material/Sensors";
 import SettingsIcon from "@mui/icons-material/Settings";
+import WarningIcon from "@mui/icons-material/Warning";
+import WaterIcon from "@mui/icons-material/Water";
 import type { JSX } from "react";
 
 interface MenuItemType {
@@ -33,41 +21,41 @@ const menuItems: MenuItemType[] = [
   {
     text: "Bảng điều khiển",
     icon: <DashboardIcon />,
-    path: "/technician/dashboard",
+    path: "/operator/dashboard",
   },
   {
     text: "Bể nuôi",
     icon: <WaterIcon />,
-    path: "/technician/tanks", // Đã cập nhật đường dẫn đến TankManagement
+    path: "/operator/tanks", // Đã cập nhật đường dẫn đến TankManagement
   },
   {
     text: "Cảm biến",
     icon: <SensorsIcon />,
-    path: "/technician/sensors",
+    path: "/operator/sensors",
   },
   {
     text: "Cảnh báo",
     icon: <WarningIcon />,
-    path: "/technician/alerts",
+    path: "/operator/alerts",
   },
   {
     text: "Tư vấn AI",
     icon: <PsychologyIcon />,
-    path: "/technician/ai-advisory",
+    path: "/operator/ai-advisory",
   },
   {
     text: "Nhật ký bảo trì",
     icon: <AssignmentIcon />,
-    path: "/technician/maintenance",
+    path: "/operator/maintenance",
   },
   {
     text: "Cài đặt",
     icon: <SettingsIcon />,
-    path: "/technician/settings",
+    path: "/operator/settings",
   },
 ];
 
-export const TechnicianSidebar = () => {
+export const OperatorSidebar = () => {
   const theme = useTheme();
   const location = useLocation(); // Lấy URL hiện tại để kiểm tra trạng thái Active
 
@@ -87,12 +75,7 @@ export const TechnicianSidebar = () => {
       }}
     >
       {/* LOGO SECTION */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1.5}
-        sx={{ p: "24px 20px" }}
-      >
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: "24px 20px" }}>
         <Box component="img" src={logo} sx={{ height: 32 }} />
         <Typography
           variant="h6"
@@ -120,19 +103,13 @@ export const TechnicianSidebar = () => {
                 sx={{
                   borderRadius: "10px",
                   py: 1.2,
-                  bgcolor: isActive
-                    ? theme.palette.primary.light
-                    : "transparent",
-                  color: isActive
-                    ? theme.palette.primary.main
-                    : theme.palette.text.secondary,
+                  bgcolor: isActive ? theme.palette.primary.light : "transparent",
+                  color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
                   "&:hover": {
                     bgcolor: isActive ? theme.palette.primary.light : "#F8FAFC",
                   },
                   "& .MuiListItemIcon-root": {
-                    color: isActive
-                      ? theme.palette.primary.main
-                      : theme.palette.text.secondary,
+                    color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
                     minWidth: 38,
                   },
                 }}
@@ -167,14 +144,8 @@ export const TechnicianSidebar = () => {
             A
           </Avatar>
           <Box>
-            <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>
-              Nguyễn Văn A
-            </Typography>
-            <Typography
-              sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
-            >
-              Kỹ thuật viên
-            </Typography>
+            <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>Nguyễn Văn A</Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Kỹ thuật viên</Typography>
           </Box>
         </Stack>
       </Box>

@@ -1,28 +1,17 @@
-import { Box, Typography, Paper, Stack, Chip, useTheme } from "@mui/material";
-import { TechnicianSidebar } from "../../components/technician/TechnicianSidebar";
-import { TechnicianHeader } from "../../components/technician/TechnicianHeader";
-import { SensorCard } from "../../components/technician/SensorCard";
+import { Box, Chip, Paper, Stack, Typography, useTheme } from "@mui/material";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { SensorCard } from "../../components/operator/SensorCard";
 
 // import SmartToyIcon from "@mui/icons-material/SmartToy";
-import ThermostatIcon from "@mui/icons-material/Thermostat";
-import ScienceIcon from "@mui/icons-material/Science";
 import AirIcon from "@mui/icons-material/Air";
-import SpeedIcon from "@mui/icons-material/Speed";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ScienceIcon from "@mui/icons-material/Science";
+import SpeedIcon from "@mui/icons-material/Speed";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Mock Data
 const trendData = [
@@ -79,9 +68,7 @@ const TankCard = ({ id, area }: { id: string; area: string }) => {
       </Stack>
 
       <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 2 }}>
-        <LocationOnIcon
-          sx={{ fontSize: 12, color: theme.palette.primary.main }}
-        />
+        <LocationOnIcon sx={{ fontSize: 12, color: theme.palette.primary.main }} />
         <Typography
           sx={{
             fontSize: "11px",
@@ -95,21 +82,13 @@ const TankCard = ({ id, area }: { id: string; area: string }) => {
 
       <Stack direction="row" spacing={1} justifyContent="space-between">
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <ThermostatIcon
-            sx={{ fontSize: 12, color: theme.palette.text.secondary }}
-          />
-          <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>
-            28.5°C
-          </Typography>
+          <ThermostatIcon sx={{ fontSize: 12, color: theme.palette.text.secondary }} />
+          <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>28.5°C</Typography>
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <ScienceIcon
-            sx={{ fontSize: 12, color: theme.palette.text.secondary }}
-          />
-          <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>
-            7.2 pH
-          </Typography>
+          <ScienceIcon sx={{ fontSize: 12, color: theme.palette.text.secondary }} />
+          <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>7.2 pH</Typography>
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -121,7 +100,7 @@ const TankCard = ({ id, area }: { id: string; area: string }) => {
   );
 };
 
-const TechnicianDashboard = () => {
+const OperatorDashboard = () => {
   const theme = useTheme();
 
   return (
@@ -133,7 +112,7 @@ const TechnicianDashboard = () => {
         width: "100%",
       }}
     >
-      <TechnicianSidebar />
+      <OperatorSidebar />
 
       <Box
         sx={{
@@ -144,21 +123,15 @@ const TechnicianDashboard = () => {
           minWidth: 0,
         }}
       >
-        <TechnicianHeader />
+        <OperatorHeader />
 
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           {/* Header */}
           <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 600, color: theme.palette.text.primary }}
-            >
+            <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
               Bảng điều khiển
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary, mt: 0.5, mb: 2 }}
-            >
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5, mb: 2 }}>
               Tổng quan chỉ số nuôi trồng thủy sản hệ thống iRAS-RAG
             </Typography>
 
@@ -200,52 +173,16 @@ const TechnicianDashboard = () => {
             />
 
             {/* Card 2: Độ pH */}
-            <SensorCard
-              label="Độ pH"
-              value="7.2"
-              unit="pH"
-              trend="-0.3% so với hôm qua"
-              status="An toàn"
-              statusColor="success"
-              icon={ScienceIcon}
-              optimalRange="7.0-7.5"
-            />
+            <SensorCard label="Độ pH" value="7.2" unit="pH" trend="-0.3% so với hôm qua" status="An toàn" statusColor="success" icon={ScienceIcon} optimalRange="7.0-7.5" />
 
             {/* Card 3: Oxy hòa tan */}
-            <SensorCard
-              label="Oxy hòa tan"
-              value="5.8"
-              unit="mg/L"
-              trend="-5.2% so với hôm qua"
-              status="Cảnh báo"
-              statusColor="warning"
-              icon={AirIcon}
-              optimalRange="> 5.0 mg/L"
-            />
+            <SensorCard label="Oxy hòa tan" value="5.8" unit="mg/L" trend="-5.2% so với hôm qua" status="Cảnh báo" statusColor="warning" icon={AirIcon} optimalRange="> 5.0 mg/L" />
 
             {/* Card 4: Ammonia */}
-            <SensorCard
-              label="Ammonia"
-              value="0.8"
-              unit="ppm"
-              trend="+12.5% so với hôm qua"
-              status="Nguy hiểm"
-              statusColor="error"
-              icon={WaterDropIcon}
-              optimalRange="< 0.5 ppm"
-            />
+            <SensorCard label="Ammonia" value="0.8" unit="ppm" trend="+12.5% so với hôm qua" status="Nguy hiểm" statusColor="error" icon={WaterDropIcon} optimalRange="< 0.5 ppm" />
 
             {/* Card 5: Tốc độ động cơ */}
-            <SensorCard
-              label="Tốc độ động cơ"
-              value="1,450"
-              unit="RPM"
-              trend="+0.5% so với hôm qua"
-              status="An toàn"
-              statusColor="success"
-              icon={SpeedIcon}
-              optimalRange="1400-1500 RPM"
-            />
+            <SensorCard label="Tốc độ động cơ" value="1,450" unit="RPM" trend="+0.5% so với hôm qua" status="An toàn" statusColor="success" icon={SpeedIcon} optimalRange="1400-1500 RPM" />
           </Box>
 
           {/* Tank List */}
@@ -298,29 +235,10 @@ const TechnicianDashboard = () => {
 
               <Box sx={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={trendData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={true}
-                      stroke="#E5E7EB"
-                    />
-                    <XAxis
-                      dataKey="time"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                      dy={10}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                      domain={[0, 8]}
-                      ticks={[0, 2, 4, 6, 8]}
-                    />
+                  <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#E5E7EB" />
+                    <XAxis dataKey="time" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} dy={10} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} domain={[0, 8]} ticks={[0, 2, 4, 6, 8]} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
@@ -365,29 +283,10 @@ const TechnicianDashboard = () => {
 
               <Box sx={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={trendData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={true}
-                      stroke="#E5E7EB"
-                    />
-                    <XAxis
-                      dataKey="time"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                      dy={10}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                      domain={[0, 8]}
-                      ticks={[0, 2, 4, 6, 8]}
-                    />
+                  <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#E5E7EB" />
+                    <XAxis dataKey="time" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} dy={10} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} domain={[0, 8]} ticks={[0, 2, 4, 6, 8]} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
@@ -421,39 +320,17 @@ const TechnicianDashboard = () => {
               boxShadow: "none",
             }}
           >
-            <Typography
-              variant="body1"
-              sx={{ mb: 4, fontWeight: 500, color: theme.palette.text.primary }}
-            >
+            <Typography variant="body1" sx={{ mb: 4, fontWeight: 500, color: theme.palette.text.primary }}>
               So sánh chỉ số giữa các bể (Bể A vs Bể B)
             </Typography>
 
             {/* Bar chart */}
             <Box sx={{ height: 320, mb: 2 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={comparisonData}
-                  barCategoryGap="25%"
-                  barGap={6}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#E5E7EB"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#6B7280" }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#6B7280" }}
-                  />
+                <BarChart data={comparisonData} barCategoryGap="25%" barGap={6} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
                   <Tooltip
                     cursor={{ fill: "transparent" }}
                     contentStyle={{
@@ -515,19 +392,11 @@ const TechnicianDashboard = () => {
                 mt: 2,
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{ color: "#374151", fontSize: "0.85rem", lineHeight: 1.6 }}
-              >
-                <Box
-                  component="span"
-                  sx={{ fontWeight: 700, color: "#111827" }}
-                >
+              <Typography variant="body2" sx={{ color: "#374151", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                <Box component="span" sx={{ fontWeight: 700, color: "#111827" }}>
                   Phân tích:{" "}
                 </Box>
-                Bể B đang có nhiều chỉ số vượt mức tối ưu. Cần kiểm tra và điều
-                chỉnh DO và pH ngay lập tức để đảm bảo môi trường nuôi trồng ổn
-                định.
+                Bể B đang có nhiều chỉ số vượt mức tối ưu. Cần kiểm tra và điều chỉnh DO và pH ngay lập tức để đảm bảo môi trường nuôi trồng ổn định.
               </Typography>
             </Box>
           </Paper>
@@ -537,4 +406,4 @@ const TechnicianDashboard = () => {
   );
 };
 
-export default TechnicianDashboard;
+export default OperatorDashboard;
