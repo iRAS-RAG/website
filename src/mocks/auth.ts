@@ -20,3 +20,4 @@ export function clearCurrentUser() {
 
 export const isAdmin = () => currentUser.role === "Admin";
 export const isManager = () => currentUser.role === "Manager";
+export const isOperator = () => currentUser.role === "Operator";
