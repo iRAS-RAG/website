@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,12 +9,10 @@ import {
   Stack,
   Button,
   IconButton,
-  Divider,
   useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircleOutline";
 
 interface ConfirmActionModalProps {
   open: boolean;
@@ -35,19 +34,35 @@ export const ConfirmActionModal = ({
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { borderRadius: "20px", width: "100%", maxWidth: "500px", p: 1 },
+        sx: {
+          borderRadius: "16px",
+          width: "100%",
+          maxWidth: "600px",
+          boxShadow: "0px 10px 40px rgba(0,0,0,0.1)",
+        },
       }}
     >
+      {/* HEADER - Đã chỉnh đường gạch gần chữ hơn */}
       <DialogTitle
         sx={{
           m: 0,
-          p: 2,
+          pt: 3, // Giữ khoảng cách trên cao (24px) cho thoáng
+          px: 3, // Giữ khoảng cách 2 bên (24px)
+          pb: 1, // GIẢM padding dưới xuống (8px) để đường gạch sát chữ
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            fontSize: "1.25rem",
+            color: theme.palette.text.primary,
+          }}
+        >
           Xác nhận thực hiện hành động
         </Typography>
         <IconButton
@@ -59,114 +74,113 @@ export const ConfirmActionModal = ({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 2 }}>
-        {/* Khối nội dung chính (Xám nhạt) */}
+      {/* CONTENT */}
+      <DialogContent sx={{ p: 3 }}>
+        {/* 1. Khối thông tin chi tiết (Xám) */}
         <Box
           sx={{
             bgcolor: "#F8FAFC",
             p: 2.5,
-            borderRadius: "16px",
-            mb: 2,
-            border: "1px solid #E2E8F0",
+            borderRadius: "12px",
+            mb: 3,
+            mt: 1, // Thêm margin top nhỏ để tách biệt rõ hơn với đường gạch header
           }}
         >
+          {/* Tiêu đề hành động */}
           <Typography
             variant="h6"
             sx={{
-              fontWeight: 600,
-              color: theme.palette.error.main,
+              fontWeight: 700,
+              color: "#334155",
               mb: 1,
-              fontSize: "1.15rem",
+              fontSize: "1.1rem",
             }}
           >
             {actionTitle}
           </Typography>
 
-          <Typography
-            variant="body2"
-            sx={{ mb: 2, color: theme.palette.text.primary }}
-          >
-            <strong>Lý do can thiệp:</strong> Mức DO giảm xuống{" "}
-            <span style={{ color: theme.palette.error.main, fontWeight: 600 }}>
-              4.2 mg/L
-            </span>{" "}
-            - dưới ngưỡng an toàn (5.5 mg/L).
+          {/* Mô tả tình trạng */}
+          <Typography variant="body2" sx={{ color: "#64748B", mb: 2 }}>
+            Mức DO giảm xuống 4.2 mg/L - dưới ngưỡng an toàn (5.5 mg/L)
           </Typography>
 
-          <Divider sx={{ my: 1.5, opacity: 0.5 }} />
-
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              mb: 1,
-              textTransform: "uppercase",
-              fontSize: "0.75rem",
-              color: theme.palette.text.secondary,
-            }}
-          >
-            Thông số kỹ thuật
-          </Typography>
-
+          {/* List thông số kỹ thuật */}
           <Stack spacing={1}>
-            <Typography variant="body2">
-              <strong>• Phương pháp:</strong> Tăng công suất sục khí lên 100%.
-            </Typography>
-            <Typography variant="body2">
-              <strong>• Liều lượng:</strong> Ngay lập tức.
-            </Typography>
-            <Typography variant="body2">
-              <strong>• Mục tiêu:</strong> Đạt DO ≥ 5.5 mg/L trong 30 phút.
-            </Typography>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}
+              >
+                Phương pháp:
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#334155" }}>
+                Tăng công suất sục khí lên 100%
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}
+              >
+                Liều lượng:
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#334155" }}>
+                Ngay lập tức
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "#475569", minWidth: 100 }}
+              >
+                Mục tiêu:
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#334155" }}>
+                Đạt DO ≥ 5.5 mg/L trong 30 phút
+              </Typography>
+            </Box>
           </Stack>
         </Box>
 
-        {/* Khối cảnh báo ghi nhật ký (Vàng nhạt) */}
+        {/* 2. Khối Lưu ý (Vàng cam) */}
         <Box
           sx={{
-            bgcolor: theme.palette.warning.light,
+            bgcolor: "#FFF7ED",
             p: 2,
             borderRadius: "12px",
-            border: `1px solid ${theme.palette.warning.main}`,
-            display: "flex",
-            gap: 1.5,
+            border: "1px solid #FFEDD5",
           }}
         >
-          <ErrorOutlineIcon
-            sx={{ color: theme.palette.warning.main, mt: 0.2 }}
-          />
-          <Box>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: theme.palette.text.primary }}
-            >
-              Hệ thống sẽ ghi tự động vào Nhật ký bảo trì.
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: theme.palette.text.secondary }}
-            >
-              Yêu cầu người vận hành đảm bảo đã sẵn sàng đầy đủ vật tư và thiết
-              bị cần thiết trước khi nhấn xác nhận.
-            </Typography>
-          </Box>
+          <Typography
+            variant="body2"
+            sx={{ color: "#9A3412", lineHeight: 1.6, fontSize: "0.85rem" }}
+          >
+            <Box component="span" sx={{ fontWeight: 700 }}>
+              Lưu ý:{" "}
+            </Box>
+            Hành động này sẽ được ghi vào nhật ký bảo trì. Vui lòng đảm bảo đã
+            chuẩn bị đầy đủ vật tư và thiết bị cần thiết.
+          </Typography>
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, pt: 1, gap: 1.5 }}>
+      {/* FOOTER ACTIONS */}
+      <DialogActions sx={{ p: 3, pt: 0, gap: 1.5 }}>
         <Button
           onClick={onClose}
           variant="outlined"
           sx={{
             flex: 1,
-            borderRadius: "10px",
-            py: 1,
-            fontWeight: 600,
-            color: theme.palette.text.secondary,
-            borderColor: theme.palette.divider,
+            height: 44,
+            borderRadius: "8px",
+            textTransform: "none",
+            fontWeight: 500,
+            color: "#64748B",
+            borderColor: "#E2E8F0",
+            "&:hover": { borderColor: "#CBD5E1", bgcolor: "#F8FAFC" },
           }}
         >
-          Hủy bỏ
+          Hủy
         </Button>
         <Button
           onClick={onConfirm}
@@ -174,11 +188,13 @@ export const ConfirmActionModal = ({
           startIcon={<CheckCircleIcon />}
           sx={{
             flex: 1,
-            borderRadius: "10px",
-            py: 1,
+            height: 44,
+            borderRadius: "8px",
+            textTransform: "none",
             fontWeight: 600,
-            bgcolor: theme.palette.success.main,
-            "&:hover": { bgcolor: theme.palette.success.dark },
+            bgcolor: "#10B981",
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#059669", boxShadow: "none" },
           }}
         >
           Xác nhận thực hiện
