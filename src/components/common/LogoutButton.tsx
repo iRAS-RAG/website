@@ -15,7 +15,6 @@ const LogoutButton: React.FC = () => {
       console.error("Logout API failed:", err);
     } finally {
       clearCurrentUser();
-      localStorage.removeItem("userRole");
       setOpen(false);
       navigate("/auth/login");
     }

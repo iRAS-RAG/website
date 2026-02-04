@@ -50,18 +50,18 @@ const LoginPage = () => {
 
       // extract user info from JWT
       const userInfo = jwt.getUserFromToken(accessToken);
-      const role = userInfo.role || "Operator";
+      const role = (userInfo.role ?? null) as Role | null;
       const id = userInfo.id || "";
       const name = userInfo.name || "User";
 
       // update in-app current user state (keeps guarded routes working)
-      setCurrentUser({ id, name, role: role as Role });
-      localStorage.setItem("userRole", role);
+      setCurrentUser({ id, name, role });
 
       // redirect based on role
       if (role === "Admin") navigate("/admin/dashboard");
       else if (role === "Supervisor") navigate("/supervisor/dashboard");
-      else navigate("/operator/dashboard");
+      else if (role === "Operator") navigate("/operator/dashboard");
+      else navigate("/");
     } catch (err: unknown) {
       let msg = "Email hoặc mật khẩu không chính xác!";
       if (typeof err === "object" && err !== null) {
@@ -75,7 +75,6 @@ const LoginPage = () => {
   function handleLogout() {
     jwt.clearTokens();
     clearCurrentUser();
-    localStorage.removeItem("userRole");
     navigate("/");
   }
 

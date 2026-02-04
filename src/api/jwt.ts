@@ -55,6 +55,8 @@ export function setTokens(accessToken: string | null, refreshToken?: string | nu
     if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
     else localStorage.removeItem(REFRESH_KEY);
   }
+  // notify listeners
+  notifyTokenListeners(accessToken, refreshToken ?? null);
 }
 
 export function getAccessToken(): string | null {
@@ -68,6 +70,23 @@ export function getRefreshToken(): string | null {
 export function clearTokens() {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  // notify listeners
+  notifyTokenListeners(null, null);
+}
+
+type TokenListener = (access: string | null, refresh: string | null) => void;
+const tokenListeners: TokenListener[] = [];
+
+function notifyTokenListeners(access: string | null, refresh: string | null) {
+  tokenListeners.slice().forEach((cb) => cb(access, refresh));
+}
+
+export function addTokenListener(cb: TokenListener) {
+  tokenListeners.push(cb);
+  return () => {
+    const idx = tokenListeners.indexOf(cb);
+    if (idx >= 0) tokenListeners.splice(idx, 1);
+  };
 }
 
 export default { parseJwt, getRoleFromToken, getUserFromToken, setTokens, getAccessToken, getRefreshToken, clearTokens };
