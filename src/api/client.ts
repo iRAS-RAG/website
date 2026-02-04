@@ -1,3 +1,5 @@
+import axios, { type AxiosError, type AxiosInstance, type AxiosRequestConfig } from "axios";
+
 const API_BASE = (import.meta.env.VITE_API_BASE || "https://localhost:7094/api/").replace(/\/+$/, "");
 const API_KEY = import.meta.env.VITE_API_KEY || "";
 
@@ -14,39 +16,39 @@ interface ApiError extends Error {
   data?: unknown;
 }
 
-async function parseResponse(res: Response) {
-  const contentType = res.headers.get("content-type") || "";
-  const text = await res.text();
-  const isJson = contentType.includes("application/json");
-  const data = text && isJson ? JSON.parse(text) : text;
-  if (!res.ok) {
-    const err: ApiError = new Error(res.statusText || "API error");
-    err.status = res.status;
-    err.data = data;
-    throw err;
-  }
-  return data;
-}
-
-export async function apiFetch<T = unknown>(path: string, options: FetchOptions = {}): Promise<T> {
-  const url = path.startsWith("http") ? path : `${API_BASE}/${path.replace(/^\/+/, "")}`;
-  const headers: Record<string, string> = {
+const axiosInstance: AxiosInstance = axios.create({
+  baseURL: API_BASE,
+  headers: {
     accept: "application/json",
     "Content-Type": "application/json",
-  };
-  if (options.headers) Object.assign(headers, options.headers as Record<string, string>);
-  if (API_KEY) headers["x-api-key"] = API_KEY;
+    ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+  },
+});
 
-  const init: RequestInit = {
-    method: options.method || (options.body ? "POST" : "GET"),
+export async function apiFetch<T = unknown>(path: string, options: FetchOptions = {}): Promise<T> {
+  const method = (options.method || (options.body ? "POST" : "GET")).toLowerCase();
+  const headers = Object.assign({}, options.headers || {});
+
+  const config: AxiosRequestConfig = {
+    method: method as AxiosRequestConfig["method"],
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    credentials: options.credentials,
-    signal: options.signal,
+    data: options.body ?? undefined,
+    signal: options.signal ?? undefined,
+    withCredentials: options.credentials === "include",
   };
 
-  const res = await fetch(url, init);
-  return parseResponse(res);
+  try {
+    const res = path.startsWith("http") ? await axios.request({ url: path, ...config }) : await axiosInstance.request({ url: path.replace(/^\/+/, ""), ...config });
+    return res.data as T;
+  } catch (e) {
+    const err: ApiError = new Error((e as AxiosError).message || "API error");
+    if ((e as AxiosError).isAxiosError) {
+      const ax = e as AxiosError;
+      err.status = ax.response?.status;
+      err.data = ax.response?.data ?? ax.message;
+    }
+    throw err;
+  }
 }
 
 export { API_BASE, API_KEY };
