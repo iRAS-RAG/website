@@ -10,12 +10,15 @@ type FetchOptions = {
   headers?: Record<string, string>;
   credentials?: RequestCredentials;
   signal?: AbortSignal | null;
+  rawResponse?: boolean;
 };
 
 interface ApiError extends Error {
   status?: number;
   data?: unknown;
 }
+
+type ApiResponse<T> = { message?: string; data?: T } | T;
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE,
@@ -108,7 +111,18 @@ export async function apiFetch<T = unknown>(path: string, options: FetchOptions 
 
   try {
     const res = path.startsWith("http") ? await axios.request({ url: path, ...config }) : await axiosInstance.request({ url: path.replace(/^\/+/, ""), ...config });
-    return res.data as T;
+
+    const payload = res.data as unknown;
+
+    if (options.rawResponse) return payload as T;
+
+    if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data")) {
+      const obj = payload as ApiResponse<unknown>;
+      const inner = (obj as Record<string, unknown>).data;
+      return inner as unknown as T;
+    }
+
+    return payload as T;
   } catch (e) {
     const err: ApiError = new Error((e as AxiosError).message || "API error");
     if ((e as AxiosError).isAxiosError) {

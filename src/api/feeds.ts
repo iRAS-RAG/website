@@ -24,8 +24,7 @@ function toUi(item: Record<string, unknown>): FeedType {
 }
 
 export async function getFeeds(): Promise<FeedType[]> {
-  const res = await apiFetch("/feed-types");
-  const items = (res as unknown as { data?: unknown })?.data ?? res;
+  const items = await apiFetch<unknown[]>("/feed-types");
   if (!Array.isArray(items)) return [];
   return (items as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 }
@@ -43,9 +42,8 @@ export async function createFeed(payload: Omit<FeedType, "id">): Promise<FeedTyp
     proteinPercentage: proteinPercentage ?? payload.proteinPercentage ?? null,
     manufacturer: payload.manufacturer ?? "",
   };
-  const res = await apiFetch("/feed-types", { method: "POST", body });
-  const created = (res as unknown as { data?: unknown })?.data ?? res;
-  return toUi(created as Record<string, unknown>);
+  const created = await apiFetch<Record<string, unknown>>("/feed-types", { method: "POST", body });
+  return toUi(created);
 }
 
 export async function updateFeed(id: string, payload: Partial<FeedType>): Promise<FeedType | null> {
@@ -58,10 +56,9 @@ export async function updateFeed(id: string, payload: Partial<FeedType>): Promis
     if (m) body.proteinPercentage = parseInt(m[1], 10);
   }
   if (typeof payload.manufacturer !== "undefined") body.manufacturer = payload.manufacturer;
-  const res = await apiFetch(`/feed-types/${id}`, { method: "PUT", body });
-  const updated = (res as unknown as { data?: unknown })?.data ?? res;
+  const updated = await apiFetch<Record<string, unknown>>(`/feed-types/${id}`, { method: "PUT", body });
   if (!updated) return null;
-  return toUi(updated as Record<string, unknown>);
+  return toUi(updated);
 }
 
 export async function deleteFeed(id: string): Promise<boolean> {
