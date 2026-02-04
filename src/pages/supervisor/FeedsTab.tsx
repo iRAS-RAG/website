@@ -5,7 +5,7 @@ import FastfoodIcon from "@mui/icons-material/Fastfood";
 import { Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { FeedType as FeedTypeType } from "../../api/feeds";
-import { createFeed, deleteFeed, fetchFeeds, updateFeed } from "../../api/feeds";
+import { createFeed, deleteFeed, getFeeds, updateFeed } from "../../api/feeds";
 
 const FeedsTab: React.FC = () => {
   const theme = useTheme();
@@ -20,7 +20,7 @@ const FeedsTab: React.FC = () => {
   const [feedProtein, setFeedProtein] = useState("");
 
   useEffect(() => {
-    fetchFeeds()
+    getFeeds()
       .then(setFeedsData)
       .catch(() => setFeedsData([]));
   }, []);
@@ -35,7 +35,7 @@ const FeedsTab: React.FC = () => {
     setConfirmOpen(false);
     try {
       await deleteFeed(confirmId);
-      setFeedsData(await fetchFeeds());
+      setFeedsData(await getFeeds());
     } catch (e) {
       console.error(e);
     }
@@ -46,7 +46,7 @@ const FeedsTab: React.FC = () => {
     else await createFeed(values);
     setFeedDialogOpen(false);
     setEditingFeed(null);
-    setFeedsData(await fetchFeeds());
+    setFeedsData(await getFeeds());
     setFeedName("");
     setFeedProtein("");
   };

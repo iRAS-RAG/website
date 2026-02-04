@@ -10,7 +10,7 @@ function toUi(item: Record<string, unknown>): Species {
   };
 }
 
-export async function fetchSpecies(): Promise<Species[]> {
+export async function getSpecies(): Promise<Species[]> {
   const res = await apiFetch("/species");
   const items = (res as unknown as { data?: unknown })?.data ?? res;
   if (!Array.isArray(items)) return [];
@@ -39,4 +39,4 @@ export async function deleteSpecies(id: string): Promise<boolean> {
   return true;
 }
 
-export default { fetchSpecies, createSpecies, updateSpecies, deleteSpecies };
+export default { getSpecies, createSpecies, updateSpecies, deleteSpecies };

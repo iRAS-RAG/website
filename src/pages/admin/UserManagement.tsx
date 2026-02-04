@@ -27,7 +27,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { isAdmin, roles } from "../../api/auth";
 import type { User } from "../../api/users";
-import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../api/users";
+import { createUser, deleteUser, getUsers, resetPassword, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 
@@ -65,7 +65,7 @@ const UserManagement: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const users = await fetchUsers();
+      const users = await getUsers();
       setData(users);
     } catch {
       setError("Failed to load users");

@@ -23,7 +23,7 @@ function toUi(item: Record<string, unknown>): FeedType {
   };
 }
 
-export async function fetchFeeds(): Promise<FeedType[]> {
+export async function getFeeds(): Promise<FeedType[]> {
   const res = await apiFetch("/feed-types");
   const items = (res as unknown as { data?: unknown })?.data ?? res;
   if (!Array.isArray(items)) return [];
@@ -69,4 +69,4 @@ export async function deleteFeed(id: string): Promise<boolean> {
   return true;
 }
 
-export default { fetchFeeds, createFeed, updateFeed, deleteFeed };
+export default { getFeeds, createFeed, updateFeed, deleteFeed };

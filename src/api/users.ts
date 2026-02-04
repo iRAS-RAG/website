@@ -19,7 +19,7 @@ function toUiUser(item: Record<string, unknown>): User {
   };
 }
 
-export async function fetchUsers(): Promise<User[]> {
+export async function getUsers(): Promise<User[]> {
   const res = await apiFetch("/users");
   const items = (res as unknown as { data?: unknown })?.data ?? res;
   if (!Array.isArray(items)) return [];
@@ -57,4 +57,4 @@ export async function resetPassword(id: string): Promise<boolean> {
   return true;
 }
 
-export default { fetchUsers, createUser, updateUser, deleteUser, resetPassword };
+export default { getUsers, createUser, updateUser, deleteUser, resetPassword };
