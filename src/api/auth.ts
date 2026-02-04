@@ -29,7 +29,6 @@ function roleOrDefault(r: unknown): Role {
   return "Operator";
 }
 
-// Initialize currentUser from stored access token (if present)
 (() => {
   const access = jwt.getAccessToken();
   if (!access) return;

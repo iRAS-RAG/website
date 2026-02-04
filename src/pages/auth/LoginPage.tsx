@@ -2,13 +2,10 @@ import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-materi
 import { Alert, Box, Button, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../../api/auth";
+import type { Role } from "../../api/auth";
+import { clearCurrentUser, currentUser, login, setCurrentUser } from "../../api/auth";
 import * as jwt from "../../api/jwt";
 import bg from "../../assets/backgrounds.png";
-import type { Role } from "../../mocks/auth";
-import { clearCurrentUser, currentUser, setCurrentUser } from "../../mocks/auth";
-
-// (mock users removed — real API used)
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +26,6 @@ const LoginPage = () => {
       } & Record<string, unknown>;
 
       const resp = (await login({ email, password })) as LoginResp | null;
-      // Response shape expected: { token: { accessToken, refreshToken }, message }
       const tokenObj = resp?.token ?? resp;
 
       function getStringField(obj: unknown, ...keys: string[]) {

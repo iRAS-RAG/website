@@ -1,9 +1,9 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { isSupervisor } from "../../api/auth";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
-import { isSupervisor } from "../../mocks/auth";
 import FeedsTab from "./FeedsTab";
 import ScheduleTab from "./ScheduleTab";
 import SpeciesTab from "./SpeciesTab";

@@ -7,53 +7,44 @@ export type User = {
   role: string;
 };
 
-function toUiUser(item: any): User {
-  const firstName = item.firstName || "";
-  const lastName = item.lastName || "";
+function toUiUser(item: Record<string, unknown>): User {
+  const firstName = String(item["firstName"] ?? "");
+  const lastName = String(item["lastName"] ?? "");
   const name = `${lastName} ${firstName}`.trim();
   return {
-    id: item.id,
+    id: String(item["id"] ?? ""),
     name,
-    email: item.email,
-    role: item.roleName || item.role || "Operator",
+    email: String(item["email"] ?? ""),
+    role: String(item["roleName"] ?? item["role"] ?? "Operator"),
   };
 }
 
 export async function fetchUsers(): Promise<User[]> {
   const res = await apiFetch("/users");
-  // API returns { message, data: [...] }
-  const items = (res as any)?.data ?? res;
+  const items = (res as unknown as { data?: unknown })?.data ?? res;
   if (!Array.isArray(items)) return [];
-  return items.map(toUiUser);
+  return (items as unknown[]).map((i) => toUiUser(i as Record<string, unknown>));
 }
 
-export async function createUser(payload: Omit<User, "id">): Promise<User> {
-  // Backend likely expects firstName/lastName and roleName
-  const parts = (payload.name || "").trim().split(/\s+/);
-  const firstName = parts[0] ?? "";
-  const lastName = parts.slice(1).join(" ") || "";
-  const body = { email: payload.email, firstName, lastName, roleName: payload.role };
+export async function createUser(payload: { firstName: string; lastName: string; email: string; role: string; password?: string }): Promise<User> {
+  const body: Record<string, unknown> = { email: payload.email, firstName: payload.firstName, lastName: payload.lastName, roleName: payload.role };
+  if (payload.password) body.password = payload.password;
   const res = await apiFetch("/users", { method: "POST", body });
-  // Map response if available
-  const created = (res as any)?.data ?? res;
-  return toUiUser(created);
+  const created = (res as unknown as { data?: unknown })?.data ?? res;
+  return toUiUser(created as Record<string, unknown>);
 }
 
-export async function updateUser(id: string, payload: Partial<User>): Promise<User | null> {
-  const parts = (payload.name || "").trim().split(/\s+/);
-  const firstName = parts[0] ?? "";
-  const lastName = parts.slice(1).join(" ") || "";
-  const body: any = {};
+export async function updateUser(id: string, payload: Partial<{ firstName: string; lastName: string; email: string; role: string; password?: string }>): Promise<User | null> {
+  const body: Record<string, unknown> = {};
   if (payload.email) body.email = payload.email;
-  if (payload.name) {
-    body.firstName = firstName;
-    body.lastName = lastName;
-  }
+  if (payload.firstName !== undefined) body.firstName = payload.firstName;
+  if (payload.lastName !== undefined) body.lastName = payload.lastName;
   if (payload.role) body.roleName = payload.role;
+  if (payload.password) body.password = payload.password;
   const res = await apiFetch(`/users/${id}`, { method: "PUT", body });
-  const updated = (res as any)?.data ?? res;
+  const updated = (res as unknown as { data?: unknown })?.data ?? res;
   if (!updated) return null;
-  return toUiUser(updated);
+  return toUiUser(updated as Record<string, unknown>);
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
@@ -62,7 +53,6 @@ export async function deleteUser(id: string): Promise<boolean> {
 }
 
 export async function resetPassword(id: string): Promise<boolean> {
-  // assume endpoint exists
   await apiFetch(`/users/${id}/reset-password`, { method: "POST" });
   return true;
 }

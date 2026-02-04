@@ -3,41 +3,40 @@ import { apiFetch } from "./client";
 export type FeedType = {
   id: string;
   name: string;
-  protein: string; // display string like '45%'
+  protein: string;
   description?: string;
   weightPerUnit?: number;
   manufacturer?: string;
   proteinPercentage?: number;
 };
 
-function toUi(item: any): FeedType {
-  const pct = typeof item.proteinPercentage === "number" ? item.proteinPercentage : undefined;
+function toUi(item: Record<string, unknown>): FeedType {
+  const pct = typeof item.proteinPercentage === "number" ? (item.proteinPercentage as number) : undefined;
   return {
-    id: item.id,
-    name: item.name,
-    protein: typeof pct === "number" ? `${pct}%` : item.protein || "",
-    description: item.description,
-    weightPerUnit: item.weightPerUnit,
-    manufacturer: item.manufacturer,
+    id: String(item.id ?? ""),
+    name: String(item.name ?? ""),
+    protein: typeof pct === "number" ? `${pct}%` : String(item.protein ?? ""),
+    description: (item.description as string) || undefined,
+    weightPerUnit: typeof item.weightPerUnit === "number" ? (item.weightPerUnit as number) : undefined,
+    manufacturer: (item.manufacturer as string) || undefined,
     proteinPercentage: pct,
   };
 }
 
 export async function fetchFeeds(): Promise<FeedType[]> {
   const res = await apiFetch("/feed-types");
-  const items = (res as any)?.data ?? res;
+  const items = (res as unknown as { data?: unknown })?.data ?? res;
   if (!Array.isArray(items)) return [];
-  return items.map(toUi);
+  return (items as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 }
 
 export async function createFeed(payload: Omit<FeedType, "id">): Promise<FeedType> {
-  // try to extract numeric percentage
   let proteinPercentage: number | undefined;
   if (typeof payload.protein === "string") {
     const m = payload.protein.match(/(\d+)/);
     if (m) proteinPercentage = parseInt(m[1], 10);
   }
-  const body: any = {
+  const body: Record<string, unknown> = {
     name: payload.name,
     description: payload.description ?? "",
     weightPerUnit: payload.weightPerUnit ?? 25,
@@ -45,12 +44,12 @@ export async function createFeed(payload: Omit<FeedType, "id">): Promise<FeedTyp
     manufacturer: payload.manufacturer ?? "",
   };
   const res = await apiFetch("/feed-types", { method: "POST", body });
-  const created = (res as any)?.data ?? res;
-  return toUi(created);
+  const created = (res as unknown as { data?: unknown })?.data ?? res;
+  return toUi(created as Record<string, unknown>);
 }
 
 export async function updateFeed(id: string, payload: Partial<FeedType>): Promise<FeedType | null> {
-  const body: any = {};
+  const body: Record<string, unknown> = {};
   if (payload.name) body.name = payload.name;
   if (payload.description) body.description = payload.description;
   if (typeof payload.weightPerUnit !== "undefined") body.weightPerUnit = payload.weightPerUnit;
@@ -60,9 +59,9 @@ export async function updateFeed(id: string, payload: Partial<FeedType>): Promis
   }
   if (typeof payload.manufacturer !== "undefined") body.manufacturer = payload.manufacturer;
   const res = await apiFetch(`/feed-types/${id}`, { method: "PUT", body });
-  const updated = (res as any)?.data ?? res;
+  const updated = (res as unknown as { data?: unknown })?.data ?? res;
   if (!updated) return null;
-  return toUi(updated);
+  return toUi(updated as Record<string, unknown>);
 }
 
 export async function deleteFeed(id: string): Promise<boolean> {

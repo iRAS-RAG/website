@@ -25,11 +25,11 @@ import {
 import React, { useEffect, useState } from "react";
 
 import { Navigate } from "react-router-dom";
+import { isAdmin } from "../../api/auth";
 import type { User } from "../../api/users";
 import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import { isAdmin } from "../../mocks/auth";
 
 const roles = ["Admin", "Supervisor", "Operator"] as const;
 
@@ -86,13 +86,13 @@ const UserManagement: React.FC = () => {
     setOpenForm(true);
   }
 
-  async function handleSave(values: { name: string; email: string; role: string }) {
+  async function handleSave(values: { firstName: string; lastName: string; email: string; role: string; password?: string }) {
     setLoading(true);
     try {
       if (editing) {
-        await updateUser(editing.id, values as Partial<User>);
+        await updateUser(editing.id, values as Partial<{ firstName: string; lastName: string; email: string; role: string; password?: string }>);
       } else {
-        await createUser(values as Omit<User, "id">);
+        await createUser(values as { firstName: string; lastName: string; email: string; role: string; password?: string });
       }
       await load();
       setOpenForm(false);
@@ -227,10 +227,15 @@ const UserManagement: React.FC = () => {
 const UserFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: { name: string; email: string; role: string }) => void;
+  onSave: (v: { firstName: string; lastName: string; email: string; role: string; password?: string }) => void;
   initial: User | null;
 }> = ({ open, onClose, onSave, initial }) => {
-  const [name, setName] = useState(initial?.name ?? "");
+  const parts = (initial?.name || "").trim().split(/\s+/);
+  const inferredFirst = parts.length ? parts[parts.length - 1] : "";
+  const inferredLast = parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "";
+  const [firstName, setFirstName] = useState(inferredFirst);
+  const [lastName, setLastName] = useState(inferredLast);
+  const [password, setPassword] = useState("");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [role, setRole] = useState<string>(initial?.role ?? "Operator");
 
@@ -239,8 +244,12 @@ const UserFormDialog: React.FC<{
       <DialogTitle>{initial ? "Chỉnh sửa người dùng" : "Thêm người dùng"}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Họ và tên" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+          <Stack direction="row" spacing={2}>
+            <TextField label="Họ" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth />
+            <TextField label="Tên" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth />
+          </Stack>
           <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
+          <TextField label="Mật khẩu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth helperText={initial ? "Để trống nếu không đổi" : undefined} />
           <TextField select label="Vai trò" value={role} onChange={(e) => setRole(e.target.value)}>
             {roles.map((r) => (
               <MenuItem key={r} value={r}>
@@ -252,7 +261,11 @@ const UserFormDialog: React.FC<{
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Hủy</Button>
-        <Button onClick={() => onSave({ name, email, role })} variant="contained" disabled={!name || !email}>
+        <Button
+          onClick={() => onSave({ firstName, lastName, email, role, password: password || undefined })}
+          variant="contained"
+          disabled={!firstName || !lastName || !email || (!initial && !password)}
+        >
           Lưu
         </Button>
       </DialogActions>

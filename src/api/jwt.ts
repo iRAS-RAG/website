@@ -1,7 +1,6 @@
-export type JwtPayload = Record<string, any>;
+export type JwtPayload = Record<string, unknown>;
 
 function base64UrlDecode(input: string) {
-  // Make base64url -> base64
   let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const pad = base64.length % 4;
   if (pad === 2) base64 += "==";
@@ -15,8 +14,7 @@ function base64UrlDecode(input: string) {
         })
         .join(""),
     );
-  } catch (e) {
-    // fallback to plain atob -> string
+  } catch {
     return atob(base64);
   }
 }
@@ -28,7 +26,7 @@ export function parseJwt(token: string): JwtPayload | null {
   try {
     const payload = base64UrlDecode(parts[1]);
     return JSON.parse(payload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -36,17 +34,15 @@ export function parseJwt(token: string): JwtPayload | null {
 export function getRoleFromToken(token: string): string | null {
   const p = parseJwt(token);
   if (!p) return null;
-  return p.role || (Array.isArray(p.roles) && p.roles[0]) || p.roleName || p["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || null;
+  return p.role as string | null;
 }
 
-export function getUserFromToken(token: string) {
-  const p = parseJwt(token) || {};
-  return {
-    id: p.sub || p.nameid || p.userId || p.user_id || null,
-    name: p.name || p.preferred_username || p.username || p.email || null,
-    role: getRoleFromToken(token) || null,
-    raw: p,
-  };
+export function getUserFromToken(token: string): { id: string | null; name: string | null; role: string | null; raw: JwtPayload } {
+  const p = parseJwt(token) || ({} as JwtPayload);
+  const id = typeof p["nameid"] === "string" ? (p["nameid"] as string) : null;
+  const name = typeof p["unique_name"] === "string" ? (p["unique_name"] as string) : null;
+  const role = getRoleFromToken(token) || null;
+  return { id, name, role, raw: p };
 }
 
 const ACCESS_KEY = "accessToken";

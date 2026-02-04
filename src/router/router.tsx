@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { isAdmin, isSupervisor } from "../mocks/auth";
+import { isAdmin, isSupervisor } from "../api/auth";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AIKnowledge from "../pages/admin/AIKnowledge";
@@ -10,7 +10,7 @@ import RegisterPage from "../pages/auth/RegisterPage";
 import HomePage from "../pages/public/HomePage";
 import SupervisorDashboard from "../pages/supervisor/SupervisorDashboard";
 
-import { isOperator } from "../mocks/auth";
+import { isOperator } from "../api/auth";
 import AIAdvisory from "../pages/operator/AIAdvisory";
 import AlertCenter from "../pages/operator/AlertCenter";
 import MaintenanceLog from "../pages/operator/MaintenanceLog";

@@ -2,7 +2,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { clearCurrentUser } from "../../mocks/auth";
+import { clearCurrentUser } from "../../api/auth";
 
 const LogoutButton: React.FC = () => {
   const [open, setOpen] = React.useState(false);

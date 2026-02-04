@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { Navigate } from "react-router-dom";
-import { currentUser } from "../mocks/auth";
+import { currentUser } from "../api/auth";
 
 type Props = {
   check: () => boolean;
