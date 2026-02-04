@@ -4,8 +4,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import PetsIcon from "@mui/icons-material/Pets";
 import { Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { Species as SpeciesType } from "../../mocks/species";
-import { createSpecies, deleteSpecies, fetchSpecies, updateSpecies } from "../../mocks/species";
+import type { Species as SpeciesType } from "../../api/species";
+import { createSpecies, deleteSpecies, fetchSpecies, updateSpecies } from "../../api/species";
 
 const SpeciesTab: React.FC = () => {
   const theme = useTheme();

@@ -2,16 +2,13 @@ import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-materi
 import { Alert, Box, Button, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../../api/auth";
+import * as jwt from "../../api/jwt";
 import bg from "../../assets/backgrounds.png";
 import type { Role } from "../../mocks/auth";
 import { clearCurrentUser, currentUser, setCurrentUser } from "../../mocks/auth";
 
-// Mock accounts (single source of truth for login stubs)
-const MOCK_USERS = [
-  { email: "admin@iras.com", password: "123", role: "Admin", path: "/admin/dashboard", id: "u-admin", name: "System Admin" },
-  { email: "sup@iras.com", password: "123", role: "Supervisor", path: "/supervisor/dashboard", id: "u-supervisor", name: "Supervisor" },
-  { email: "op@iras.com", password: "123", role: "Operator", path: "/operator/dashboard", id: "u-op", name: "Operator" },
-];
+// (mock users removed — real API used)
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -22,25 +19,65 @@ const LoginPage = () => {
 
   const isLoggedIn = Boolean(currentUser.id);
 
-  const handleLogin = (e?: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     setError("");
+    try {
+      type LoginResp = {
+        token?: { accessToken?: string; refreshToken?: string; access_token?: string; refresh_token?: string };
+        message?: string;
+      } & Record<string, unknown>;
 
-    // Find user in mock list
-    const user = MOCK_USERS.find((u) => u.email === email && u.password === password);
+      const resp = (await login({ email, password })) as LoginResp | null;
+      // Response shape expected: { token: { accessToken, refreshToken }, message }
+      const tokenObj = resp?.token ?? resp;
 
-    if (user) {
-      // Update mock current user so guarded routes work in-app
-      setCurrentUser({ id: user.id, name: user.name, role: user.role as Role });
-      // keep role in localStorage for other pages that inspect it
-      localStorage.setItem("userRole", user.role);
-      navigate(user.path);
-    } else {
-      setError("Email hoặc mật khẩu không chính xác!");
+      function getStringField(obj: unknown, ...keys: string[]) {
+        if (!obj || typeof obj !== "object") return null;
+        for (const k of keys) {
+          const v = (obj as Record<string, unknown>)[k];
+          if (typeof v === "string" && v) return v;
+        }
+        return null;
+      }
+
+      const accessToken = getStringField(tokenObj, "accessToken", "access_token");
+      const refreshToken = getStringField(tokenObj, "refreshToken", "refresh_token");
+
+      if (!accessToken) {
+        setError("Sai địa chỉ email hoặc mật khẩu!");
+        return;
+      }
+
+      // store tokens
+      jwt.setTokens(accessToken, refreshToken ?? null);
+
+      // extract user info from JWT
+      const userInfo = jwt.getUserFromToken(accessToken);
+      const role = userInfo.role || "Operator";
+      const id = userInfo.id || "";
+      const name = userInfo.name || "User";
+
+      // update in-app current user state (keeps guarded routes working)
+      setCurrentUser({ id, name, role: role as Role });
+      localStorage.setItem("userRole", role);
+
+      // redirect based on role
+      if (role === "Admin") navigate("/admin/dashboard");
+      else if (role === "Supervisor") navigate("/supervisor/dashboard");
+      else navigate("/operator/dashboard");
+    } catch (err: unknown) {
+      let msg = "Email hoặc mật khẩu không chính xác!";
+      if (typeof err === "object" && err !== null) {
+        const e = err as { data?: { message?: string }; message?: string };
+        msg = e?.data?.message || e?.message || msg;
+      }
+      setError(msg);
     }
   };
 
   function handleLogout() {
+    jwt.clearTokens();
     clearCurrentUser();
     localStorage.removeItem("userRole");
     navigate("/");
@@ -142,10 +179,6 @@ const LoginPage = () => {
                 Đăng nhập
               </Button>
             )}
-
-            <Typography variant="body2" align="center">
-              Mẹo: Dùng <b>op@iras.com</b> / <b>123</b>
-            </Typography>
           </Stack>
         </Box>
       </Paper>
