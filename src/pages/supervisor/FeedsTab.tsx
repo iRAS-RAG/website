@@ -4,8 +4,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import FastfoodIcon from "@mui/icons-material/Fastfood";
 import { Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { FeedType as FeedTypeType } from "../../mocks/feeds";
-import { createFeed, deleteFeed, fetchFeeds, updateFeed } from "../../mocks/feeds";
+import type { FeedType as FeedTypeType } from "../../api/feeds";
+import { createFeed, deleteFeed, fetchFeeds, updateFeed } from "../../api/feeds";
 
 const FeedsTab: React.FC = () => {
   const theme = useTheme();

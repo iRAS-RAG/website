@@ -179,10 +179,6 @@ const LoginPage = () => {
                 Đăng nhập
               </Button>
             )}
-
-            <Typography variant="body2" align="center">
-              Mẹo: Dùng <b>op@iras.com</b> / <b>123</b>
-            </Typography>
           </Stack>
         </Box>
       </Paper>
