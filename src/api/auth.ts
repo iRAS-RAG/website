@@ -51,8 +51,14 @@ export function clearCurrentUser() {
   currentUser.role = "Operator";
 }
 
+export function logout(): Promise<unknown> {
+  const refresh = jwt.getRefreshToken();
+  const path = refresh ? `/auth/logout?refreshToken=${encodeURIComponent(refresh)}` : "/auth/logout";
+  return apiFetch(path, { method: "POST" });
+}
+
 export const isAdmin = () => currentUser.role === "Admin";
 export const isSupervisor = () => currentUser.role === "Supervisor";
 export const isOperator = () => currentUser.role === "Operator";
 
-export default { login };
+export default { login, logout };

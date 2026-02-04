@@ -2,17 +2,23 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { clearCurrentUser } from "../../api/auth";
+import { clearCurrentUser, logout } from "../../api/auth";
 
 const LogoutButton: React.FC = () => {
   const [open, setOpen] = React.useState(false);
   const navigate = useNavigate();
 
-  const handleConfirm = () => {
-    clearCurrentUser();
-    localStorage.removeItem("userRole");
-    setOpen(false);
-    navigate("/auth/login");
+  const handleConfirm = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Logout API failed:", err);
+    } finally {
+      clearCurrentUser();
+      localStorage.removeItem("userRole");
+      setOpen(false);
+      navigate("/auth/login");
+    }
   };
 
   return (
