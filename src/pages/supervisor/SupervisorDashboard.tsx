@@ -4,11 +4,10 @@ import { Navigate, useLocation } from "react-router-dom";
 import { isSupervisor } from "../../api/auth";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
-import FeedsTab from "./FeedsTab";
+import FeedTypesTab from "./FeedTypesTab";
 import ScheduleTab from "./ScheduleTab";
 import SpeciesTab from "./SpeciesTab";
 import ThresholdsTab from "./ThresholdsTab";
-// (data loaded via fetch* mocks)
 
 const SupervisorDashboard: React.FC<{ section?: string }> = ({ section }) => {
   if (!isSupervisor()) return <Navigate to="/" replace />;
@@ -35,7 +34,7 @@ const SectionRenderer: React.FC<{ section?: string }> = ({ section: propSection 
   const section = propSection || (hash || "").replace("#", "") || "overview";
 
   if (section === "species") return <SpeciesTab />;
-  if (section === "feeds") return <FeedsTab />;
+  if (section === "feed-types") return <FeedTypesTab />;
   if (section === "thresholds") return <ThresholdsTab />;
   if (section === "schedule") return <ScheduleTab />;
 

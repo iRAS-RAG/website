@@ -23,13 +23,13 @@ function toUi(item: Record<string, unknown>): FeedType {
   };
 }
 
-export async function getFeeds(): Promise<FeedType[]> {
+export async function getFeedTypes(): Promise<FeedType[]> {
   const items = await apiFetch<unknown[]>("/feed-types");
   if (!Array.isArray(items)) return [];
   return (items as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 }
 
-export async function createFeed(payload: Omit<FeedType, "id">): Promise<FeedType> {
+export async function createFeedType(payload: Omit<FeedType, "id">): Promise<FeedType> {
   let proteinPercentage: number | undefined;
   if (typeof payload.protein === "string") {
     const m = payload.protein.match(/(\d+)/);
@@ -46,7 +46,7 @@ export async function createFeed(payload: Omit<FeedType, "id">): Promise<FeedTyp
   return toUi(created);
 }
 
-export async function updateFeed(id: string, payload: Partial<FeedType>): Promise<FeedType | null> {
+export async function updateFeedType(id: string, payload: Partial<FeedType>): Promise<FeedType | null> {
   const body: Record<string, unknown> = {};
   if (payload.name) body.name = payload.name;
   if (payload.description) body.description = payload.description;
@@ -61,9 +61,9 @@ export async function updateFeed(id: string, payload: Partial<FeedType>): Promis
   return toUi(updated);
 }
 
-export async function deleteFeed(id: string): Promise<boolean> {
+export async function deleteFeedType(id: string): Promise<boolean> {
   await apiFetch(`/feed-types/${id}`, { method: "DELETE" });
   return true;
 }
 
-export default { getFeeds, createFeed, updateFeed, deleteFeed };
+export default { getFeedTypes, createFeedType, updateFeedType, deleteFeedType };

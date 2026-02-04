@@ -4,15 +4,15 @@ import EditIcon from "@mui/icons-material/Edit";
 import FastfoodIcon from "@mui/icons-material/Fastfood";
 import { Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { FeedType as FeedTypeType } from "../../api/feeds";
-import { createFeed, deleteFeed, getFeeds, updateFeed } from "../../api/feeds";
+import type { FeedType } from "../../api/feed-types";
+import { createFeedType, deleteFeedType, getFeedTypes, updateFeedType } from "../../api/feed-types";
 
-const FeedsTab: React.FC = () => {
+const FeedTypesTab: React.FC = () => {
   const theme = useTheme();
 
-  const [feedsData, setFeedsData] = useState<FeedTypeType[]>([]);
+  const [feedsData, setFeedsData] = useState<FeedType[]>([]);
   const [feedDialogOpen, setFeedDialogOpen] = useState(false);
-  const [editingFeed, setEditingFeed] = useState<FeedTypeType | null>(null);
+  const [editingFeed, setEditingFeed] = useState<FeedType | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ const FeedsTab: React.FC = () => {
   const [feedProtein, setFeedProtein] = useState("");
 
   useEffect(() => {
-    getFeeds()
+    getFeedTypes()
       .then(setFeedsData)
       .catch(() => setFeedsData([]));
   }, []);
@@ -34,19 +34,19 @@ const FeedsTab: React.FC = () => {
     if (!confirmId) return;
     setConfirmOpen(false);
     try {
-      await deleteFeed(confirmId);
-      setFeedsData(await getFeeds());
+      await deleteFeedType(confirmId);
+      setFeedsData(await getFeedTypes());
     } catch (e) {
       console.error(e);
     }
   };
 
   const handleSaveFeed = async (values: { name: string; protein: string }) => {
-    if (editingFeed) await updateFeed(editingFeed.id, values);
-    else await createFeed(values);
+    if (editingFeed) await updateFeedType(editingFeed.id, values);
+    else await createFeedType(values);
     setFeedDialogOpen(false);
     setEditingFeed(null);
-    setFeedsData(await getFeeds());
+    setFeedsData(await getFeedTypes());
     setFeedName("");
     setFeedProtein("");
   };
@@ -132,4 +132,4 @@ const FeedsTab: React.FC = () => {
   );
 };
 
-export default FeedsTab;
+export default FeedTypesTab;

@@ -129,10 +129,10 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/feeds"
+        path="/supervisor/feed-types"
         element={
           <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="feeds" />
+            <SupervisorDashboard section="feed-types" />
           </ProtectedRoute>
         }
       />

@@ -8,7 +8,7 @@ import Sidebar, { type MenuItemType } from "../common/Sidebar";
 const menu: MenuItemType[] = [
   { text: "Tổng quan", icon: <DashboardIcon />, path: "/supervisor/dashboard" },
   { text: "Loài", icon: <PetsIcon />, path: "/supervisor/species" },
-  { text: "Thức ăn", icon: <FastfoodIcon />, path: "/supervisor/feeds" },
+  { text: "Thức ăn", icon: <FastfoodIcon />, path: "/supervisor/feed-types" },
   { text: "Ngưỡng cảm biến", icon: <NotificationsActiveIcon />, path: "/supervisor/thresholds" },
   { text: "Lịch cho ăn", icon: <ScheduleIcon />, path: "/supervisor/schedule" },
 ];
