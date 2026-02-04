@@ -25,13 +25,26 @@ import {
 import React, { useEffect, useState } from "react";
 
 import { Navigate } from "react-router-dom";
+import type { User } from "../../api/users";
+import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import { isAdmin } from "../../mocks/auth";
-import type { User } from "../../mocks/users";
-import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../mocks/users";
 
 const roles = ["Admin", "Supervisor", "Operator"] as const;
+
+function translateRole(r: string) {
+  switch (r) {
+    case "Admin":
+      return "Quản trị viên";
+    case "Supervisor":
+      return "Quản lý";
+    case "Operator":
+      return "Kỹ thuật viên";
+    default:
+      return r;
+  }
+}
 
 const UserManagement: React.FC = () => {
   const [data, setData] = useState<User[]>([]);
@@ -172,7 +185,7 @@ const UserManagement: React.FC = () => {
                     <TableRow key={u.id}>
                       <TableCell>{u.name}</TableCell>
                       <TableCell>{u.email}</TableCell>
-                      <TableCell>{u.role}</TableCell>
+                      <TableCell>{translateRole(u.role)}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           <IconButton size="small" onClick={() => openEdit(u)}>
@@ -231,7 +244,7 @@ const UserFormDialog: React.FC<{
           <TextField select label="Vai trò" value={role} onChange={(e) => setRole(e.target.value)}>
             {roles.map((r) => (
               <MenuItem key={r} value={r}>
-                {r}
+                {translateRole(r)}
               </MenuItem>
             ))}
           </TextField>
