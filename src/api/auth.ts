@@ -18,6 +18,8 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
 
 export type Role = "Admin" | "Supervisor" | "Operator";
 
+export const roles = ["Admin", "Supervisor", "Operator"] as const;
+
 export const currentUser: { id: string; name: string; role: Role | null } = {
   id: "",
   name: "Guest",

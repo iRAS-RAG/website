@@ -25,13 +25,11 @@ import {
 import React, { useEffect, useState } from "react";
 
 import { Navigate } from "react-router-dom";
-import { isAdmin } from "../../api/auth";
+import { isAdmin, roles } from "../../api/auth";
 import type { User } from "../../api/users";
 import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-
-const roles = ["Admin", "Supervisor", "Operator"] as const;
 
 function translateRole(r: string) {
   switch (r) {
