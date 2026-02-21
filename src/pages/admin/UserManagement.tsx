@@ -2,35 +2,25 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Typography } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Navigate } from "react-router-dom";
-import { isAdmin, roles } from "../../api/auth";
+import { isAdmin } from "../../api/auth";
+import { isApiError } from "../../api/client";
 import type { User } from "../../api/users";
-import { createUser, deleteUser, resetPassword, toUiUser, updateUser } from "../../api/users";
+import { createUser, deleteUser, toUiUser, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import UserFormDialog from "../../components/admin/UserFormDialog";
 import type { Column } from "../../components/common/DataTable";
 import DataTable from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
 import useTableData from "../../hooks/useTableData";
 import type { TableParams } from "../../types/table";
-
-function translateRole(r: string) {
-  switch (r) {
-    case "Admin":
-      return "Quản trị viên";
-    case "Supervisor":
-      return "Quản lý";
-    case "Operator":
-      return "Kỹ thuật viên";
-    default:
-      return r;
-  }
-}
+import { translateRole } from "../../utils/roles";
 
 const UserManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -131,8 +121,12 @@ const UserManagement: React.FC = () => {
       }
       await load();
       setOpenForm(false);
-    } catch {
-      setError("Save failed");
+    } catch (e: unknown) {
+      // If API returned validation errors, rethrow so the form can display them
+      if (isApiError(e) && e.data && (e.data as Record<string, unknown>).errors) {
+        throw e;
+      }
+      setError((isApiError(e) && e.message) || "Save failed");
     } finally {
       setLoading(false);
     }
@@ -152,19 +146,6 @@ const UserManagement: React.FC = () => {
       setOpenDelete(false);
     } catch {
       setError("Delete failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleReset(id: string) {
-    setLoading(true);
-    try {
-      await resetPassword(id);
-      // In a real app we'd notify the user; here it's mocked
-      await load();
-    } catch {
-      setError("Reset failed");
     } finally {
       setLoading(false);
     }
@@ -228,12 +209,9 @@ const UserManagement: React.FC = () => {
                     field: "actions",
                     label: "Hành động",
                     render: (r) => (
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Stack direction="row" spacing={1}>
                         <IconButton size="small" onClick={() => openEdit(r as User)}>
                           <EditIcon />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => handleReset((r as User).id)}>
-                          <RefreshIcon />
                         </IconButton>
                         <IconButton size="small" onClick={() => confirmDelete((r as User).id)}>
                           <DeleteIcon />
@@ -271,55 +249,6 @@ const UserManagement: React.FC = () => {
         </Box>
       </Box>
     </Box>
-  );
-};
-
-const UserFormDialog: React.FC<{
-  open: boolean;
-  onClose: () => void;
-  onSave: (v: { firstName: string; lastName: string; email: string; role: string; password?: string }) => void;
-  initial: User | null;
-}> = ({ open, onClose, onSave, initial }) => {
-  const parts = (initial?.name || "").trim().split(/\s+/);
-  const inferredFirst = parts.length ? parts[parts.length - 1] : "";
-  const inferredLast = parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "";
-  const [firstName, setFirstName] = useState(inferredFirst);
-  const [lastName, setLastName] = useState(inferredLast);
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState(initial?.email ?? "");
-  const [role, setRole] = useState<string>(initial?.role ?? "Operator");
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa người dùng" : "Thêm người dùng"}</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <Stack direction="row" spacing={2}>
-            <TextField label="Họ" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth />
-            <TextField label="Tên" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth />
-          </Stack>
-          <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
-          <TextField label="Mật khẩu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth helperText={initial ? "Để trống nếu không đổi" : undefined} />
-          <TextField select label="Vai trò" value={role} onChange={(e) => setRole(e.target.value)}>
-            {roles.map((r) => (
-              <MenuItem key={r} value={r}>
-                {translateRole(r)}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Hủy</Button>
-        <Button
-          onClick={() => onSave({ firstName, lastName, email, role, password: password || undefined })}
-          variant="contained"
-          disabled={!firstName || !lastName || !email || (!initial && !password)}
-        >
-          Lưu
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 };
 

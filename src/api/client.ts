@@ -13,9 +13,13 @@ type FetchOptions = {
   rawResponse?: boolean;
 };
 
-interface ApiError extends Error {
+export interface ApiError extends Error {
   status?: number;
   data?: unknown;
+}
+
+export function isApiError(e: unknown): e is ApiError {
+  return typeof e === "object" && e !== null && "data" in e;
 }
 
 type Meta = { page?: number; pageSize?: number; totalItems?: number; totalPages?: number; [key: string]: unknown };
