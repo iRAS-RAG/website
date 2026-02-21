@@ -18,7 +18,10 @@ interface ApiError extends Error {
   data?: unknown;
 }
 
-type ApiResponse<T> = { message?: string; data?: T } | T;
+type Meta = { page?: number; pageSize?: number; totalItems?: number; totalPages?: number; [key: string]: unknown };
+type Links = { self?: string | null; first?: string | null; prev?: string | null; next?: string | null; last?: string | null; [key: string]: unknown };
+
+type ApiWrappedResponse<T> = { message?: string; data?: T; meta?: Meta; links?: Links };
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE,
@@ -117,8 +120,13 @@ export async function apiFetch<T = unknown>(path: string, options: FetchOptions 
     if (options.rawResponse) return payload as T;
 
     if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data")) {
-      const obj = payload as ApiResponse<unknown>;
-      const inner = (obj as Record<string, unknown>).data;
+      const obj = payload as ApiWrappedResponse<unknown>;
+      const inner = obj.data;
+      // If this response includes pagination metadata or links, return the whole wrapped object
+      if (obj.meta || obj.links) {
+        return obj as unknown as T;
+      }
+      // Otherwise return the inner data (backwards-compatible behavior)
       return inner as unknown as T;
     }
 

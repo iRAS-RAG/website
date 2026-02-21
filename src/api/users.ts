@@ -7,7 +7,7 @@ export type User = {
   role: string;
 };
 
-function toUiUser(item: Record<string, unknown>): User {
+export function toUiUser(item: Record<string, unknown>): User {
   const firstName = String(item["firstName"] ?? "");
   const lastName = String(item["lastName"] ?? "");
   const name = `${lastName} ${firstName}`.trim();
