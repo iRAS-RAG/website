@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { ApiError } from "../../api/client";
-import type { Tank } from "../../types/hardware";
+import type { ApiError } from "../../../api/client";
+import type { Tank } from "../../../types/hardware";
 
 const TankFormDialog: React.FC<{
   open: boolean;

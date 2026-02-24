@@ -1,20 +1,20 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { ApiError } from "../../api/client";
-import * as hardwareApi from "../../api/hardware";
-import type { ControlDevice } from "../../types/hardware";
+import type { ApiError } from "../../../api/client";
+import * as hardwareApi from "../../../api/hardware";
+import type { Sensor } from "../../../types/hardware";
 
-const ControlDeviceFormDialog: React.FC<{
+const SensorFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeName?: string; state?: boolean }) => Promise<void>;
-  initial: ControlDevice | null;
+  onSave: (v: { name: string; pinCode?: number; sensorTypeId?: string | null; masterBoardId?: string | null }) => Promise<void>;
+  initial: Sensor | null;
 }> = ({ open, onClose, onSave, initial }) => {
   const [name, setName] = useState(initial?.name ?? "");
   const [pinCode, setPinCode] = useState(initial?.pinCode != null ? String(initial.pinCode) : "");
-  const [masterBoardId, setMasterBoardId] = useState<string | null>(initial?.masterBoardId ?? null);
-  const [typeName, setTypeName] = useState(initial?.controlDeviceTypeName ?? "");
-  const [state, setState] = useState(initial?.state ?? false);
+  const [sensorTypeId, setSensorTypeId] = useState<string | null>(null);
+  const [masterBoardId, setMasterBoardId] = useState<string | null>(null);
+  const [sensorTypes, setSensorTypes] = useState<Array<{ id: string; name: string }>>([]);
   const [masterBoards, setMasterBoards] = useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -24,11 +24,17 @@ const ControlDeviceFormDialog: React.FC<{
     let mounted = true;
     (async () => {
       try {
+        const sts = await hardwareApi.getSensorTypes();
         const mbs = await hardwareApi.getMasterBoards();
         if (!mounted) return;
+        setSensorTypes(sts.map((s) => ({ id: s.id, name: s.name })));
         setMasterBoards(mbs.map((m) => ({ id: m.id, name: m.name })));
+        if (initial) {
+          setSensorTypeId(undefined as unknown as string | null);
+          setMasterBoardId(undefined as unknown as string | null);
+        }
       } catch (e) {
-        // ignore
+        console.error("Failed to load sensor types or masterboards for sensor form", e);
       }
     })();
     return () => {
@@ -39,16 +45,15 @@ const ControlDeviceFormDialog: React.FC<{
   useEffect(() => {
     setName(initial?.name ?? "");
     setPinCode(initial?.pinCode != null ? String(initial.pinCode) : "");
+    setSensorTypeId(null);
     setMasterBoardId(initial?.masterBoardId ?? null);
-    setTypeName(initial?.controlDeviceTypeName ?? "");
-    setState(initial?.state ?? false);
     setFieldErrors({});
     setFormError(null);
   }, [initial, open]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa thiết bị điều khiển" : "Thêm thiết bị điều khiển"}</DialogTitle>
+      <DialogTitle>{initial ? "Chỉnh sửa cảm biến" : "Thêm cảm biến"}</DialogTitle>
       <DialogContent>
         {formError && (
           <Typography color="error" sx={{ mb: 1 }}>
@@ -58,6 +63,14 @@ const ControlDeviceFormDialog: React.FC<{
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField label="Tên" value={name} onChange={(e) => setName(e.target.value)} fullWidth error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} />
           <TextField label="Pin" value={pinCode} onChange={(e) => setPinCode(e.target.value)} fullWidth error={Boolean(fieldErrors.pinCode)} helperText={fieldErrors.pinCode} />
+          <TextField select label="Loại cảm biến" value={sensorTypeId ?? ""} onChange={(e) => setSensorTypeId(e.target.value || null)}>
+            <MenuItem value="">(Chọn loại)</MenuItem>
+            {sensorTypes.map((st) => (
+              <MenuItem key={st.id} value={st.id}>
+                {st.name}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField select label="Masterboard" value={masterBoardId ?? ""} onChange={(e) => setMasterBoardId(e.target.value || null)}>
             <MenuItem value="">(Chọn board)</MenuItem>
             {masterBoards.map((mb) => (
@@ -66,11 +79,6 @@ const ControlDeviceFormDialog: React.FC<{
               </MenuItem>
             ))}
           </TextField>
-          <TextField label="Loại" value={typeName} onChange={(e) => setTypeName(e.target.value)} fullWidth />
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography>Trạng thái</Typography>
-            <Switch checked={state} onChange={(e) => setState(e.target.checked)} />
-          </Stack>
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -83,7 +91,7 @@ const ControlDeviceFormDialog: React.FC<{
             setFormError(null);
             setFieldErrors({});
             try {
-              await onSave({ name, pinCode: pinCode ? parseInt(pinCode, 10) : undefined, masterBoardId: masterBoardId ?? undefined, controlDeviceTypeName: typeName || undefined, state });
+              await onSave({ name, pinCode: pinCode ? parseInt(pinCode, 10) : undefined, sensorTypeId: sensorTypeId ?? undefined, masterBoardId: masterBoardId ?? undefined });
             } catch (e) {
               const err = e as ApiError;
               if (err && err.data && (err.data as Record<string, unknown>).errors) {
@@ -114,4 +122,4 @@ const ControlDeviceFormDialog: React.FC<{
   );
 };
 
-export default ControlDeviceFormDialog;
+export default SensorFormDialog;

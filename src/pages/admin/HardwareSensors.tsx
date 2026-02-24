@@ -12,10 +12,10 @@ import React, { useEffect, useState } from "react";
 import * as hardwareApi from "../../api/hardware";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import ControlDeviceFormDialog from "../../components/admin/ControlDeviceFormDialog";
-import MasterBoardFormDialog from "../../components/admin/MasterBoardFormDialog";
-import SensorFormDialog from "../../components/admin/SensorFormDialog";
-import TankFormDialog from "../../components/admin/TankFormDialog";
+import ControlDeviceFormDialog from "../../components/admin/hardware/ControlDeviceFormDialog";
+import MasterBoardFormDialog from "../../components/admin/hardware/MasterBoardFormDialog";
+import SensorFormDialog from "../../components/admin/hardware/SensorFormDialog";
+import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
 import type { ControlDevice, MasterBoard, Sensor, SensorType, Tank } from "../../types/hardware";
 
 const HardwareSensors: React.FC = () => {

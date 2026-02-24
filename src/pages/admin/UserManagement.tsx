@@ -13,7 +13,7 @@ import type { User } from "../../api/users";
 import { createUser, deleteUser, toUiUser, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import UserFormDialog from "../../components/admin/UserFormDialog";
+import UserFormDialog from "../../components/admin/users/UserFormDialog";
 import type { Column } from "../../components/common/DataTable";
 import DataTable from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";

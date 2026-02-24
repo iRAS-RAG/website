@@ -1,9 +1,10 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
-import { roles } from "../../api/auth";
-import type { ApiError } from "../../api/client";
-import type { User } from "../../api/users";
-import { translateRole } from "../../utils/roles";
+import type { Role } from "../../../api/auth";
+import { roles } from "../../../api/auth";
+import type { ApiError } from "../../../api/client";
+import type { User } from "../../../api/users";
+import { translateRole } from "../../../utils/roles";
 
 const UserFormDialog: React.FC<{
   open: boolean;
@@ -48,7 +49,7 @@ const UserFormDialog: React.FC<{
             error={Boolean(fieldErrors.password)}
           />
           <TextField select label="Vai trò" value={role} onChange={(e) => setRole(e.target.value)} error={Boolean(fieldErrors.role)}>
-            {roles.map((r) => (
+            {roles.map((r: Role) => (
               <MenuItem key={r} value={r}>
                 {translateRole(r)}
               </MenuItem>

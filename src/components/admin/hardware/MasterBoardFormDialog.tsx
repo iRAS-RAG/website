@@ -1,8 +1,8 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { ApiError } from "../../api/client";
-import * as hardwareApi from "../../api/hardware";
-import type { MasterBoard, Tank } from "../../types/hardware";
+import type { ApiError } from "../../../api/client";
+import * as hardwareApi from "../../../api/hardware";
+import type { MasterBoard, Tank } from "../../../types/hardware";
 
 const MasterBoardFormDialog: React.FC<{
   open: boolean;
