@@ -14,7 +14,7 @@ import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
 import useHardwareData from "../../hooks/useHardwareData";
 import type { ControlDevice, MasterBoard, Sensor, Tank } from "../../types/hardware";
 
-const HardwareSensors: React.FC = () => {
+const HardwareManagement: React.FC = () => {
   const theme = useTheme();
   const { loading, sensorTypes, masterBoards, sensors, controlDevices, tanks, handleSaveMasterBoard, handleUpdateTank, handleSaveSensor, handleSaveControl, snackOpen, snackMsg, setSnackOpen } =
     useHardwareData();
@@ -238,4 +238,4 @@ const HardwareSensors: React.FC = () => {
   );
 };
 
-export default HardwareSensors;
+export default HardwareManagement;

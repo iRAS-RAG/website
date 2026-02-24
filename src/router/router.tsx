@@ -3,7 +3,7 @@ import { isAdmin, isOperator, isSupervisor } from "../api/auth";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AIKnowledge from "../pages/admin/AIKnowledge";
-import HardwareSensors from "../pages/admin/HardwareSensors";
+import HardwareManagement from "../pages/admin/HardwareManagement";
 import UserManagement from "../pages/admin/UserManagement";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
@@ -106,7 +106,7 @@ const AppRouter = () => {
         path="/admin/hardware"
         element={
           <ProtectedRoute check={isAdmin}>
-            <HardwareSensors />
+            <HardwareManagement />
           </ProtectedRoute>
         }
       />
