@@ -3,28 +3,28 @@ import { Box, InputAdornment, MenuItem, Paper, Stack, TextField } from "@mui/mat
 import React from "react";
 
 type Props = {
-  q?: string;
-  onQChange?: (v: string) => void;
+  searchTerm?: string;
+  onSearchTermChange?: (v: string) => void;
   pageSize?: number;
   onPageSizeChange?: (n: number) => void;
   pageSizeOptions?: number[];
+  filters?: React.ReactNode;
 };
 
-export const TableToolbar: React.FC<Props> = ({ q = "", onQChange, pageSize = 10, onPageSizeChange, pageSizeOptions = [5, 10, 25, 50] }) => {
+export const TableToolbar: React.FC<Props> = ({ searchTerm = "", onSearchTermChange, pageSize = 10, onPageSizeChange, pageSizeOptions = [5, 10, 25, 50], filters }) => {
   return (
     <Paper elevation={0} sx={{ mb: 2, p: 1.25, borderRadius: 1, bgcolor: (t) => t.palette.background.paper }}>
       <Box sx={{ display: "flex", gap: 1, alignItems: "center", justifyContent: "space-between" }}>
         <TextField
           size="small"
           placeholder="Tìm kiếm..."
-          value={q}
-          onChange={(e) => onQChange?.(e.target.value)}
+          value={searchTerm}
+          onChange={(e) => onSearchTermChange?.(e.target.value)}
           sx={{ minWidth: 260, flex: 1 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                {" "}
-                <SearchIcon fontSize="small" />{" "}
+                <SearchIcon fontSize="small" />
               </InputAdornment>
             ),
           }}
@@ -40,6 +40,8 @@ export const TableToolbar: React.FC<Props> = ({ q = "", onQChange, pageSize = 10
           </TextField>
         </Stack>
       </Box>
+
+      {filters && <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>{filters}</Box>}
     </Paper>
   );
 };

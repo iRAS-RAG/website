@@ -11,7 +11,7 @@ export type PaginatedResponse<T> = {
 export type TableParams = {
   page?: number;
   pageSize?: number;
-  q?: string;
+  searchTerm?: string;
   sortBy?: string;
   sortDir?: "asc" | "desc";
   [key: string]: unknown;

@@ -2,7 +2,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, Typography } from "@mui/material";
+import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Paper, Stack, Typography } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -38,19 +38,21 @@ const UserManagement: React.FC = () => {
     const sp = searchParams;
     const page = sp.get("page");
     const pageSize = sp.get("pageSize");
-    const q = sp.get("q");
+    const searchTerm = sp.get("searchTerm");
+    const isDeleted = sp.get("isDeleted");
     const sortBy = sp.get("sortBy");
     const sortDir = sp.get("sortDir");
     if (page) p.page = Number(page);
     if (pageSize) p.pageSize = Number(pageSize);
-    if (q) p.q = q;
+    if (searchTerm) p.searchTerm = searchTerm;
+    if (isDeleted) p.isDeleted = isDeleted === "true";
     if (sortBy) p.sortBy = sortBy;
     if (sortDir) p.sortDir = sortDir as TableParams["sortDir"];
     return p;
   }
 
   const initialParams = useMemo(
-    () => ({ page: 1, pageSize: 10, ...parseSearchParams() }), // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => ({ page: 1, pageSize: 10, isDeleted: false, ...parseSearchParams() }), // eslint-disable-next-line react-hooks/exhaustive-deps
     [searchParams.toString()],
   );
 
@@ -69,8 +71,8 @@ const UserManagement: React.FC = () => {
     const fromUrl = parseSearchParams();
     // shallow compare
     const same =
-      JSON.stringify({ page: tableParams.page, pageSize: tableParams.pageSize, q: tableParams.q, sortBy: tableParams.sortBy, sortDir: tableParams.sortDir }) ===
-      JSON.stringify({ page: fromUrl.page, pageSize: fromUrl.pageSize, q: fromUrl.q, sortBy: fromUrl.sortBy, sortDir: fromUrl.sortDir });
+      JSON.stringify({ page: tableParams.page, pageSize: tableParams.pageSize, searchTerm: tableParams.searchTerm, sortBy: tableParams.sortBy, sortDir: tableParams.sortDir }) ===
+      JSON.stringify({ page: fromUrl.page, pageSize: fromUrl.pageSize, searchTerm: fromUrl.searchTerm, sortBy: fromUrl.sortBy, sortDir: fromUrl.sortDir });
     if (!same) {
       setTableParamsLocal(fromUrl);
     }
@@ -82,9 +84,10 @@ const UserManagement: React.FC = () => {
     const sp = new URLSearchParams();
     if (merged.page !== undefined) sp.set("page", String(merged.page));
     if (merged.pageSize !== undefined) sp.set("pageSize", String(merged.pageSize));
-    if (merged.q !== undefined && merged.q !== "") sp.set("q", String(merged.q));
+    if (merged.searchTerm !== undefined && merged.searchTerm !== "") sp.set("searchTerm", String(merged.searchTerm));
     if (merged.sortBy !== undefined) sp.set("sortBy", String(merged.sortBy));
     if (merged.sortDir !== undefined) sp.set("sortDir", String(merged.sortDir));
+    if (merged.isDeleted !== undefined && merged.isDeleted !== null) sp.set("isDeleted", String(merged.isDeleted));
     setSearchParams(sp, { replace: true });
   }
   if (!isAdmin()) return <Navigate to="/" replace />;
@@ -187,24 +190,40 @@ const UserManagement: React.FC = () => {
 
           <Paper sx={{ p: 2 }}>
             <TableToolbar
-              q={String(tableParams.q ?? "")}
-              onQChange={(v) => {
-                setTableParamsLocal({ ...(tableParams ?? {}), q: v, page: 1 });
-                updateUrlWithParams({ q: v, page: 1 });
+              searchTerm={String(tableParams.searchTerm ?? "")}
+              onSearchTermChange={(v) => {
+                setTableParamsLocal({ ...(tableParams ?? {}), searchTerm: v, page: 1 });
+                updateUrlWithParams({ searchTerm: v, page: 1 });
               }}
               pageSize={tableParams.pageSize}
               onPageSizeChange={(n) => {
                 setTableParamsLocal({ ...(tableParams ?? {}), pageSize: n, page: 1 });
                 updateUrlWithParams({ pageSize: n, page: 1 });
               }}
+              filters={
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={Boolean(tableParams.isDeleted)}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setTableParamsLocal({ ...(tableParams ?? {}), isDeleted: val, page: 1 });
+                        updateUrlWithParams({ isDeleted: val, page: 1 });
+                      }}
+                      size="small"
+                    />
+                  }
+                  label="Đã xóa"
+                />
+              }
             />
 
             <DataTable
               columns={
                 [
-                  { field: "name", label: "Họ và tên" },
-                  { field: "email", label: "Email" },
-                  { field: "role", label: "Vai trò", render: (r: User) => translateRole(r.role) },
+                  { field: "name", label: "Họ và tên", sortable: true, sortKey: "lastName" },
+                  { field: "email", label: "Email", sortable: true, sortKey: "email" },
+                  { field: "role", label: "Vai trò", sortable: true, sortKey: "roleName", render: (r: User) => translateRole(r.role) },
                   {
                     field: "actions",
                     label: "Hành động",
@@ -222,6 +241,12 @@ const UserManagement: React.FC = () => {
                 ] as Column<User>[]
               }
               rows={data}
+              sortBy={tableParams.sortBy as string | undefined}
+              sortDir={tableParams.sortDir as "asc" | "desc" | undefined}
+              onSort={(s, d) => {
+                setTableParamsLocal({ ...(tableParams ?? {}), sortBy: s, sortDir: d, page: 1 });
+                updateUrlWithParams({ sortBy: s, sortDir: d, page: 1 });
+              }}
             />
 
             <PaginationControls

@@ -61,15 +61,15 @@ export function useTableData<T = Record<string, unknown>>(endpoint: string, para
     const qs = new URLSearchParams();
     if (p.page !== undefined) qs.set("page", String(p.page));
     if (p.pageSize !== undefined) qs.set("pageSize", String(p.pageSize));
-    if (p.q !== undefined && p.q !== null) qs.set("q", String(p.q));
+    if (p.searchTerm !== undefined && p.searchTerm !== null) qs.set("searchTerm", String(p.searchTerm));
     if (p.sortBy !== undefined) qs.set("sortBy", String(p.sortBy));
     if (p.sortDir !== undefined) qs.set("sortDir", String(p.sortDir));
     // include other filters
     Object.keys(p).forEach((k) => {
-      if (["page", "pageSize", "q", "sortBy", "sortDir"].includes(k)) return;
+      if (["page", "pageSize", "searchTerm", "sortBy", "sortDir"].includes(k)) return;
       const v = p[k];
       if (v === undefined || v === null) return;
-      qs.set(k, String(v as any));
+      qs.set(k, String(v));
     });
     const s = qs.toString();
     return s ? `?${s}` : "";
