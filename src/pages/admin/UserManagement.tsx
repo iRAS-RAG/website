@@ -3,14 +3,11 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Paper, Stack, Typography } from "@mui/material";
-import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-
+import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { isAdmin } from "../../api/auth";
 import { isApiError } from "../../api/client";
 import type { User } from "../../api/users";
-import { createUser, deleteUser, toUiUser, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import UserFormDialog from "../../components/admin/users/UserFormDialog";
@@ -18,139 +15,77 @@ import type { Column } from "../../components/common/DataTable";
 import DataTable from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
-import useTableData from "../../hooks/useTableData";
-import type { TableParams } from "../../types/table";
+import useUserManagement from "../../hooks/useUserManagement";
 import { translateRole } from "../../utils/roles";
 
 const UserManagement: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
 
   const [openDelete, setOpenDelete] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  function parseSearchParams(): TableParams {
-    const p: TableParams = {};
-    const sp = searchParams;
-    const page = sp.get("page");
-    const pageSize = sp.get("pageSize");
-    const searchTerm = sp.get("searchTerm");
-    const isDeleted = sp.get("isDeleted");
-    const sortBy = sp.get("sortBy");
-    const sortDir = sp.get("sortDir");
-    if (page) p.page = Number(page);
-    if (pageSize) p.pageSize = Number(pageSize);
-    if (searchTerm) p.searchTerm = searchTerm;
-    if (isDeleted) p.isDeleted = isDeleted === "true";
-    if (sortBy) p.sortBy = sortBy;
-    if (sortDir) p.sortDir = sortDir as TableParams["sortDir"];
-    return p;
-  }
+  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove } = useUserManagement();
 
-  const initialParams = useMemo(
-    () => ({ page: 1, pageSize: 10, isDeleted: false, ...parseSearchParams() }), // eslint-disable-next-line react-hooks/exhaustive-deps
-    [searchParams.toString()],
-  );
-
-  const [tableParams, setTableParamsLocal] = useState<TableParams>(initialParams);
-
-  const { rows, meta, loading: hookLoading, error: hookError, reload } = useTableData<Record<string, unknown>>("/users", tableParams);
-  const data = (rows ?? []).map((r) => toUiUser(r));
-  useEffect(() => {
-    if (hookError) setError(hookError);
-    // keep local loading state in sync
-    setLoading(hookLoading);
-  }, [hookError, hookLoading]);
-
-  useEffect(() => {
-    // keep page params in sync when URL changes (back/forward/shareable links)
-    const fromUrl = parseSearchParams();
-    // shallow compare
-    const same =
-      JSON.stringify({ page: tableParams.page, pageSize: tableParams.pageSize, searchTerm: tableParams.searchTerm, sortBy: tableParams.sortBy, sortDir: tableParams.sortDir }) ===
-      JSON.stringify({ page: fromUrl.page, pageSize: fromUrl.pageSize, searchTerm: fromUrl.searchTerm, sortBy: fromUrl.sortBy, sortDir: fromUrl.sortDir });
-    if (!same) {
-      setTableParamsLocal(fromUrl);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.toString()]);
-
-  function updateUrlWithParams(next: Partial<TableParams>) {
-    const merged: TableParams = { ...(tableParams ?? {}), ...next };
-    const sp = new URLSearchParams();
-    if (merged.page !== undefined) sp.set("page", String(merged.page));
-    if (merged.pageSize !== undefined) sp.set("pageSize", String(merged.pageSize));
-    if (merged.searchTerm !== undefined && merged.searchTerm !== "") sp.set("searchTerm", String(merged.searchTerm));
-    if (merged.sortBy !== undefined) sp.set("sortBy", String(merged.sortBy));
-    if (merged.sortDir !== undefined) sp.set("sortDir", String(merged.sortDir));
-    if (merged.isDeleted !== undefined && merged.isDeleted !== null) sp.set("isDeleted", String(merged.isDeleted));
-    setSearchParams(sp, { replace: true });
-  }
-  if (!isAdmin()) return <Navigate to="/" replace />;
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      await reload();
-    } catch {
-      setError("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function openCreate() {
+  const openCreate = useCallback(() => {
     setEditing(null);
     setOpenForm(true);
-  }
+  }, []);
 
-  function openEdit(user: User) {
+  const openEdit = useCallback((user: User) => {
     setEditing(user);
     setOpenForm(true);
-  }
+  }, []);
+
+  const confirmDelete = useCallback((id: string) => {
+    setDeletingId(id);
+    setOpenDelete(true);
+  }, []);
+
+  const columns = useMemo(
+    () =>
+      [
+        { field: "name", label: "Họ và tên", sortable: true, sortKey: "lastName" },
+        { field: "email", label: "Email", sortable: true, sortKey: "email" },
+        { field: "role", label: "Vai trò", sortable: true, sortKey: "roleName", render: (r: User) => translateRole(r.role) },
+        {
+          field: "actions",
+          label: "Hành động",
+          render: (r: User) => (
+            <Stack direction="row" spacing={1}>
+              <IconButton size="small" aria-label="edit-user" onClick={() => openEdit(r)}>
+                <EditIcon />
+              </IconButton>
+              <IconButton size="small" aria-label="delete-user" onClick={() => confirmDelete(r.id)}>
+                <DeleteIcon />
+              </IconButton>
+            </Stack>
+          ),
+        },
+      ] as Column<User>[],
+    [openEdit, confirmDelete],
+  );
+
+  if (!isAdmin()) return <Navigate to="/" replace />;
 
   async function handleSave(values: { firstName: string; lastName: string; email: string; role: string; password?: string }) {
-    setLoading(true);
     try {
-      if (editing) {
-        await updateUser(editing.id, values as Partial<{ firstName: string; lastName: string; email: string; role: string; password?: string }>);
-      } else {
-        await createUser(values as { firstName: string; lastName: string; email: string; role: string; password: string });
-      }
-      await load();
+      await createOrUpdate(editing?.id ?? null, values);
       setOpenForm(false);
     } catch (e: unknown) {
-      // If API returned validation errors, rethrow so the form can display them
       if (isApiError(e) && e.data && (e.data as Record<string, unknown>).errors) {
         throw e;
       }
-      setError((isApiError(e) && e.message) || "Save failed");
-    } finally {
-      setLoading(false);
     }
-  }
-
-  function confirmDelete(id: string) {
-    setDeletingId(id);
-    setOpenDelete(true);
   }
 
   async function handleDelete() {
     if (!deletingId) return;
-    setLoading(true);
     try {
-      await deleteUser(deletingId);
-      await load();
+      await remove(deletingId);
       setOpenDelete(false);
-    } catch {
-      setError("Delete failed");
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error("Xóa người dùng thất bại", e);
     }
   }
 
@@ -219,27 +154,7 @@ const UserManagement: React.FC = () => {
             />
 
             <DataTable
-              columns={
-                [
-                  { field: "name", label: "Họ và tên", sortable: true, sortKey: "lastName" },
-                  { field: "email", label: "Email", sortable: true, sortKey: "email" },
-                  { field: "role", label: "Vai trò", sortable: true, sortKey: "roleName", render: (r: User) => translateRole(r.role) },
-                  {
-                    field: "actions",
-                    label: "Hành động",
-                    render: (r) => (
-                      <Stack direction="row" spacing={1}>
-                        <IconButton size="small" onClick={() => openEdit(r as User)}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => confirmDelete((r as User).id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
-                    ),
-                  },
-                ] as Column<User>[]
-              }
+              columns={columns}
               rows={data}
               sortBy={tableParams.sortBy as string | undefined}
               sortDir={tableParams.sortDir as "asc" | "desc" | undefined}
