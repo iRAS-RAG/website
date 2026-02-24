@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { User } from "../api/users";
-import { createUser, deleteUser, disableUser, toUiUser, updateUser } from "../api/users";
+import { createUser, deleteUser, disableUser, restoreUser, toUiUser, updateUser } from "../api/users";
 import type { TableParams } from "../types/table";
 import useTableData from "./useTableData";
 
@@ -31,6 +31,18 @@ export default function useUserManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [searchParams.toString()],
   );
+
+  // Ensure URL contains an explicit isDeleted=false when none provided so the UI and actions are consistent
+  useEffect(() => {
+    if (searchParams.get("isDeleted") === null || searchParams.get("page") === null) {
+      const sp = new URLSearchParams(searchParams);
+      if (sp.get("isDeleted") === null) sp.set("isDeleted", "false");
+      if (sp.get("page") === null) sp.set("page", "1");
+      setSearchParams(sp, { replace: true });
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [tableParams, setTableParamsLocal] = useState<TableParams>(initialParams);
 
@@ -87,7 +99,11 @@ export default function useUserManagement() {
   }, [reload]);
 
   const createOrUpdate = useCallback(
-    async (editingId: string | null, values: { firstName: string; lastName: string; email: string; role: string; password?: string }, original?: User | null) => {
+    async (
+      editingId: string | null,
+      values: { firstName: string; lastName: string; email: string; role: string; password?: string },
+      original?: (User & { rawFirstName?: string; rawLastName?: string }) | null,
+    ) => {
       setOpLoading(true);
       setError(null);
       try {
@@ -99,11 +115,8 @@ export default function useUserManagement() {
           let origFirst = "";
           let origLast = "";
           if (original) {
-            // prefer raw values attached by the hook
-            // @ts-ignore
-            origFirst = (original as any).rawFirstName ?? "";
-            // @ts-ignore
-            origLast = (original as any).rawLastName ?? "";
+            origFirst = original.rawFirstName ?? "";
+            origLast = original.rawLastName ?? "";
             if (!origFirst && !origLast && original.name) {
               const parts = original.name.trim().split(/\s+/);
               origFirst = parts.length ? parts[parts.length - 1] : "";
@@ -172,6 +185,23 @@ export default function useUserManagement() {
     [reload],
   );
 
+  const restore = useCallback(
+    async (id: string) => {
+      setOpLoading(true);
+      setError(null);
+      try {
+        await restoreUser(id);
+        await reload();
+      } catch (e) {
+        setError("Restore failed");
+        throw e;
+      } finally {
+        setOpLoading(false);
+      }
+    },
+    [reload],
+  );
+
   return {
     tableParams,
     setTableParamsLocal,
@@ -185,5 +215,6 @@ export default function useUserManagement() {
     createOrUpdate,
     remove,
     disable,
+    restore,
   } as const;
 }

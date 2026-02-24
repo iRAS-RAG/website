@@ -3,6 +3,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
 import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Paper, Stack, Typography } from "@mui/material";
 import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
@@ -16,6 +17,7 @@ import type { Column } from "../../components/common/DataTable";
 import DataTable from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
+import { useToast } from "../../components/common/toastContext";
 import useUserManagement from "../../hooks/useUserManagement";
 import { translateRole } from "../../utils/roles";
 
@@ -27,8 +29,11 @@ const UserManagement: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openDisable, setOpenDisable] = useState(false);
   const [disablingId, setDisablingId] = useState<string | null>(null);
+  const [openRestore, setOpenRestore] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
-  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove, disable } = useUserManagement();
+  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove, disable, restore } = useUserManagement();
+  const toast = useToast();
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -50,6 +55,11 @@ const UserManagement: React.FC = () => {
     setOpenDisable(true);
   }, []);
 
+  const confirmRestore = useCallback((id: string) => {
+    setRestoringId(id);
+    setOpenRestore(true);
+  }, []);
+
   const columns = useMemo(
     () =>
       [
@@ -64,9 +74,15 @@ const UserManagement: React.FC = () => {
               <IconButton size="small" aria-label="edit-user" onClick={() => openEdit(r)}>
                 <EditIcon />
               </IconButton>
-              <IconButton size="small" aria-label="disable-user" onClick={() => confirmDisable(r.id)}>
-                <BlockIcon />
-              </IconButton>
+              {tableParams?.isDeleted ? (
+                <IconButton size="small" aria-label="restore-user" onClick={() => confirmRestore(r.id)}>
+                  <RestoreFromTrashIcon />
+                </IconButton>
+              ) : (
+                <IconButton size="small" aria-label="disable-user" onClick={() => confirmDisable(r.id)}>
+                  <BlockIcon />
+                </IconButton>
+              )}
               <IconButton size="small" aria-label="delete-user" onClick={() => confirmDelete(r.id)}>
                 <DeleteIcon />
               </IconButton>
@@ -74,8 +90,8 @@ const UserManagement: React.FC = () => {
           ),
         },
       ] as Column<User>[],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [openEdit, confirmDelete],
+
+    [openEdit, confirmDelete, confirmDisable, confirmRestore, tableParams?.isDeleted],
   );
 
   if (!isAdmin()) return <Navigate to="/" replace />;
@@ -84,10 +100,13 @@ const UserManagement: React.FC = () => {
     try {
       await createOrUpdate(editing?.id ?? null, values, editing as User | null);
       setOpenForm(false);
+      if (editing) toast.success("Cập nhật người dùng thành công");
+      else toast.success("Tạo người dùng thành công");
     } catch (e: unknown) {
       if (isApiError(e) && e.data && (e.data as Record<string, unknown>).errors) {
         throw e;
       }
+      toast.error("Lưu người dùng thất bại");
     }
   }
 
@@ -96,8 +115,10 @@ const UserManagement: React.FC = () => {
     try {
       await remove(deletingId);
       setOpenDelete(false);
+      toast.success("Xóa người dùng thành công");
     } catch (e) {
       console.error("Xóa người dùng thất bại", e);
+      toast.error("Xóa người dùng thất bại");
     }
   }
 
@@ -106,8 +127,23 @@ const UserManagement: React.FC = () => {
     try {
       await disable(disablingId);
       setOpenDisable(false);
+      toast.success("Vô hiệu hóa người dùng thành công");
     } catch (e) {
       console.error("Vô hiệu hóa người dùng thất bại", e);
+      toast.error("Vô hiệu hóa người dùng thất bại");
+    }
+  }
+
+  async function handleRestoreConfirm() {
+    if (!restoringId) return;
+    try {
+      await restore(restoringId);
+      setOpenRestore(false);
+      setRestoringId(null);
+      toast.success("Khôi phục người dùng thành công");
+    } catch (e) {
+      console.error("Khôi phục người dùng thất bại", e);
+      toast.error("Khôi phục người dùng thất bại");
     }
   }
 
@@ -172,7 +208,7 @@ const UserManagement: React.FC = () => {
                       size="small"
                     />
                   }
-                  label="Đã xóa"
+                  label="Đã vô hiệu hóa"
                 />
               }
             />
@@ -215,6 +251,17 @@ const UserManagement: React.FC = () => {
               <Button onClick={() => setOpenDisable(false)}>Hủy</Button>
               <Button color="warning" onClick={handleDisable}>
                 Vô hiệu hóa
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog open={openRestore} onClose={() => setOpenRestore(false)}>
+            <DialogTitle>Khôi phục người dùng</DialogTitle>
+            <DialogContent>Bạn có chắc chắn muốn khôi phục người dùng này?</DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenRestore(false)}>Hủy</Button>
+              <Button color="primary" onClick={handleRestoreConfirm}>
+                Khôi phục
               </Button>
             </DialogActions>
           </Dialog>
