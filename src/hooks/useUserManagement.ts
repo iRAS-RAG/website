@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { User } from "../api/users";
-import { createUser, deleteUser, toUiUser, updateUser } from "../api/users";
+import { createUser, deleteUser, disableUser, toUiUser, updateUser } from "../api/users";
 import type { TableParams } from "../types/table";
 import useTableData from "./useTableData";
 
@@ -35,7 +35,14 @@ export default function useUserManagement() {
   const [tableParams, setTableParamsLocal] = useState<TableParams>(initialParams);
 
   const { rows, meta, loading: dataLoading, error: dataError, reload } = useTableData<Record<string, unknown>>("/users", tableParams);
-  const data = (rows ?? []).map((r) => toUiUser(r)) as User[];
+  const data = (rows ?? []).map((r) => {
+    const ui = toUiUser(r as Record<string, unknown>);
+    return {
+      ...ui,
+      rawFirstName: String((r as Record<string, unknown>)["firstName"] ?? ""),
+      rawLastName: String((r as Record<string, unknown>)["lastName"] ?? ""),
+    } as User & { rawFirstName?: string; rawLastName?: string };
+  });
 
   const [opLoading, setOpLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,16 +87,47 @@ export default function useUserManagement() {
   }, [reload]);
 
   const createOrUpdate = useCallback(
-    async (editingId: string | null, values: { firstName: string; lastName: string; email: string; role: string; password?: string }) => {
+    async (editingId: string | null, values: { firstName: string; lastName: string; email: string; role: string; password?: string }, original?: User | null) => {
       setOpLoading(true);
       setError(null);
       try {
         if (editingId) {
-          await updateUser(editingId, values as Partial<typeof values>);
+          // Build payload containing only changed fields
+          const payload: Partial<typeof values> = {};
+
+          // Determine original first/last name
+          let origFirst = "";
+          let origLast = "";
+          if (original) {
+            // prefer raw values attached by the hook
+            // @ts-ignore
+            origFirst = (original as any).rawFirstName ?? "";
+            // @ts-ignore
+            origLast = (original as any).rawLastName ?? "";
+            if (!origFirst && !origLast && original.name) {
+              const parts = original.name.trim().split(/\s+/);
+              origFirst = parts.length ? parts[parts.length - 1] : "";
+              origLast = parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "";
+            }
+          }
+
+          if (values.firstName !== origFirst) payload.firstName = values.firstName;
+          if (values.lastName !== origLast) payload.lastName = values.lastName;
+          if (values.email !== (original?.email ?? "")) payload.email = values.email;
+          if (values.role !== (original?.role ?? "")) payload.role = values.role;
+          if (values.password) payload.password = values.password;
+
+          // If nothing changed (and no password), skip PUT
+          if (Object.keys(payload).length === 0) {
+            await reload();
+            return;
+          }
+
+          await updateUser(editingId, payload);
         } else {
           await createUser(values);
         }
-        reload();
+        await reload();
       } catch (e: unknown) {
         if (e instanceof Error) setError(e.message);
         throw e;
@@ -106,9 +144,26 @@ export default function useUserManagement() {
       setError(null);
       try {
         await deleteUser(id);
-        await reload();
+        reload();
       } catch (e) {
         setError("Delete failed");
+        throw e;
+      } finally {
+        setOpLoading(false);
+      }
+    },
+    [reload],
+  );
+
+  const disable = useCallback(
+    async (id: string) => {
+      setOpLoading(true);
+      setError(null);
+      try {
+        await disableUser(id);
+        await reload();
+      } catch (e) {
+        setError("Disable failed");
         throw e;
       } finally {
         setOpLoading(false);
@@ -129,5 +184,6 @@ export default function useUserManagement() {
     load,
     createOrUpdate,
     remove,
+    disable,
   } as const;
 }

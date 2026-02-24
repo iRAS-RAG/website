@@ -1,4 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
+import BlockIcon from "@mui/icons-material/Block";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -24,8 +25,10 @@ const UserManagement: React.FC = () => {
 
   const [openDelete, setOpenDelete] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openDisable, setOpenDisable] = useState(false);
+  const [disablingId, setDisablingId] = useState<string | null>(null);
 
-  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove } = useUserManagement();
+  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove, disable } = useUserManagement();
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -42,6 +45,11 @@ const UserManagement: React.FC = () => {
     setOpenDelete(true);
   }, []);
 
+  const confirmDisable = useCallback((id: string) => {
+    setDisablingId(id);
+    setOpenDisable(true);
+  }, []);
+
   const columns = useMemo(
     () =>
       [
@@ -56,6 +64,9 @@ const UserManagement: React.FC = () => {
               <IconButton size="small" aria-label="edit-user" onClick={() => openEdit(r)}>
                 <EditIcon />
               </IconButton>
+              <IconButton size="small" aria-label="disable-user" onClick={() => confirmDisable(r.id)}>
+                <BlockIcon />
+              </IconButton>
               <IconButton size="small" aria-label="delete-user" onClick={() => confirmDelete(r.id)}>
                 <DeleteIcon />
               </IconButton>
@@ -63,6 +74,7 @@ const UserManagement: React.FC = () => {
           ),
         },
       ] as Column<User>[],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [openEdit, confirmDelete],
   );
 
@@ -70,7 +82,7 @@ const UserManagement: React.FC = () => {
 
   async function handleSave(values: { firstName: string; lastName: string; email: string; role: string; password?: string }) {
     try {
-      await createOrUpdate(editing?.id ?? null, values);
+      await createOrUpdate(editing?.id ?? null, values, editing as User | null);
       setOpenForm(false);
     } catch (e: unknown) {
       if (isApiError(e) && e.data && (e.data as Record<string, unknown>).errors) {
@@ -88,6 +100,18 @@ const UserManagement: React.FC = () => {
       console.error("Xóa người dùng thất bại", e);
     }
   }
+
+  async function handleDisable() {
+    if (!disablingId) return;
+    try {
+      await disable(disablingId);
+      setOpenDisable(false);
+    } catch (e) {
+      console.error("Vô hiệu hóa người dùng thất bại", e);
+    }
+  }
+
+  const editingWithRaw = editing as (User & { rawFirstName?: string; rawLastName?: string }) | null;
 
   return (
     <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
@@ -174,7 +198,26 @@ const UserManagement: React.FC = () => {
             />
           </Paper>
 
-          <UserFormDialog key={openForm ? (editing?.id ?? "new") : "closed"} open={openForm} onClose={() => setOpenForm(false)} onSave={handleSave} initial={editing} />
+          <UserFormDialog
+            key={openForm ? (editing?.id ?? "new") : "closed"}
+            open={openForm}
+            onClose={() => setOpenForm(false)}
+            onSave={handleSave}
+            initial={editing}
+            initialFirstName={editingWithRaw?.rawFirstName ?? null}
+            initialLastName={editingWithRaw?.rawLastName ?? null}
+          />
+
+          <Dialog open={openDisable} onClose={() => setOpenDisable(false)}>
+            <DialogTitle>Vô hiệu hóa người dùng</DialogTitle>
+            <DialogContent>Bạn có chắc chắn muốn vô hiệu hóa người dùng này?</DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenDisable(false)}>Hủy</Button>
+              <Button color="warning" onClick={handleDisable}>
+                Vô hiệu hóa
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           <Dialog open={openDelete} onClose={() => setOpenDelete(false)}>
             <DialogTitle>Xóa người dùng</DialogTitle>

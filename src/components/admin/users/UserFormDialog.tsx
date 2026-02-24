@@ -11,10 +11,12 @@ const UserFormDialog: React.FC<{
   onClose: () => void;
   onSave: (v: { firstName: string; lastName: string; email: string; role: string; password?: string }) => Promise<void>;
   initial: User | null;
-}> = ({ open, onClose, onSave, initial }) => {
+  initialFirstName?: string | null;
+  initialLastName?: string | null;
+}> = ({ open, onClose, onSave, initial, initialFirstName = null, initialLastName = null }) => {
   const parts = (initial?.name || "").trim().split(/\s+/);
-  const inferredFirst = parts.length ? parts[parts.length - 1] : "";
-  const inferredLast = parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "";
+  const inferredFirst = initialFirstName ?? (parts.length ? parts[parts.length - 1] : "");
+  const inferredLast = initialLastName ?? (parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "");
   const [firstName, setFirstName] = useState(inferredFirst);
   const [lastName, setLastName] = useState(inferredLast);
   const [password, setPassword] = useState("");

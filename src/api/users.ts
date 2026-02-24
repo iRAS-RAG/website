@@ -54,4 +54,9 @@ export async function resetPassword(id: string): Promise<boolean> {
   return true;
 }
 
+export async function disableUser(id: string): Promise<boolean> {
+  await apiFetch(`/users/${id}/disable`, { method: "POST" });
+  return true;
+}
+
 export default { getUsers, createUser, updateUser, deleteUser, resetPassword };
