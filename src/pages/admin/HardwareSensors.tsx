@@ -1,12 +1,15 @@
-import EditIcon from "@mui/icons-material/Edit";
-import { Alert, Box, Button, CircularProgress, Divider, List, ListItem, ListItemText, Paper, Snackbar, Typography, useTheme } from "@mui/material";
+import { Alert, Box, CircularProgress, Divider, Paper, Snackbar, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import ControlDeviceDetail from "../../components/admin/hardware/ControlDeviceDetail";
 import ControlDeviceFormDialog from "../../components/admin/hardware/ControlDeviceFormDialog";
+import MasterBoardDetail from "../../components/admin/hardware/MasterBoardDetail";
 import MasterBoardFormDialog from "../../components/admin/hardware/MasterBoardFormDialog";
+import SensorDetail from "../../components/admin/hardware/SensorDetail";
 import SensorFormDialog from "../../components/admin/hardware/SensorFormDialog";
 import StructureList from "../../components/admin/hardware/StructureList";
+import TankDetail from "../../components/admin/hardware/TankDetail";
 import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
 import useHardwareData from "../../hooks/useHardwareData";
 import type { ControlDevice, MasterBoard, Sensor, Tank } from "../../types/hardware";
@@ -74,93 +77,19 @@ const HardwareSensors: React.FC = () => {
                       if (!t) return <Typography>Chọn một bể để xem chi tiết</Typography>;
                       const boards = masterBoards.filter((b) => b.fishTankName === t.name);
                       return (
-                        <Box>
-                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <Typography variant="h6">{t.name}</Typography>
-                            <Button
-                              variant="outlined"
-                              startIcon={<EditIcon />}
-                              onClick={() => {
-                                setEditingTank(t);
-                                setTankDialogOpen(true);
-                              }}
-                            >
-                              Chỉnh sửa
-                            </Button>
-                          </Box>
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(2,1fr)", lg: "repeat(4,1fr)" } }}>
-                            <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.paper" }}>
-                              <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                                  CAMERA URL
-                                </Typography>
-                                {t.cameraUrl ? (
-                                  <Typography component="a" href={t.cameraUrl} target="_blank" rel="noreferrer" color="primary" sx={{ mt: 1, display: "block", wordBreak: "break-all" }}>
-                                    {t.cameraUrl}
-                                  </Typography>
-                                ) : (
-                                  <Typography sx={{ mt: 1, display: "block" }}>—</Typography>
-                                )}
-                              </Box>
-                            </Paper>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                MÃ CHỦ ĐỀ
-                              </Typography>
-                              <Typography sx={{ mt: 1 }}>{t.topicCode ?? "—"}</Typography>
-                            </Paper>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                CHIỀU CAO (cm)
-                              </Typography>
-                              <Typography sx={{ mt: 1 }}>{typeof t.height === "number" ? t.height : "—"}</Typography>
-                            </Paper>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                BÁN KÍNH (cm)
-                              </Typography>
-                              <Typography sx={{ mt: 1 }}>{typeof t.radius === "number" ? t.radius : "—"}</Typography>
-                            </Paper>
-                          </Box>
-
-                          <Box sx={{ mt: 3 }}>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <Typography variant="subtitle1">Cảm biến liên kết ({sensors.filter((x) => boards.map((b) => b.id).includes(x.masterBoardId ?? "")).length})</Typography>
-                              </Box>
-                              <Box sx={{ mt: 2 }}>
-                                {sensors
-                                  .filter((x) => boards.map((b) => b.id).includes(x.masterBoardId ?? ""))
-                                  .map((s) => (
-                                    <Paper key={s.id} sx={{ p: 1, mb: 1 }}>
-                                      <Typography variant="subtitle2">{s.name}</Typography>
-                                      <Typography variant="body2" color="text.secondary">
-                                        {s.sensorTypeName} · {s.pinCode} · {s.masterBoardName}
-                                      </Typography>
-                                    </Paper>
-                                  ))}
-                                {sensors.filter((x) => boards.map((b) => b.id).includes(x.masterBoardId ?? "")).length === 0 && (
-                                  <Typography color="text.secondary">Không có cảm biến liên kết</Typography>
-                                )}
-                              </Box>
-                            </Paper>
-                          </Box>
-
-                          <Box sx={{ mt: 3 }}>
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              onClick={() => {
-                                setEditingBoard(null);
-                                setMbDialogOpen(true);
-                              }}
-                            >
-                              Thêm Board điều khiển chính
-                            </Button>
-                          </Box>
-                        </Box>
+                        <TankDetail
+                          tank={t}
+                          boards={boards}
+                          sensors={sensors}
+                          onEdit={(tn) => {
+                            setEditingTank(tn);
+                            setTankDialogOpen(true);
+                          }}
+                          onAddBoard={() => {
+                            setEditingBoard(null);
+                            setMbDialogOpen(true);
+                          }}
+                        />
                       );
                     })()
                   ) : selected.type === "board" && selected.id ? (
@@ -170,90 +99,24 @@ const HardwareSensors: React.FC = () => {
                       const boardSensors = sensors.filter((s) => s.masterBoardId === b.id);
                       const boardControls = controlDevices.filter((c) => c.masterBoardId === b.id);
                       return (
-                        <Box>
-                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <Box>
-                              <Typography variant="h6">{b.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {b.fishTankName ? `Bể: ${b.fishTankName}` : "(Không liên kết bể)"}
-                              </Typography>
-                            </Box>
-                            <Button
-                              variant="outlined"
-                              startIcon={<EditIcon />}
-                              onClick={() => {
-                                setEditingTank(null);
-                                setEditingBoard(b);
-                                setMbDialogOpen(true);
-                              }}
-                            >
-                              Chỉnh sửa
-                            </Button>
-                          </Box>
-                          <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={() => {
-                                setEditingSensor(null);
-                                setSensorDialogOpen(true);
-                              }}
-                            >
-                              Thêm cảm biến
-                            </Button>
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              onClick={() => {
-                                setEditingControl(null);
-                                setControlDialogOpen(true);
-                              }}
-                            >
-                              Thêm thiết bị điều khiển
-                            </Button>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(2,1fr)" } }}>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Typography variant="subtitle2">MAC Address</Typography>
-                              <Typography sx={{ mt: 1 }}>{b.macAddress ?? "—"}</Typography>
-                            </Paper>
-                          </Box>
-
-                          <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle1">Cảm biến ({boardSensors.length})</Typography>
-                            <List>
-                              {boardSensors.map((s) => (
-                                <ListItem key={s.id}>
-                                  <ListItemText primary={s.name} secondary={s.sensorTypeName ?? ""} />
-                                </ListItem>
-                              ))}
-                              {boardSensors.length === 0 && (
-                                <ListItem>
-                                  <ListItemText primary="Không có" />
-                                </ListItem>
-                              )}
-                            </List>
-                          </Box>
-
-                          <Box sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1">Thiết bị điều khiển ({boardControls.length})</Typography>
-                            <List>
-                              {boardControls.map((c) => (
-                                <ListItem key={c.id}>
-                                  <ListItemText primary={c.name} secondary={c.controlDeviceTypeName ?? ""} />
-                                </ListItem>
-                              ))}
-                              {boardControls.length === 0 && (
-                                <ListItem>
-                                  <ListItemText primary="Không có" />
-                                </ListItem>
-                              )}
-                            </List>
-                          </Box>
-                        </Box>
+                        <MasterBoardDetail
+                          board={b}
+                          sensors={boardSensors}
+                          controls={boardControls}
+                          onEdit={(bb) => {
+                            setEditingTank(null);
+                            setEditingBoard(bb);
+                            setMbDialogOpen(true);
+                          }}
+                          onAddSensor={() => {
+                            setEditingSensor(null);
+                            setSensorDialogOpen(true);
+                          }}
+                          onAddControl={() => {
+                            setEditingControl(null);
+                            setControlDialogOpen(true);
+                          }}
+                        />
                       );
                     })()
                   ) : selected.type === "sensor" && selected.id ? (
@@ -261,39 +124,13 @@ const HardwareSensors: React.FC = () => {
                       const s = sensors.find((x) => x.id === selected.id);
                       if (!s) return <Typography>Chọn một cảm biến để xem chi tiết</Typography>;
                       return (
-                        <Box>
-                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <Box>
-                              <Typography variant="h6">{s.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {s.sensorTypeName ?? "(Loại không xác định)"}
-                              </Typography>
-                            </Box>
-                            <Button
-                              variant="outlined"
-                              startIcon={<EditIcon />}
-                              onClick={() => {
-                                setEditingSensor(s);
-                                setSensorDialogOpen(true);
-                              }}
-                            >
-                              Chỉnh sửa
-                            </Button>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box>
-                            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                              <Typography variant="subtitle2">Board</Typography>
-                              <Typography sx={{ mt: 1 }}>{s.masterBoardName ?? "—"}</Typography>
-                            </Paper>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Typography variant="subtitle2">Pin</Typography>
-                              <Typography sx={{ mt: 1 }}>{s.pinCode ?? "—"}</Typography>
-                            </Paper>
-                          </Box>
-                        </Box>
+                        <SensorDetail
+                          sensor={s}
+                          onEdit={(ss) => {
+                            setEditingSensor(ss);
+                            setSensorDialogOpen(true);
+                          }}
+                        />
                       );
                     })()
                   ) : selected.type === "control" && selected.id ? (
@@ -301,43 +138,13 @@ const HardwareSensors: React.FC = () => {
                       const c = controlDevices.find((x) => x.id === selected.id);
                       if (!c) return <Typography>Chọn một thiết bị điều khiển để xem chi tiết</Typography>;
                       return (
-                        <Box>
-                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <Box>
-                              <Typography variant="h6">{c.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {c.controlDeviceTypeName ?? "(Loại không xác định)"}
-                              </Typography>
-                            </Box>
-                            <Button
-                              variant="outlined"
-                              startIcon={<EditIcon />}
-                              onClick={() => {
-                                setEditingControl(c);
-                                setControlDialogOpen(true);
-                              }}
-                            >
-                              Chỉnh sửa
-                            </Button>
-                          </Box>
-
-                          <Divider sx={{ my: 2 }} />
-
-                          <Box>
-                            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                              <Typography variant="subtitle2">Board</Typography>
-                              <Typography sx={{ mt: 1 }}>{c.masterBoardName ?? "—"}</Typography>
-                            </Paper>
-                            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                              <Typography variant="subtitle2">Pin</Typography>
-                              <Typography sx={{ mt: 1 }}>{c.pinCode ?? "—"}</Typography>
-                            </Paper>
-                            <Paper variant="outlined" sx={{ p: 2 }}>
-                              <Typography variant="subtitle2">Trạng thái</Typography>
-                              <Typography sx={{ mt: 1 }}>{c.state ? "Bật" : "Tắt"}</Typography>
-                            </Paper>
-                          </Box>
-                        </Box>
+                        <ControlDeviceDetail
+                          control={c}
+                          onEdit={(cc) => {
+                            setEditingControl(cc);
+                            setControlDialogOpen(true);
+                          }}
+                        />
                       );
                     })()
                   ) : (
