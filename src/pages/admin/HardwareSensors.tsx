@@ -2,30 +2,25 @@ import EditIcon from "@mui/icons-material/Edit";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-// Link button removed from tank detail view
 import MemoryIcon from "@mui/icons-material/Memory";
 import OpacityIcon from "@mui/icons-material/Opacity";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
 import { Alert, Box, Button, CircularProgress, Collapse, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Paper, Snackbar, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import * as hardwareApi from "../../api/hardware";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import ControlDeviceFormDialog from "../../components/admin/hardware/ControlDeviceFormDialog";
 import MasterBoardFormDialog from "../../components/admin/hardware/MasterBoardFormDialog";
 import SensorFormDialog from "../../components/admin/hardware/SensorFormDialog";
 import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
-import type { ControlDevice, MasterBoard, Sensor, SensorType, Tank } from "../../types/hardware";
+import useHardwareData from "../../hooks/useHardwareData";
+import type { ControlDevice, MasterBoard, Sensor, Tank } from "../../types/hardware";
 
 const HardwareSensors: React.FC = () => {
   const theme = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [sensorTypes, setSensorTypes] = useState<SensorType[]>([]);
-  const [masterBoards, setMasterBoards] = useState<MasterBoard[]>([]);
-  const [sensors, setSensors] = useState<Sensor[]>([]);
-  const [controlDevices, setControlDevices] = useState<ControlDevice[]>([]);
-  const [tanks, setTanks] = useState<Tank[]>([]);
+  const { loading, sensorTypes, masterBoards, sensors, controlDevices, tanks, handleSaveMasterBoard, handleUpdateTank, handleSaveSensor, handleSaveControl, snackOpen, snackMsg, setSnackOpen } =
+    useHardwareData();
 
   const [expandedTanks, setExpandedTanks] = useState<Record<string, boolean>>({});
   const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>({});
@@ -38,132 +33,14 @@ const HardwareSensors: React.FC = () => {
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
   const [controlDialogOpen, setControlDialogOpen] = useState(false);
   const [editingControl, setEditingControl] = useState<ControlDevice | null>(null);
-  const [snackOpen, setSnackOpen] = useState(false);
-  const [snackMsg, setSnackMsg] = useState("");
 
   useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      try {
-        const [st, mb, s, cd, tk] = await Promise.all([hardwareApi.getSensorTypes(), hardwareApi.getMasterBoards(), hardwareApi.getSensors(), hardwareApi.getControlDevices(), hardwareApi.getTanks()]);
-        if (!mounted) return;
-        setSensorTypes(st);
-        setMasterBoards(mb);
-        setSensors(s);
-        setControlDevices(cd);
-        setTanks(tk);
-        // auto-select first tank to show middle pane similar to the mock
-        if (tk && tk.length > 0) setSelected({ type: "tank", id: String(tk[0].id) });
-      } catch (error) {
-        console.error("Failed to load hardware data:", error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    if (!loading && tanks && tanks.length > 0 && selected.id == null) {
+      const t = setTimeout(() => setSelected({ type: "tank", id: String(tanks[0].id) }), 0);
+      return () => clearTimeout(t);
     }
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  async function handleCreateMasterBoard(v: { name: string; macAddress?: string; fishTankId?: string | null }) {
-    const created = await hardwareApi.createMasterBoard({
-      name: v.name,
-      macAddress: v.macAddress ?? undefined,
-      fishTankName: v.fishTankId ? tanks.find((t) => t.id === v.fishTankId)?.name : undefined,
-    });
-    setMasterBoards((p) => [...p, created]);
-    setMbDialogOpen(false);
-  }
-
-  async function handleUpdateTank(payload: { name: string; height?: number; radius?: number; farmId?: string; topicCode?: string; cameraUrl?: string }) {
-    if (!editingTank) throw new Error("No tank selected");
-    const id = editingTank.id;
-    const updated = await hardwareApi.updateTank(id, payload);
-    if (!updated) throw new Error("Update failed");
-    setTanks((p) => p.map((t) => (t.id === id ? updated : t)));
-    setEditingTank(null);
-    setTankDialogOpen(false);
-    setSnackMsg("Cập nhật bể thành công");
-    setSnackOpen(true);
-  }
-
-  async function handleSaveMasterBoard(v: { name: string; macAddress?: string; fishTankId?: string | null }) {
-    if (editingBoard) {
-      const updated = await hardwareApi.updateMasterBoard(editingBoard.id, {
-        name: v.name,
-        macAddress: v.macAddress ?? undefined,
-        fishTankName: v.fishTankId ? tanks.find((t) => t.id === v.fishTankId)?.name : undefined,
-      });
-      if (!updated) throw new Error("Update failed");
-      setMasterBoards((p) => p.map((m) => (m.id === updated.id ? updated : m)));
-      setSnackMsg("Cập nhật masterboard thành công");
-      setSnackOpen(true);
-      setEditingBoard(null);
-      setMbDialogOpen(false);
-    } else {
-      await handleCreateMasterBoard(v);
-      setSnackMsg("Tạo masterboard thành công");
-      setSnackOpen(true);
-    }
-  }
-
-  async function handleSaveSensor(v: { name: string; pinCode?: number; sensorTypeId?: string | null; masterBoardId?: string | null }) {
-    if (editingSensor) {
-      const updated = await hardwareApi.updateSensor(editingSensor.id, {
-        name: v.name,
-        pinCode: v.pinCode,
-        masterBoardId: v.masterBoardId ?? undefined,
-      });
-      if (!updated) throw new Error("Update failed");
-      setSensors((p) => p.map((s) => (s.id === updated.id ? updated : s)));
-      setSnackMsg("Cập nhật cảm biến thành công");
-      setSnackOpen(true);
-      setEditingSensor(null);
-      setSensorDialogOpen(false);
-    } else {
-      const created = await hardwareApi.createSensor({
-        name: v.name,
-        pinCode: v.pinCode,
-        masterBoardId: v.masterBoardId ?? undefined,
-      });
-      setSensors((p) => [...p, created]);
-      setSnackMsg("Tạo cảm biến thành công");
-      setSnackOpen(true);
-      setSensorDialogOpen(false);
-    }
-  }
-
-  async function handleSaveControl(v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeName?: string; state?: boolean }) {
-    if (editingControl) {
-      const updated = await hardwareApi.updateControlDevice(editingControl.id, {
-        name: v.name,
-        pinCode: v.pinCode,
-        masterBoardId: v.masterBoardId ?? undefined,
-        controlDeviceTypeName: v.controlDeviceTypeName ?? undefined,
-        state: v.state,
-      });
-      if (!updated) throw new Error("Update failed");
-      setControlDevices((p) => p.map((c) => (c.id === updated.id ? updated : c)));
-      setSnackMsg("Cập nhật thiết bị điều khiển thành công");
-      setSnackOpen(true);
-      setEditingControl(null);
-      setControlDialogOpen(false);
-    } else {
-      const created = await hardwareApi.createControlDevice({
-        name: v.name,
-        pinCode: v.pinCode,
-        masterBoardId: v.masterBoardId ?? undefined,
-        controlDeviceTypeName: v.controlDeviceTypeName ?? undefined,
-        state: v.state,
-      });
-      setControlDevices((p) => [...p, created]);
-      setSnackMsg("Tạo thiết bị điều khiển thành công");
-      setSnackOpen(true);
-      setControlDialogOpen(false);
-    }
-  }
+    return;
+  }, [loading, tanks, selected.id]);
 
   return (
     <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh", width: "100%" }}>
@@ -601,7 +478,11 @@ const HardwareSensors: React.FC = () => {
           setMbDialogOpen(false);
           setEditingBoard(null);
         }}
-        onSave={handleSaveMasterBoard}
+        onSave={async (v) => {
+          await handleSaveMasterBoard(v, editingBoard);
+          setEditingBoard(null);
+          setMbDialogOpen(false);
+        }}
         initial={editingBoard}
       />
       <TankFormDialog
@@ -610,7 +491,11 @@ const HardwareSensors: React.FC = () => {
           setTankDialogOpen(false);
           setEditingTank(null);
         }}
-        onSave={handleUpdateTank}
+        onSave={async (v) => {
+          await handleUpdateTank(v, editingTank?.id);
+          setEditingTank(null);
+          setTankDialogOpen(false);
+        }}
         initial={editingTank}
       />
       <SensorFormDialog
@@ -619,7 +504,11 @@ const HardwareSensors: React.FC = () => {
           setSensorDialogOpen(false);
           setEditingSensor(null);
         }}
-        onSave={handleSaveSensor}
+        onSave={async (v) => {
+          await handleSaveSensor(v, editingSensor?.id);
+          setEditingSensor(null);
+          setSensorDialogOpen(false);
+        }}
         initial={editingSensor}
       />
       <ControlDeviceFormDialog
@@ -628,7 +517,11 @@ const HardwareSensors: React.FC = () => {
           setControlDialogOpen(false);
           setEditingControl(null);
         }}
-        onSave={handleSaveControl}
+        onSave={async (v) => {
+          await handleSaveControl(v, editingControl?.id);
+          setEditingControl(null);
+          setControlDialogOpen(false);
+        }}
         initial={editingControl}
       />
       <Snackbar open={snackOpen} autoHideDuration={3000} onClose={() => setSnackOpen(false)}>
