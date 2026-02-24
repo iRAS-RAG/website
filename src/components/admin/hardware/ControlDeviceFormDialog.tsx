@@ -7,7 +7,7 @@ import type { ControlDevice } from "../../../types/hardware";
 const ControlDeviceFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeName?: string; state?: boolean }) => Promise<void>;
+  onSave: (v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeName?: string; state?: boolean; commandOn?: string; commandOff?: string }) => Promise<void>;
   initial: ControlDevice | null;
 }> = ({ open, onClose, onSave, initial }) => {
   const [name, setName] = useState(initial?.name ?? "");
@@ -15,6 +15,8 @@ const ControlDeviceFormDialog: React.FC<{
   const [masterBoardId, setMasterBoardId] = useState<string | null>(initial?.masterBoardId ?? null);
   const [typeName, setTypeName] = useState(initial?.controlDeviceTypeName ?? "");
   const [state, setState] = useState(initial?.state ?? false);
+  const [commandOn, setCommandOn] = useState(initial?.commandOn ?? "");
+  const [commandOff, setCommandOff] = useState(initial?.commandOff ?? "");
   const [masterBoards, setMasterBoards] = useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -42,6 +44,8 @@ const ControlDeviceFormDialog: React.FC<{
     setMasterBoardId(initial?.masterBoardId ?? null);
     setTypeName(initial?.controlDeviceTypeName ?? "");
     setState(initial?.state ?? false);
+    setCommandOn(initial?.commandOn ?? "");
+    setCommandOff(initial?.commandOff ?? "");
     setFieldErrors({});
     setFormError(null);
   }, [initial, open]);
@@ -67,6 +71,24 @@ const ControlDeviceFormDialog: React.FC<{
             ))}
           </TextField>
           <TextField label="Loại" value={typeName} onChange={(e) => setTypeName(e.target.value)} fullWidth />
+          <TextField
+            label="Lệnh bật"
+            value={commandOn}
+            onChange={(e) => setCommandOn(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.commandOn)}
+            helperText={fieldErrors.commandOn}
+            inputProps={{ style: { fontFamily: "Monospace" } }}
+          />
+          <TextField
+            label="Lệnh tắt"
+            value={commandOff}
+            onChange={(e) => setCommandOff(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.commandOff)}
+            helperText={fieldErrors.commandOff}
+            inputProps={{ style: { fontFamily: "Monospace" } }}
+          />
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography>Trạng thái</Typography>
             <Switch checked={state} onChange={(e) => setState(e.target.checked)} />
@@ -83,7 +105,15 @@ const ControlDeviceFormDialog: React.FC<{
             setFormError(null);
             setFieldErrors({});
             try {
-              await onSave({ name, pinCode: pinCode ? parseInt(pinCode, 10) : undefined, masterBoardId: masterBoardId ?? undefined, controlDeviceTypeName: typeName || undefined, state });
+              await onSave({
+                name,
+                pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
+                masterBoardId: masterBoardId ?? undefined,
+                controlDeviceTypeName: typeName || undefined,
+                state,
+                commandOn: commandOn || undefined,
+                commandOff: commandOff || undefined,
+              });
             } catch (e) {
               const err = e as ApiError;
               if (err && err.data && (err.data as Record<string, unknown>).errors) {

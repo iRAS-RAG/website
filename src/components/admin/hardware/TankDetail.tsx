@@ -79,7 +79,7 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard }
 
       <Box sx={{ mt: 3 }}>
         <Button variant="contained" color="primary" onClick={onAddBoard}>
-          Thêm Board điều khiển chính
+          Thêm bảng mạch
         </Button>
       </Box>
     </Box>

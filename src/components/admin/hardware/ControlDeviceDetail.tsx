@@ -33,6 +33,14 @@ export default function ControlDeviceDetail({ control, onEdit }: Props) {
           <Typography variant="subtitle2">Pin</Typography>
           <Typography sx={{ mt: 1 }}>{control.pinCode ?? "—"}</Typography>
         </Paper>
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2">Lệnh bật</Typography>
+          <Typography sx={{ mt: 1, fontFamily: "Monospace" }}>{control.commandOn ?? "—"}</Typography>
+          <Typography variant="subtitle2" sx={{ mt: 1 }}>
+            Lệnh tắt
+          </Typography>
+          <Typography sx={{ mt: 0.5, fontFamily: "Monospace" }}>{control.commandOff ?? "—"}</Typography>
+        </Paper>
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="subtitle2">Trạng thái</Typography>
           <Typography sx={{ mt: 1 }}>{control.state ? "Bật" : "Tắt"}</Typography>

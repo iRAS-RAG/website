@@ -45,7 +45,7 @@ const MasterBoardFormDialog: React.FC<{
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa Masterboard" : "Thêm Masterboard"}</DialogTitle>
+      <DialogTitle>{initial ? "Chỉnh sửa bảng mạch" : "Thêm bảng mạch"}</DialogTitle>
       <DialogContent>
         {formError && (
           <Typography color="error" sx={{ mb: 1 }}>
@@ -71,9 +71,19 @@ const MasterBoardFormDialog: React.FC<{
         </Button>
         <Button
           onClick={async () => {
-            setSaving(true);
             setFormError(null);
             setFieldErrors({});
+
+            if (macAddress) {
+              const mac = macAddress.trim();
+              const macRegex = /^([0-9A-Fa-f]{2}([-:])){5}([0-9A-Fa-f]{2})$|^[0-9A-Fa-f]{12}$/;
+              if (!macRegex.test(mac)) {
+                setFieldErrors({ macAddress: "Địa chỉ MAC không hợp lệ" });
+                return;
+              }
+            }
+
+            setSaving(true);
             try {
               await onSave({ name, macAddress: macAddress || undefined, fishTankId: fishTankId || null });
             } catch (e) {
