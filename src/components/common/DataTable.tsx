@@ -3,7 +3,7 @@ import React from "react";
 
 export type Column<T> = {
   field: string;
-  label?: string;
+  label?: React.ReactNode;
   sortable?: boolean;
   sortKey?: string; // optional server-side key
   render?: (row: T) => React.ReactNode;
