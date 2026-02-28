@@ -1,8 +1,11 @@
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DescriptionIcon from "@mui/icons-material/Description";
 import EditIcon from "@mui/icons-material/Edit";
 import FactoryIcon from "@mui/icons-material/Factory";
+import LocalDiningIcon from "@mui/icons-material/LocalDining";
 import MedicationIcon from "@mui/icons-material/Medication";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { Box, Button, IconButton, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
 import type { FeedType } from "../../api/feed-types";
@@ -103,10 +106,25 @@ const FeedTypesTab: React.FC = () => {
   }, [filtered, tableParams.sortBy, tableParams.sortDir]);
 
   const columns: Column<FeedType>[] = [
-    { field: "name", label: "Tên", sortable: true, render: (r) => <strong>{r.name}</strong> },
+    {
+      field: "name",
+      label: (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <LocalDiningIcon fontSize="small" />
+          Tên
+        </span>
+      ),
+      sortable: true,
+      render: (r) => <strong>{r.name}</strong>,
+    },
     {
       field: "description",
-      label: "Mô tả",
+      label: (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <DescriptionIcon fontSize="small" />
+          Mô tả
+        </span>
+      ),
       render: (r) => <span>{r.description ? (r.description.length > 120 ? r.description.slice(0, 120) + "…" : r.description) : ""}</span>,
     },
     {
@@ -134,7 +152,12 @@ const FeedTypesTab: React.FC = () => {
     },
     {
       field: "actions",
-      label: "Hành động",
+      label: (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <MoreHorizIcon fontSize="small" />
+          Hành động
+        </span>
+      ),
       render: (r) => (
         <Stack direction="row" spacing={1}>
           <IconButton size="small" aria-label="edit" onClick={() => openEdit(r)}>

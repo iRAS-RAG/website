@@ -1,13 +1,17 @@
 import AddIcon from "@mui/icons-material/Add";
+import BadgeIcon from "@mui/icons-material/Badge";
 import BlockIcon from "@mui/icons-material/Block";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import EmailIcon from "@mui/icons-material/Email";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import PersonIcon from "@mui/icons-material/Person";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
-import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Paper, Stack, Typography } from "@mui/material";
+import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
 import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { isAdmin } from "../../api/auth";
+import { isAdmin, roles } from "../../api/auth";
 import { isApiError } from "../../api/client";
 import type { User } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
@@ -34,6 +38,7 @@ const UserManagement: React.FC = () => {
 
   const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove, disable, restore } = useUserManagement();
   const toast = useToast();
+  const [roleFilter, setRoleFilter] = useState<string | "">("");
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -63,12 +68,48 @@ const UserManagement: React.FC = () => {
   const columns = useMemo(
     () =>
       [
-        { field: "name", label: "Họ và tên", sortable: true, sortKey: "lastName" },
-        { field: "email", label: "Email", sortable: true, sortKey: "email" },
-        { field: "role", label: "Vai trò", sortable: true, sortKey: "roleName", render: (r: User) => translateRole(r.role) },
+        {
+          field: "name",
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <PersonIcon fontSize="small" />
+              Họ và tên
+            </span>
+          ),
+          sortable: true,
+          sortKey: "lastName",
+        },
+        {
+          field: "email",
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <EmailIcon fontSize="small" />
+              Email
+            </span>
+          ),
+          sortable: true,
+          sortKey: "email",
+        },
+        {
+          field: "role",
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <BadgeIcon fontSize="small" />
+              Vai trò
+            </span>
+          ),
+          sortable: true,
+          sortKey: "roleName",
+          render: (r: User) => translateRole(r.role),
+        },
         {
           field: "actions",
-          label: "Hành động",
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <MoreHorizIcon fontSize="small" />
+              Hành động
+            </span>
+          ),
           render: (r: User) => (
             <Stack direction="row" spacing={1}>
               <IconButton size="small" aria-label="edit-user" onClick={() => openEdit(r)}>
@@ -93,6 +134,11 @@ const UserManagement: React.FC = () => {
 
     [openEdit, confirmDelete, confirmDisable, confirmRestore, tableParams?.isDeleted],
   );
+
+  const displayed = React.useMemo(() => {
+    if (!roleFilter) return data;
+    return (data || []).filter((u) => u.role === roleFilter);
+  }, [data, roleFilter]);
 
   if (!isAdmin()) return <Navigate to="/" replace />;
 
@@ -196,26 +242,60 @@ const UserManagement: React.FC = () => {
                 updateUrlWithParams({ pageSize: n, page: 1 });
               }}
               filters={
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={Boolean(tableParams.isDeleted)}
-                      onChange={(e) => {
-                        const val = e.target.checked;
-                        setTableParamsLocal({ ...(tableParams ?? {}), isDeleted: val, page: 1 });
-                        updateUrlWithParams({ isDeleted: val, page: 1 });
-                      }}
-                      size="small"
-                    />
-                  }
-                  label="Đã vô hiệu hóa"
-                />
+                <>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={Boolean(tableParams.isDeleted)}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setTableParamsLocal({ ...(tableParams ?? {}), isDeleted: val, page: 1 });
+                          updateUrlWithParams({ isDeleted: val, page: 1 });
+                        }}
+                        size="small"
+                      />
+                    }
+                    label="Đã vô hiệu hóa"
+                  />
+                  <TextField
+                    size="small"
+                    select
+                    value={roleFilter}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setRoleFilter(v as string);
+                      // apply client-side filter by role locally
+                      setTableParamsLocal({ ...(tableParams ?? {}), page: 1 });
+                      updateUrlWithParams({ page: 1 });
+                    }}
+                    sx={{ ml: 2, minWidth: 180 }}
+                    SelectProps={{
+                      displayEmpty: true,
+                      renderValue: (val) =>
+                        val ? (
+                          translateRole(val as string)
+                        ) : (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <BadgeIcon fontSize="small" />
+                            Tất cả vai trò
+                          </span>
+                        ),
+                    }}
+                  >
+                    <MenuItem value="">Tất cả vai trò</MenuItem>
+                    {roles.map((r) => (
+                      <MenuItem key={r} value={r}>
+                        {translateRole(r)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </>
               }
             />
 
             <DataTable
               columns={columns}
-              rows={data}
+              rows={displayed}
               sortBy={tableParams.sortBy as string | undefined}
               sortDir={tableParams.sortDir as "asc" | "desc" | undefined}
               onSort={(s, d) => {

@@ -45,7 +45,7 @@ export async function updateUser(id: string, payload: Partial<{ firstName: strin
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
-  await apiFetch(`/users/${id}/hard-delete`, { method: "DELETE" });
+  await apiFetch(`/users/${id}/hard`, { method: "DELETE" });
   return true;
 }
 
@@ -55,7 +55,7 @@ export async function resetPassword(id: string): Promise<boolean> {
 }
 
 export async function disableUser(id: string): Promise<boolean> {
-  await apiFetch(`/users/${id}`, { method: "POST" });
+  await apiFetch(`/users/${id}`, { method: "DELETE" });
   return true;
 }
 

@@ -1,3 +1,7 @@
+import BadgeIcon from "@mui/icons-material/Badge";
+import EmailIcon from "@mui/icons-material/Email";
+import LockIcon from "@mui/icons-material/Lock";
+import PersonIcon from "@mui/icons-material/Person";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
 import type { Role } from "../../../api/auth";
@@ -37,12 +41,53 @@ const UserFormDialog: React.FC<{
         )}
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Stack direction="row" spacing={2}>
-            <TextField label="Họ" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth error={Boolean(fieldErrors.lastName)} helperText={fieldErrors.lastName} />
-            <TextField label="Tên" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth error={Boolean(fieldErrors.firstName)} helperText={fieldErrors.firstName} />
+            <TextField
+              label={
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <PersonIcon fontSize="small" />
+                  Họ
+                </span>
+              }
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.lastName)}
+              helperText={fieldErrors.lastName}
+            />
+            <TextField
+              label={
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <PersonIcon fontSize="small" />
+                  Tên
+                </span>
+              }
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.firstName)}
+              helperText={fieldErrors.firstName}
+            />
           </Stack>
-          <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth error={Boolean(fieldErrors.email)} helperText={fieldErrors.email} />
           <TextField
-            label="Mật khẩu"
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <EmailIcon fontSize="small" />
+                Email
+              </span>
+            }
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.email)}
+            helperText={fieldErrors.email}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <LockIcon fontSize="small" />
+                Mật khẩu
+              </span>
+            }
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -50,7 +95,18 @@ const UserFormDialog: React.FC<{
             helperText={fieldErrors.password ?? (initial ? "Để trống nếu không đổi" : undefined)}
             error={Boolean(fieldErrors.password)}
           />
-          <TextField select label="Vai trò" value={role} onChange={(e) => setRole(e.target.value)} error={Boolean(fieldErrors.role)}>
+          <TextField
+            select
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <BadgeIcon fontSize="small" />
+                Vai trò
+              </span>
+            }
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            error={Boolean(fieldErrors.role)}
+          >
             {roles.map((r: Role) => (
               <MenuItem key={r} value={r}>
                 {translateRole(r)}
