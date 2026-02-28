@@ -1,13 +1,5 @@
+import type { FeedType } from "../types/feed-type";
 import { apiFetch } from "./client";
-
-export type FeedType = {
-  id: string;
-  name: string;
-  protein: string;
-  description?: string;
-  manufacturer?: string;
-  proteinPercentage?: number;
-};
 
 function toUi(item: Record<string, unknown>): FeedType {
   const pct = typeof item.proteinPercentage === "number" ? (item.proteinPercentage as number) : undefined;
@@ -16,7 +8,6 @@ function toUi(item: Record<string, unknown>): FeedType {
     name: String(item.name ?? ""),
     protein: typeof pct === "number" ? `${pct}%` : String(item.protein ?? ""),
     description: (item.description as string) || undefined,
-    // weightPerUnit removed from backend; do not expose it on the client
     manufacturer: (item.manufacturer as string) || undefined,
     proteinPercentage: pct,
   };

@@ -121,14 +121,6 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/species"
-        element={
-          <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="species" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/supervisor/feed-types"
         element={
           <ProtectedRoute check={isSupervisor}>
@@ -137,18 +129,10 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/thresholds"
+        path="/supervisor/species-configs"
         element={
           <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="thresholds" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/supervisor/schedule"
-        element={
-          <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="schedule" />
+            <SupervisorDashboard section="species-configs" />
           </ProtectedRoute>
         }
       />

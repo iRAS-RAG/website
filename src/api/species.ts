@@ -1,19 +1,30 @@
 import { apiFetch } from "./client";
 
-export type Species = { id: string; name: string; optimalTemp: string };
+export type Species = { id: string; name: string; optimalTemp?: string };
 
 function toUi(item: Record<string, unknown>): Species {
   return {
     id: String(item.id ?? ""),
     name: String(item.name ?? ""),
-    optimalTemp: String(item.optimalTemp ?? ""),
+    optimalTemp: item.optimalTemp ? String(item.optimalTemp) : undefined,
   };
 }
 
 export async function getSpecies(): Promise<Species[]> {
-  const items = await apiFetch<unknown[]>("/species");
-  if (!Array.isArray(items)) return [];
-  return (items as unknown[]).map((i) => toUi(i as Record<string, unknown>));
+  const res = await apiFetch<unknown>("/species");
+  if (Array.isArray(res)) {
+    return (res as unknown[]).map((i) => toUi(i as Record<string, unknown>));
+  }
+
+  if (res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
+    const obj = res as Record<string, unknown>;
+    const data = obj.data;
+    if (Array.isArray(data)) {
+      return data.map((i) => toUi(i as Record<string, unknown>));
+    }
+  }
+
+  return [];
 }
 
 export async function createSpecies(payload: Omit<Species, "id">): Promise<Species> {

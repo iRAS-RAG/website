@@ -5,9 +5,7 @@ import { isSupervisor } from "../../api/auth";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import FeedTypesTab from "./FeedTypesTab";
-import ScheduleTab from "./ScheduleTab";
-import SpeciesTab from "./SpeciesTab";
-import ThresholdsTab from "./ThresholdsTab";
+import SpeciesConfigsTab from "./SpeciesConfigsTab";
 
 const SupervisorDashboard: React.FC<{ section?: string }> = ({ section }) => {
   if (!isSupervisor()) return <Navigate to="/" replace />;
@@ -33,10 +31,8 @@ const SectionRenderer: React.FC<{ section?: string }> = ({ section: propSection 
   const { hash } = useLocation();
   const section = propSection || (hash || "").replace("#", "") || "overview";
 
-  if (section === "species") return <SpeciesTab />;
   if (section === "feed-types") return <FeedTypesTab />;
-  if (section === "thresholds") return <ThresholdsTab />;
-  if (section === "schedule") return <ScheduleTab />;
+  if (section === "species-configs") return <SpeciesConfigsTab />;
 
   return (
     <Paper sx={{ p: 2 }}>

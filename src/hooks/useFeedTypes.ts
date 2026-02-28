@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FeedType } from "../api/feed-types";
 import { createFeedType, deleteFeedType, getFeedTypes, updateFeedType } from "../api/feed-types";
+import type { FeedType } from "../types/feed-type";
 
 export default function useFeedTypes() {
   const [feeds, setFeeds] = useState<FeedType[]>([]);
