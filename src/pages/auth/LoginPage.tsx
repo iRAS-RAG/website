@@ -2,13 +2,10 @@ import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-materi
 import { Alert, Box, Button, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../../api/auth";
+import type { Role } from "../../api/auth";
+import { clearCurrentUser, currentUser, login, setCurrentUser } from "../../api/auth";
 import * as jwt from "../../api/jwt";
 import bg from "../../assets/backgrounds.png";
-import type { Role } from "../../mocks/auth";
-import { clearCurrentUser, currentUser, setCurrentUser } from "../../mocks/auth";
-
-// (mock users removed — real API used)
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +26,6 @@ const LoginPage = () => {
       } & Record<string, unknown>;
 
       const resp = (await login({ email, password })) as LoginResp | null;
-      // Response shape expected: { token: { accessToken, refreshToken }, message }
       const tokenObj = resp?.token ?? resp;
 
       function getStringField(obj: unknown, ...keys: string[]) {
@@ -54,18 +50,18 @@ const LoginPage = () => {
 
       // extract user info from JWT
       const userInfo = jwt.getUserFromToken(accessToken);
-      const role = userInfo.role || "Operator";
+      const role = (userInfo.role ?? null) as Role | null;
       const id = userInfo.id || "";
       const name = userInfo.name || "User";
 
       // update in-app current user state (keeps guarded routes working)
-      setCurrentUser({ id, name, role: role as Role });
-      localStorage.setItem("userRole", role);
+      setCurrentUser({ id, name, role });
 
       // redirect based on role
       if (role === "Admin") navigate("/admin/dashboard");
       else if (role === "Supervisor") navigate("/supervisor/dashboard");
-      else navigate("/operator/dashboard");
+      else if (role === "Operator") navigate("/operator/dashboard");
+      else navigate("/");
     } catch (err: unknown) {
       let msg = "Email hoặc mật khẩu không chính xác!";
       if (typeof err === "object" && err !== null) {
@@ -79,7 +75,6 @@ const LoginPage = () => {
   function handleLogout() {
     jwt.clearTokens();
     clearCurrentUser();
-    localStorage.removeItem("userRole");
     navigate("/");
   }
 

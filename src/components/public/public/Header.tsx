@@ -1,9 +1,33 @@
 import LoginIcon from "@mui/icons-material/Login";
 import { AppBar, Box, Button, Stack, Toolbar, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { addTokenListener, getAccessToken, getUserFromToken } from "../../../api/jwt";
 import logo from "../../../assets/logo.png";
 
 export const Header = () => {
+  const getInitialRole = () => {
+    const access = getAccessToken();
+    if (!access) return null;
+    return getUserFromToken(access).role as string | null;
+  };
+
+  const [role, setRole] = useState<string | null>(getInitialRole);
+
+  useEffect(() => {
+    const unsub = addTokenListener((access) => {
+      if (!access) return setRole(null);
+      setRole(getUserFromToken(access).role as string | null);
+    });
+    return unsub;
+  }, []);
+
+  const dashboardPath = (r: string | null) => {
+    if (r === "Admin") return "/admin/dashboard";
+    if (r === "Supervisor") return "/supervisor/dashboard";
+    return "/operator/dashboard";
+  };
+
   return (
     <AppBar position="fixed" color="inherit" sx={{ borderBottom: "1px solid #D1D5DB", zIndex: 1201 }}>
       <Toolbar sx={{ justifyContent: "space-between" }}>
@@ -46,10 +70,16 @@ export const Header = () => {
           <Button color="inherit">Vật tư/Kho</Button>
         </Stack>
 
-        {/* Nút Đăng nhập với Icon */}
-        <Button variant="contained" color="primary" startIcon={<LoginIcon />} component={Link} to="/auth/login" sx={{ fontWeight: 700 }}>
-          Đăng nhập
-        </Button>
+        {/* Nút Đăng nhập hoặc chuyển tới Dashboard nếu đã đăng nhập */}
+        {!role ? (
+          <Button variant="contained" color="primary" startIcon={<LoginIcon />} component={Link} to="/auth/login" sx={{ fontWeight: 700 }}>
+            Đăng nhập
+          </Button>
+        ) : (
+          <Button variant="contained" color="primary" component={Link} to={dashboardPath(role)} sx={{ fontWeight: 700 }}>
+            Đi tới dashboard
+          </Button>
+        )}
       </Toolbar>
     </AppBar>
   );

@@ -5,7 +5,7 @@ import PetsIcon from "@mui/icons-material/Pets";
 import { Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { Species as SpeciesType } from "../../api/species";
-import { createSpecies, deleteSpecies, fetchSpecies, updateSpecies } from "../../api/species";
+import { createSpecies, deleteSpecies, getSpecies, updateSpecies } from "../../api/species";
 
 const SpeciesTab: React.FC = () => {
   const theme = useTheme();
@@ -20,7 +20,7 @@ const SpeciesTab: React.FC = () => {
   const [spOptimal, setSpOptimal] = useState("");
 
   useEffect(() => {
-    fetchSpecies()
+    getSpecies()
       .then(setSpeciesData)
       .catch(() => setSpeciesData([]));
   }, []);
@@ -35,7 +35,7 @@ const SpeciesTab: React.FC = () => {
     setConfirmOpen(false);
     try {
       await deleteSpecies(confirmId);
-      setSpeciesData(await fetchSpecies());
+      setSpeciesData(await getSpecies());
     } catch (e) {
       console.error(e);
     }
@@ -46,7 +46,7 @@ const SpeciesTab: React.FC = () => {
     else await createSpecies(values);
     setSpeciesDialogOpen(false);
     setEditingSpecies(null);
-    setSpeciesData(await fetchSpecies());
+    setSpeciesData(await getSpecies());
     setSpName("");
     setSpOptimal("");
   };

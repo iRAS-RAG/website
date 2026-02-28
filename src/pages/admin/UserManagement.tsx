@@ -1,139 +1,153 @@
 import AddIcon from "@mui/icons-material/Add";
+import BlockIcon from "@mui/icons-material/Block";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from "@mui/material";
-import React, { useEffect, useState } from "react";
-
+import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
+import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Paper, Stack, Typography } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { isAdmin } from "../../api/auth";
+import { isApiError } from "../../api/client";
 import type { User } from "../../api/users";
-import { createUser, deleteUser, fetchUsers, resetPassword, updateUser } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import { isAdmin } from "../../mocks/auth";
-
-const roles = ["Admin", "Supervisor", "Operator"] as const;
-
-function translateRole(r: string) {
-  switch (r) {
-    case "Admin":
-      return "Quản trị viên";
-    case "Supervisor":
-      return "Quản lý";
-    case "Operator":
-      return "Kỹ thuật viên";
-    default:
-      return r;
-  }
-}
+import UserFormDialog from "../../components/admin/users/UserFormDialog";
+import type { Column } from "../../components/common/DataTable";
+import DataTable from "../../components/common/DataTable";
+import PaginationControls from "../../components/common/PaginationControls";
+import TableToolbar from "../../components/common/TableToolbar";
+import { useToast } from "../../components/common/toastContext";
+import useUserManagement from "../../hooks/useUserManagement";
+import { translateRole } from "../../utils/roles";
 
 const UserManagement: React.FC = () => {
-  const [data, setData] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
 
   const [openDelete, setOpenDelete] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openDisable, setOpenDisable] = useState(false);
+  const [disablingId, setDisablingId] = useState<string | null>(null);
+  const [openRestore, setOpenRestore] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
-  useEffect(() => {
-    load();
+  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, remove, disable, restore } = useUserManagement();
+  const toast = useToast();
+
+  const openCreate = useCallback(() => {
+    setEditing(null);
+    setOpenForm(true);
   }, []);
+
+  const openEdit = useCallback((user: User) => {
+    setEditing(user);
+    setOpenForm(true);
+  }, []);
+
+  const confirmDelete = useCallback((id: string) => {
+    setDeletingId(id);
+    setOpenDelete(true);
+  }, []);
+
+  const confirmDisable = useCallback((id: string) => {
+    setDisablingId(id);
+    setOpenDisable(true);
+  }, []);
+
+  const confirmRestore = useCallback((id: string) => {
+    setRestoringId(id);
+    setOpenRestore(true);
+  }, []);
+
+  const columns = useMemo(
+    () =>
+      [
+        { field: "name", label: "Họ và tên", sortable: true, sortKey: "lastName" },
+        { field: "email", label: "Email", sortable: true, sortKey: "email" },
+        { field: "role", label: "Vai trò", sortable: true, sortKey: "roleName", render: (r: User) => translateRole(r.role) },
+        {
+          field: "actions",
+          label: "Hành động",
+          render: (r: User) => (
+            <Stack direction="row" spacing={1}>
+              <IconButton size="small" aria-label="edit-user" onClick={() => openEdit(r)}>
+                <EditIcon />
+              </IconButton>
+              {tableParams?.isDeleted ? (
+                <IconButton size="small" aria-label="restore-user" onClick={() => confirmRestore(r.id)}>
+                  <RestoreFromTrashIcon />
+                </IconButton>
+              ) : (
+                <IconButton size="small" aria-label="disable-user" onClick={() => confirmDisable(r.id)}>
+                  <BlockIcon />
+                </IconButton>
+              )}
+              <IconButton size="small" aria-label="delete-user" onClick={() => confirmDelete(r.id)}>
+                <DeleteIcon />
+              </IconButton>
+            </Stack>
+          ),
+        },
+      ] as Column<User>[],
+
+    [openEdit, confirmDelete, confirmDisable, confirmRestore, tableParams?.isDeleted],
+  );
 
   if (!isAdmin()) return <Navigate to="/" replace />;
 
-  async function load() {
-    setLoading(true);
-    setError(null);
+  async function handleSave(values: { firstName: string; lastName: string; email: string; role: string; password?: string }) {
     try {
-      const users = await fetchUsers();
-      setData(users);
-    } catch {
-      setError("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function openCreate() {
-    setEditing(null);
-    setOpenForm(true);
-  }
-
-  function openEdit(user: User) {
-    setEditing(user);
-    setOpenForm(true);
-  }
-
-  async function handleSave(values: { name: string; email: string; role: string }) {
-    setLoading(true);
-    try {
-      if (editing) {
-        await updateUser(editing.id, values as Partial<User>);
-      } else {
-        await createUser(values as Omit<User, "id">);
-      }
-      await load();
+      await createOrUpdate(editing?.id ?? null, values, editing as User | null);
       setOpenForm(false);
-    } catch {
-      setError("Save failed");
-    } finally {
-      setLoading(false);
+      if (editing) toast.success("Cập nhật người dùng thành công");
+      else toast.success("Tạo người dùng thành công");
+    } catch (e: unknown) {
+      if (isApiError(e) && e.data && (e.data as Record<string, unknown>).errors) {
+        throw e;
+      }
+      toast.error("Lưu người dùng thất bại");
     }
-  }
-
-  function confirmDelete(id: string) {
-    setDeletingId(id);
-    setOpenDelete(true);
   }
 
   async function handleDelete() {
     if (!deletingId) return;
-    setLoading(true);
     try {
-      await deleteUser(deletingId);
-      await load();
+      await remove(deletingId);
       setOpenDelete(false);
-    } catch {
-      setError("Delete failed");
-    } finally {
-      setLoading(false);
+      toast.success("Xóa người dùng thành công");
+    } catch (e) {
+      console.error("Xóa người dùng thất bại", e);
+      toast.error("Xóa người dùng thất bại");
     }
   }
 
-  async function handleReset(id: string) {
-    setLoading(true);
+  async function handleDisable() {
+    if (!disablingId) return;
     try {
-      await resetPassword(id);
-      // In a real app we'd notify the user; here it's mocked
-      await load();
-    } catch {
-      setError("Reset failed");
-    } finally {
-      setLoading(false);
+      await disable(disablingId);
+      setOpenDisable(false);
+      toast.success("Vô hiệu hóa người dùng thành công");
+    } catch (e) {
+      console.error("Vô hiệu hóa người dùng thất bại", e);
+      toast.error("Vô hiệu hóa người dùng thất bại");
     }
   }
+
+  async function handleRestoreConfirm() {
+    if (!restoringId) return;
+    try {
+      await restore(restoringId);
+      setOpenRestore(false);
+      setRestoringId(null);
+      toast.success("Khôi phục người dùng thành công");
+    } catch (e) {
+      console.error("Khôi phục người dùng thất bại", e);
+      toast.error("Khôi phục người dùng thất bại");
+    }
+  }
+
+  const editingWithRaw = editing as (User & { rawFirstName?: string; rawLastName?: string }) | null;
 
   return (
     <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
@@ -169,44 +183,88 @@ const UserManagement: React.FC = () => {
             </Typography>
           )}
 
-          <Paper>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Họ và tên</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Vai trò</TableCell>
-                    <TableCell align="right">Hành động</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {data.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell>{u.name}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>{translateRole(u.role)}</TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <IconButton size="small" onClick={() => openEdit(u)}>
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => handleReset(u.id)}>
-                            <RefreshIcon />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => confirmDelete(u.id)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+          <Paper sx={{ p: 2 }}>
+            <TableToolbar
+              searchTerm={String(tableParams.searchTerm ?? "")}
+              onSearchTermChange={(v) => {
+                setTableParamsLocal({ ...(tableParams ?? {}), searchTerm: v, page: 1 });
+                updateUrlWithParams({ searchTerm: v, page: 1 });
+              }}
+              pageSize={tableParams.pageSize}
+              onPageSizeChange={(n) => {
+                setTableParamsLocal({ ...(tableParams ?? {}), pageSize: n, page: 1 });
+                updateUrlWithParams({ pageSize: n, page: 1 });
+              }}
+              filters={
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={Boolean(tableParams.isDeleted)}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setTableParamsLocal({ ...(tableParams ?? {}), isDeleted: val, page: 1 });
+                        updateUrlWithParams({ isDeleted: val, page: 1 });
+                      }}
+                      size="small"
+                    />
+                  }
+                  label="Đã vô hiệu hóa"
+                />
+              }
+            />
+
+            <DataTable
+              columns={columns}
+              rows={data}
+              sortBy={tableParams.sortBy as string | undefined}
+              sortDir={tableParams.sortDir as "asc" | "desc" | undefined}
+              onSort={(s, d) => {
+                setTableParamsLocal({ ...(tableParams ?? {}), sortBy: s, sortDir: d, page: 1 });
+                updateUrlWithParams({ sortBy: s, sortDir: d, page: 1 });
+              }}
+            />
+
+            <PaginationControls
+              page={meta?.page ?? 1}
+              totalPages={meta?.totalPages ?? 1}
+              onPageChange={(p) => {
+                setTableParamsLocal({ ...(tableParams ?? {}), page: p });
+                updateUrlWithParams({ page: p });
+              }}
+            />
           </Paper>
 
-          <UserFormDialog key={openForm ? (editing?.id ?? "new") : "closed"} open={openForm} onClose={() => setOpenForm(false)} onSave={handleSave} initial={editing} />
+          <UserFormDialog
+            key={openForm ? (editing?.id ?? "new") : "closed"}
+            open={openForm}
+            onClose={() => setOpenForm(false)}
+            onSave={handleSave}
+            initial={editing}
+            initialFirstName={editingWithRaw?.rawFirstName ?? null}
+            initialLastName={editingWithRaw?.rawLastName ?? null}
+          />
+
+          <Dialog open={openDisable} onClose={() => setOpenDisable(false)}>
+            <DialogTitle>Vô hiệu hóa người dùng</DialogTitle>
+            <DialogContent>Bạn có chắc chắn muốn vô hiệu hóa người dùng này?</DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenDisable(false)}>Hủy</Button>
+              <Button color="warning" onClick={handleDisable}>
+                Vô hiệu hóa
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog open={openRestore} onClose={() => setOpenRestore(false)}>
+            <DialogTitle>Khôi phục người dùng</DialogTitle>
+            <DialogContent>Bạn có chắc chắn muốn khôi phục người dùng này?</DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenRestore(false)}>Hủy</Button>
+              <Button color="primary" onClick={handleRestoreConfirm}>
+                Khôi phục
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           <Dialog open={openDelete} onClose={() => setOpenDelete(false)}>
             <DialogTitle>Xóa người dùng</DialogTitle>
@@ -221,42 +279,6 @@ const UserManagement: React.FC = () => {
         </Box>
       </Box>
     </Box>
-  );
-};
-
-const UserFormDialog: React.FC<{
-  open: boolean;
-  onClose: () => void;
-  onSave: (v: { name: string; email: string; role: string }) => void;
-  initial: User | null;
-}> = ({ open, onClose, onSave, initial }) => {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [email, setEmail] = useState(initial?.email ?? "");
-  const [role, setRole] = useState<string>(initial?.role ?? "Operator");
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa người dùng" : "Thêm người dùng"}</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Họ và tên" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
-          <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
-          <TextField select label="Vai trò" value={role} onChange={(e) => setRole(e.target.value)}>
-            {roles.map((r) => (
-              <MenuItem key={r} value={r}>
-                {translateRole(r)}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Hủy</Button>
-        <Button onClick={() => onSave({ name, email, role })} variant="contained" disabled={!name || !email}>
-          Lưu
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 };
 

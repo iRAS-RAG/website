@@ -1,16 +1,15 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { isAdmin, isSupervisor } from "../mocks/auth";
+import { isAdmin, isOperator, isSupervisor } from "../api/auth";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AIKnowledge from "../pages/admin/AIKnowledge";
-import HardwareSensors from "../pages/admin/HardwareSensors";
+import HardwareManagement from "../pages/admin/HardwareManagement";
 import UserManagement from "../pages/admin/UserManagement";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import HomePage from "../pages/public/HomePage";
 import SupervisorDashboard from "../pages/supervisor/SupervisorDashboard";
 
-import { isOperator } from "../mocks/auth";
 import AIAdvisory from "../pages/operator/AIAdvisory";
 import AlertCenter from "../pages/operator/AlertCenter";
 import MaintenanceLog from "../pages/operator/MaintenanceLog";
@@ -107,7 +106,7 @@ const AppRouter = () => {
         path="/admin/hardware"
         element={
           <ProtectedRoute check={isAdmin}>
-            <HardwareSensors />
+            <HardwareManagement />
           </ProtectedRoute>
         }
       />
@@ -130,10 +129,10 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/feeds"
+        path="/supervisor/feed-types"
         element={
           <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="feeds" />
+            <SupervisorDashboard section="feed-types" />
           </ProtectedRoute>
         }
       />
