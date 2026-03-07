@@ -54,7 +54,7 @@ export default function useSpeciesConfigs() {
       try {
         console.debug("useSpeciesConfigs: fetching species from API...");
         const items = await getSpecies();
-        const configs = items.map((s) => ({ id: s.id, name: s.name, stages: [defaultStage()] }));
+        const configs = items.map((s) => ({ id: s.id, name: s.name, stages: [] }));
         setSpeciesConfigs(configs);
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));

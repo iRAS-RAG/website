@@ -1,1 +1,1 @@
-export type Species = { id: string; name: string; optimalTemp?: string };
+export type Species = { id: string; name: string };

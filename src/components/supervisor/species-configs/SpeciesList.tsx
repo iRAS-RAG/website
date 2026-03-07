@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import React from "react";
 import type { SpeciesConfig } from "../../../hooks/useSpeciesConfigs";
 import SpeciesCard from "./SpeciesCard";
@@ -10,9 +10,13 @@ const SpeciesList: React.FC<{
 }> = ({ items, onSelect, selectedId }) => {
   return (
     <Box>
-      {items.map((s) => (
-        <SpeciesCard key={s.id} species={s} onClick={() => onSelect(s.id)} selected={selectedId === s.id} />
-      ))}
+      <Grid container spacing={2}>
+        {items.map((s) => (
+          <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <SpeciesCard species={s} onClick={() => onSelect(s.id)} selected={selectedId === s.id} />
+          </Grid>
+        ))}
+      </Grid>
     </Box>
   );
 };
