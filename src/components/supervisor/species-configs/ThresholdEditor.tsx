@@ -56,6 +56,12 @@ const ThresholdEditor: React.FC<{
     const current = stage.thresholds.find((t) => t.sensor === sensor);
     if (!current) return;
 
+    // Validate min < max before sending API request
+    if (min !== null && max !== null && min >= max) {
+      toast.warning("Giá trị Min phải nhỏ hơn Max");
+      return;
+    }
+
     setSavingExisting((s) => ({ ...s, [sensor]: true }));
     try {
       const sensorTypeId = current.sensorTypeId || sensorTypes.find((s) => s.name === sensor)?.id;
@@ -121,9 +127,13 @@ const ThresholdEditor: React.FC<{
     const min = newMin === "" ? null : Number(newMin);
     const max = newMax === "" ? null : Number(newMax);
 
+    if (min !== null && max !== null && min >= max) {
+      toast.warning("Giá trị Min phải nhỏ hơn Max");
+      return;
+    }
+
     const sensor = sensorTypes.find((s) => s.name === newSensor);
     if (!sensor) {
-      // fallback: still update UI without persisting
       onSaveThreshold(newSensor, min, max);
       toast.warning("Không tìm thấy loại cảm biến, chỉ cập nhật tạm trên giao diện");
       setNewSensor("");
@@ -142,14 +152,11 @@ const ThresholdEditor: React.FC<{
       };
 
       const created = await createThreshold(payload);
-      // update local UI with returned id
       onSaveThreshold(newSensor, min, max, created?.id);
       toast.success("Thêm ngưỡng cảm biến thành công");
     } catch (e) {
       console.error("Failed to create threshold", e);
-      // if API fails, still update UI optimistically without id
-      onSaveThreshold(newSensor, min, max);
-      toast.warning("Không thể lưu ngưỡng lên máy chủ, đã cập nhật tạm trên giao diện");
+      toast.error("Không thể lưu ngưỡng lên máy chủ");
     } finally {
       setNewSensor("");
       setNewMin("");
