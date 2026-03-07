@@ -4,3 +4,11 @@ export type User = {
   email: string;
   role: string;
 };
+
+export type Create = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string;
+  role?: string;
+};

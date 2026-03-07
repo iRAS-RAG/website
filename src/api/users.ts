@@ -1,4 +1,4 @@
-import type { User } from "../types/user";
+import type { Create, User } from "../types/user";
 import { apiFetch } from "./client";
 
 export function toUiUser(item: Record<string, unknown>): User {
@@ -23,6 +23,13 @@ export async function createUser(payload: { firstName: string; lastName: string;
   const body: Record<string, unknown> = { email: payload.email, firstName: payload.firstName, lastName: payload.lastName, roleName: payload.role };
   if (payload.password) body.password = payload.password;
   const created = await apiFetch<Record<string, unknown>>("/users", { method: "POST", body });
+  return toUiUser(created);
+}
+
+export async function createOperator(payload: Create): Promise<User> {
+  const body: Record<string, unknown> = { email: payload.email, firstName: payload.firstName, lastName: payload.lastName };
+  if (payload.password) body.password = payload.password;
+  const created = await apiFetch<Record<string, unknown>>("/users/operator", { method: "POST", body });
   return toUiUser(created);
 }
 

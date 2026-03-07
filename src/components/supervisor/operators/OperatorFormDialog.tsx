@@ -1,0 +1,138 @@
+import EmailIcon from "@mui/icons-material/Email";
+import LockIcon from "@mui/icons-material/Lock";
+import PersonIcon from "@mui/icons-material/Person";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
+import React, { useState } from "react";
+import type { ApiError } from "../../../api/client";
+import type { User } from "../../../types/user";
+
+const OperatorFormDialog: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  onSave: (v: { firstName: string; lastName: string; email: string; password?: string }) => Promise<void>;
+  initial: User | null;
+  initialFirstName?: string | null;
+  initialLastName?: string | null;
+}> = ({ open, onClose, onSave, initial, initialFirstName = null, initialLastName = null }) => {
+  const parts = (initial?.name || "").trim().split(/\s+/);
+  const inferredFirst = initialFirstName ?? (parts.length ? parts[parts.length - 1] : "");
+  const inferredLast = initialLastName ?? (parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "");
+  const [firstName, setFirstName] = useState(inferredFirst);
+  const [lastName, setLastName] = useState(inferredLast);
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(initial?.email ?? "");
+  const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth>
+      <DialogTitle>{initial ? "Chỉnh sửa nhân viên" : "Thêm nhân viên"}</DialogTitle>
+      <DialogContent>
+        {formError && (
+          <Typography color="error" sx={{ mb: 1 }}>
+            {formError}
+          </Typography>
+        )}
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack direction="row" spacing={2}>
+            <TextField
+              label={
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <PersonIcon fontSize="small" />
+                  Họ
+                </span>
+              }
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.lastName)}
+              helperText={fieldErrors.lastName}
+            />
+            <TextField
+              label={
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <PersonIcon fontSize="small" />
+                  Tên
+                </span>
+              }
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.firstName)}
+              helperText={fieldErrors.firstName}
+            />
+          </Stack>
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <EmailIcon fontSize="small" />
+                Email
+              </span>
+            }
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.email)}
+            helperText={fieldErrors.email}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <LockIcon fontSize="small" />
+                Mật khẩu
+              </span>
+            }
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            helperText={fieldErrors.password ?? (initial ? "Để trống nếu không đổi" : undefined)}
+            error={Boolean(fieldErrors.password)}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={saving}>
+          Hủy
+        </Button>
+        <Button
+          onClick={async () => {
+            setSaving(true);
+            setFormError(null);
+            setFieldErrors({});
+            try {
+              await onSave({ firstName, lastName, email, password: password || undefined });
+            } catch (e) {
+              const err = e as ApiError;
+              if (err && err.data && (err.data as Record<string, unknown>).errors) {
+                const errs = (err.data as Record<string, unknown>).errors as Record<string, string[]>;
+                const mapped: Record<string, string> = {};
+                for (const k of Object.keys(errs)) {
+                  const key = k.toLowerCase();
+                  const msg = errs[k].join(" ");
+                  if (key.includes("password")) mapped.password = msg;
+                  else if (key.includes("first")) mapped.firstName = msg;
+                  else if (key.includes("last")) mapped.lastName = msg;
+                  else if (key.includes("email")) mapped.email = msg;
+                  else mapped[k] = msg;
+                }
+                setFieldErrors(mapped);
+              } else {
+                setFormError((err && err.message) || String(e) || "Save failed");
+              }
+            } finally {
+              setSaving(false);
+            }
+          }}
+          variant="contained"
+          disabled={!firstName || !lastName || !email || (!initial && !password) || saving}
+        >
+          Lưu
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default OperatorFormDialog;

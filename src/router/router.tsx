@@ -21,6 +21,7 @@ import BatchListPage from "../pages/supervisor/BatchListPage";
 import CompareBatchesPage from "../pages/supervisor/CompareBatchesPage";
 import CreateBatchPage from "../pages/supervisor/CreateBatchPage";
 import HarvestBatchPage from "../pages/supervisor/HarvestBatchPage";
+import OperatorManagement from "../pages/supervisor/OperatorManagement";
 import ProtectedRoute from "./ProtectedRoute";
 
 const AppRouter = () => {
@@ -172,6 +173,14 @@ const AppRouter = () => {
         element={
           <ProtectedRoute check={isSupervisor}>
             <SupervisorDashboard section="feed-types" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/supervisor/operators"
+        element={
+          <ProtectedRoute check={isSupervisor}>
+            <OperatorManagement />
           </ProtectedRoute>
         }
       />
