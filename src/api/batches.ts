@@ -183,9 +183,17 @@ export async function deleteBatch(id: string): Promise<boolean> {
  * Get operation logs for a batch
  */
 export async function getBatchOperationLogs(batchId: string): Promise<BatchOperationLog[]> {
-  const res = await apiFetch<unknown>(`/batches/${batchId}/logs`);
-  const items = extractArray(res);
-  return items.map((i) => toBatchOperationLog(i as Record<string, unknown>));
+  try {
+    const res = await apiFetch<unknown>(`/batches/${batchId}/logs`);
+    const items = extractArray(res);
+    return items.map((i) => toBatchOperationLog(i as Record<string, unknown>));
+  } catch (error) {
+    // Backend endpoint may not be available yet; keep detail page functional.
+    if ((error as { status?: number })?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 /**

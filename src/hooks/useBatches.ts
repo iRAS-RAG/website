@@ -169,7 +169,18 @@ export function useBatchDetails(batchId: string | null) {
   const loadBatchDetails = async (id: string) => {
     setLoading(true);
     try {
-      const [batchData, logsData, performanceData] = await Promise.all([apiGetBatch(id), getBatchOperationLogs(id), getBatchPerformance(id, 7)]);
+      const batchData = await apiGetBatch(id);
+      const [logsData, performanceData] = await Promise.all([
+        getBatchOperationLogs(id).catch((err) => {
+          console.warn("Batch logs API unavailable, using empty logs:", err);
+          return [] as BatchOperationLog[];
+        }),
+        getBatchPerformance(id, 7).catch((err) => {
+          console.warn("Batch performance API unavailable, using empty performance data:", err);
+          return [] as BatchPerformance[];
+        }),
+      ]);
+
       setBatch(batchData);
       setLogs(logsData);
       setPerformance(performanceData);
