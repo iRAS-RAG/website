@@ -7,7 +7,7 @@ import React, { useState } from "react";
 import type { Role } from "../../../api/auth";
 import { roles } from "../../../api/auth";
 import type { ApiError } from "../../../api/client";
-import type { User } from "../../../api/users";
+import type { User } from "../../../types/user";
 import { translateRole } from "../../../utils/roles";
 
 const UserFormDialog: React.FC<{

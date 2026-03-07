@@ -8,7 +8,6 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { Box, Button, IconButton, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
-import type { FeedType } from "../../api/feed-types";
 import DataTable, { type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
@@ -16,6 +15,7 @@ import { useToast } from "../../components/common/toastContext";
 import ConfirmDeleteDialog from "../../components/supervisor/feed-types/ConfirmDeleteDialog";
 import FeedFormDialog from "../../components/supervisor/feed-types/FeedFormDialog";
 import useFeedTypes from "../../hooks/useFeedTypes";
+import type { FeedType } from "../../types/feed-type";
 
 const FeedTypesTab: React.FC = () => {
   const { feeds, meta, load, create, update, remove } = useFeedTypes();

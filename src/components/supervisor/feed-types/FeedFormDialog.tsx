@@ -4,7 +4,7 @@ import LocalDiningIcon from "@mui/icons-material/LocalDining";
 import MedicationIcon from "@mui/icons-material/Medication";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, Stack, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import type { FeedType } from "../../../api/feed-types";
+import type { FeedType } from "../../../types/feed-type";
 
 type Values = { name: string; protein: string; description?: string; manufacturer?: string };
 

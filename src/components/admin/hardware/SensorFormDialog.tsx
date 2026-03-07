@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
 import { getMasterBoards } from "../../../api/masterboards";
 import { getSensorTypes } from "../../../api/sensor-types";
-import type { Sensor } from "../../../types/hardware";
+import type { Sensor } from "../../../types/sensor";
 
 const SensorFormDialog: React.FC<{
   open: boolean;

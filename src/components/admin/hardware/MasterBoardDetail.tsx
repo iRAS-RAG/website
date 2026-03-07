@@ -1,6 +1,8 @@
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button, Divider, List, ListItem, ListItemText, Paper, Typography } from "@mui/material";
-import type { ControlDevice, MasterBoard, Sensor } from "../../../types/hardware";
+import type { ControlDevice } from "../../../types/control-device";
+import type { MasterBoard } from "../../../types/masterboard";
+import type { Sensor } from "../../../types/sensor";
 
 type Props = {
   board: MasterBoard;

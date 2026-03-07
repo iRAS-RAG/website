@@ -1,6 +1,8 @@
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button, Divider, Paper, Typography } from "@mui/material";
-import type { MasterBoard, Sensor, Tank } from "../../../types/hardware";
+import type { MasterBoard } from "../../../types/masterboard";
+import type { Sensor } from "../../../types/sensor";
+import type { Tank } from "../../../types/tank";
 
 type Props = {
   tank: Tank;

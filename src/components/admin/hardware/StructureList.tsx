@@ -7,7 +7,10 @@ import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
 import { Box, Collapse, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Paper, Typography } from "@mui/material";
 import React from "react";
-import type { ControlDevice, MasterBoard, Sensor, Tank } from "../../../types/hardware";
+import type { ControlDevice } from "../../../types/control-device";
+import type { MasterBoard } from "../../../types/masterboard";
+import type { Sensor } from "../../../types/sensor";
+import type { Tank } from "../../../types/tank";
 
 type Props = {
   tanks: Tank[];

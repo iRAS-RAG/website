@@ -1,6 +1,6 @@
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button, Divider, Paper, Typography } from "@mui/material";
-import type { Sensor } from "../../../types/hardware";
+import type { Sensor } from "../../../types/sensor";
 
 type Props = {
   sensor: Sensor;

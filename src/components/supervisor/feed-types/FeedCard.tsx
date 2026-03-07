@@ -5,7 +5,7 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import { Avatar, Box, Chip, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { FaFish } from "react-icons/fa";
-import type { FeedType } from "../../../api/feed-types";
+import type { FeedType } from "../../../types/feed-type";
 
 type Props = {
   feed: FeedType;

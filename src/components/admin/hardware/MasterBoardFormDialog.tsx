@@ -2,7 +2,8 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, St
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
 import { getTanks } from "../../../api/tanks";
-import type { MasterBoard, Tank } from "../../../types/hardware";
+import type { MasterBoard } from "../../../types/masterboard";
+import type { Tank } from "../../../types/tank";
 
 const MasterBoardFormDialog: React.FC<{
   open: boolean;

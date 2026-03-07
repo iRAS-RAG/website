@@ -1,6 +1,6 @@
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button, Divider, Paper, Typography } from "@mui/material";
-import type { ControlDevice } from "../../../types/hardware";
+import type { ControlDevice } from "../../../types/control-device";
 
 type Props = {
   control: ControlDevice;

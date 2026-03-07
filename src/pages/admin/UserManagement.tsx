@@ -13,7 +13,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { isAdmin, roles } from "../../api/auth";
 import { isApiError } from "../../api/client";
-import type { User } from "../../api/users";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import UserFormDialog from "../../components/admin/users/UserFormDialog";
@@ -23,6 +22,7 @@ import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
 import { useToast } from "../../components/common/toastContext";
 import useUserManagement from "../../hooks/useUserManagement";
+import type { User } from "../../types/user";
 import { translateRole } from "../../utils/roles";
 
 const UserManagement: React.FC = () => {

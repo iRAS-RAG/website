@@ -2,7 +2,7 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, St
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
 import { getMasterBoards } from "../../../api/masterboards";
-import type { ControlDevice } from "../../../types/hardware";
+import type { ControlDevice } from "../../../types/control-device";
 
 const ControlDeviceFormDialog: React.FC<{
   open: boolean;

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { User } from "../api/users";
 import { createUser, deleteUser, disableUser, restoreUser, toUiUser, updateUser } from "../api/users";
 import type { TableParams } from "../types/table";
+import type { User } from "../types/user";
 import useTableData from "./useTableData";
 
 export default function useUserManagement() {

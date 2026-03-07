@@ -11,13 +11,28 @@ import SensorFormDialog from "../../components/admin/hardware/SensorFormDialog";
 import StructureList from "../../components/admin/hardware/StructureList";
 import TankDetail from "../../components/admin/hardware/TankDetail";
 import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
-import useHardwareData from "../../hooks/useHardwareData";
-import type { ControlDevice, MasterBoard, Sensor, Tank } from "../../types/hardware";
+import useControlDevices from "../../hooks/useControlDevices";
+import useMasterBoards from "../../hooks/useMasterBoards";
+import useSensorTypes from "../../hooks/useSensorTypes";
+import useSensors from "../../hooks/useSensors";
+import useTanks from "../../hooks/useTanks";
+import type { ControlDevice } from "../../types/control-device";
+import type { MasterBoard } from "../../types/masterboard";
+import type { Sensor } from "../../types/sensor";
+import type { Tank } from "../../types/tank";
 
 const HardwareManagement: React.FC = () => {
   const theme = useTheme();
-  const { loading, sensorTypes, masterBoards, sensors, controlDevices, tanks, handleSaveMasterBoard, handleUpdateTank, handleSaveSensor, handleSaveControl, snackOpen, snackMsg, setSnackOpen } =
-    useHardwareData();
+  const { items: sensorTypes, loading: sensorTypesLoading } = useSensorTypes();
+  const { loading: tanksLoading, tanks, handleUpdateTank } = useTanks();
+  const { loading: masterBoardsLoading, masterBoards, handleSaveMasterBoard } = useMasterBoards(tanks);
+  const { loading: sensorsLoading, sensors, handleSaveSensor } = useSensors();
+  const { loading: controlDevicesLoading, controlDevices, handleSaveControl } = useControlDevices();
+
+  const loading = sensorTypesLoading || tanksLoading || masterBoardsLoading || sensorsLoading || controlDevicesLoading;
+
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMsg, setSnackMsg] = useState("");
 
   const [expandedTanks, setExpandedTanks] = useState<Record<string, boolean>>({});
   const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>({});
@@ -185,6 +200,8 @@ const HardwareManagement: React.FC = () => {
         }}
         onSave={async (v) => {
           await handleSaveMasterBoard(v, editingBoard);
+          setSnackMsg(editingBoard ? "Cập nhật masterboard thành công" : "Tạo masterboard thành công");
+          setSnackOpen(true);
           setEditingBoard(null);
           setMbDialogOpen(false);
         }}
@@ -198,6 +215,8 @@ const HardwareManagement: React.FC = () => {
         }}
         onSave={async (v) => {
           await handleUpdateTank(v, editingTank?.id);
+          setSnackMsg("Cập nhật bể thành công");
+          setSnackOpen(true);
           setEditingTank(null);
           setTankDialogOpen(false);
         }}
@@ -211,6 +230,8 @@ const HardwareManagement: React.FC = () => {
         }}
         onSave={async (v) => {
           await handleSaveSensor(v, editingSensor?.id);
+          setSnackMsg(editingSensor ? "Cập nhật cảm biến thành công" : "Tạo cảm biến thành công");
+          setSnackOpen(true);
           setEditingSensor(null);
           setSensorDialogOpen(false);
         }}
@@ -224,6 +245,8 @@ const HardwareManagement: React.FC = () => {
         }}
         onSave={async (v) => {
           await handleSaveControl(v, editingControl?.id);
+          setSnackMsg(editingControl ? "Cập nhật thiết bị điều khiển thành công" : "Tạo thiết bị điều khiển thành công");
+          setSnackOpen(true);
           setEditingControl(null);
           setControlDialogOpen(false);
         }}
