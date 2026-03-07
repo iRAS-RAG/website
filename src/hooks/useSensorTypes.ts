@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getSensorTypes } from "../api/sensor-types";
-import type { SensorType } from "../types/sensor-type";
+import { createSensorType, deleteSensorType, getSensorTypes, updateSensorType } from "../api/sensor-types";
+import type { SensorType, SensorTypeCreate } from "../types/sensor-type";
 
 export default function useSensorTypes() {
   const [items, setItems] = useState<SensorType[]>([]);
@@ -20,5 +20,24 @@ export default function useSensorTypes() {
     };
   }, []);
 
-  return { items, loading };
+  async function createItem(payload: SensorTypeCreate) {
+    const created = await createSensorType(payload);
+    setItems((prev) => [...prev, created]);
+    return created;
+  }
+
+  async function updateItem(id: string, payload: Partial<SensorTypeCreate>) {
+    const updated = await updateSensorType(id, payload);
+    if (!updated) return null;
+    setItems((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    return updated;
+  }
+
+  async function deleteItem(id: string) {
+    await deleteSensorType(id);
+    setItems((prev) => prev.filter((p) => p.id !== id));
+    return true;
+  }
+
+  return { items, loading, createItem, updateItem, deleteItem };
 }

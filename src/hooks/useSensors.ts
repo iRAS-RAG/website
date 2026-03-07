@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSensor, getSensors, updateSensor } from "../api/sensors";
+import { createSensor, deleteSensor, getSensors, updateSensor } from "../api/sensors";
 import type { Sensor } from "../types/sensor";
 
 export type SensorSaveInput = {
@@ -40,24 +40,35 @@ export default function useSensors() {
       const updated = await updateSensor(editingSensorId, {
         name: value.name,
         pinCode: value.pinCode,
+        sensorTypeId: value.sensorTypeId ?? undefined,
         masterBoardId: value.masterBoardId ?? undefined,
       });
       if (!updated) throw new Error("Update failed");
-      setSensors((prev) => prev.map((sensor) => (sensor.id === updated.id ? updated : sensor)));
+      const refreshed = await getSensors();
+      setSensors(refreshed);
       return;
     }
 
-    const created = await createSensor({
+    await createSensor({
       name: value.name,
       pinCode: value.pinCode,
+      sensorTypeId: value.sensorTypeId ?? undefined,
       masterBoardId: value.masterBoardId ?? undefined,
     });
-    setSensors((prev) => [...prev, created]);
+    const refreshed = await getSensors();
+    setSensors(refreshed);
+  }
+
+  async function handleDeleteSensor(id?: string | null) {
+    if (!id) throw new Error("No sensor selected");
+    await deleteSensor(id);
+    setSensors((prev) => prev.filter((sensor) => sensor.id !== id));
   }
 
   return {
     loading,
     sensors,
     handleSaveSensor,
+    handleDeleteSensor,
   } as const;
 }

@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { createControlDevice, getControlDevices, updateControlDevice } from "../api/control-devices";
+import { createControlDevice, deleteControlDevice, getControlDevices, updateControlDevice } from "../api/control-devices";
 import type { ControlDevice } from "../types/control-device";
 
 export type ControlDeviceSaveInput = {
   name: string;
   pinCode?: number;
   masterBoardId?: string | null;
-  controlDeviceTypeName?: string;
+  controlDeviceTypeId?: string | null;
   state?: boolean;
+  commandOn?: string;
+  commandOff?: string;
 };
 
 export default function useControlDevices() {
@@ -42,27 +44,40 @@ export default function useControlDevices() {
         name: value.name,
         pinCode: value.pinCode,
         masterBoardId: value.masterBoardId ?? undefined,
-        controlDeviceTypeName: value.controlDeviceTypeName ?? undefined,
+        controlDeviceTypeId: value.controlDeviceTypeId ?? undefined,
         state: value.state,
+        commandOn: value.commandOn,
+        commandOff: value.commandOff,
       });
       if (!updated) throw new Error("Update failed");
-      setControlDevices((prev) => prev.map((device) => (device.id === updated.id ? updated : device)));
+      const refreshed = await getControlDevices();
+      setControlDevices(refreshed);
       return;
     }
 
-    const created = await createControlDevice({
+    await createControlDevice({
       name: value.name,
       pinCode: value.pinCode,
       masterBoardId: value.masterBoardId ?? undefined,
-      controlDeviceTypeName: value.controlDeviceTypeName ?? undefined,
+      controlDeviceTypeId: value.controlDeviceTypeId ?? undefined,
       state: value.state,
+      commandOn: value.commandOn,
+      commandOff: value.commandOff,
     });
-    setControlDevices((prev) => [...prev, created]);
+    const refreshed = await getControlDevices();
+    setControlDevices(refreshed);
+  }
+
+  async function handleDeleteControl(id?: string | null) {
+    if (!id) throw new Error("No control device selected");
+    await deleteControlDevice(id);
+    setControlDevices((prev) => prev.filter((device) => device.id !== id));
   }
 
   return {
     loading,
     controlDevices,
     handleSaveControl,
+    handleDeleteControl,
   } as const;
 }

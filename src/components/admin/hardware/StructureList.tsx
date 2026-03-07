@@ -116,7 +116,7 @@ export default function StructureList({ tanks, masterBoards, sensors, controlDev
                     })}
                     {boards.length === 0 && (
                       <ListItem sx={{ pl: 2 }}>
-                        <ListItemText primary="(Không có masterboard)" />
+                        <ListItemText primary="(Không có bảng mạch)" />
                       </ListItem>
                     )}
                   </List>

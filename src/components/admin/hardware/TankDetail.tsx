@@ -1,4 +1,9 @@
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import CodeIcon from "@mui/icons-material/Code";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import HeightIcon from "@mui/icons-material/Height";
+import StraightenIcon from "@mui/icons-material/Straighten";
 import { Box, Button, Divider, Paper, Typography } from "@mui/material";
 import type { MasterBoard } from "../../../types/masterboard";
 import type { Sensor } from "../../../types/sensor";
@@ -10,9 +15,10 @@ type Props = {
   sensors: Sensor[];
   onEdit: (t: Tank) => void;
   onAddBoard: () => void;
+  onDelete: (t: Tank) => void;
 };
 
-export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard }: Props) {
+export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard, onDelete }: Props) {
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -27,7 +33,10 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard }
         <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.paper" }}>
           <Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              CAMERA URL
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <CameraAltIcon fontSize="small" />
+                CAMERA URL
+              </span>
             </Typography>
             {tank.cameraUrl ? (
               <Typography component="a" href={tank.cameraUrl} target="_blank" rel="noreferrer" color="primary" sx={{ mt: 1, display: "block", wordBreak: "break-all" }}>
@@ -40,19 +49,28 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard }
         </Paper>
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="caption" color="text.secondary">
-            MÃ CHỦ ĐỀ
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <CodeIcon fontSize="small" />
+              MÃ CHỦ ĐỀ
+            </span>
           </Typography>
           <Typography sx={{ mt: 1 }}>{tank.topicCode ?? "—"}</Typography>
         </Paper>
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="caption" color="text.secondary">
-            CHIỀU CAO (cm)
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <HeightIcon fontSize="small" />
+              CHIỀU CAO (cm)
+            </span>
           </Typography>
           <Typography sx={{ mt: 1 }}>{typeof tank.height === "number" ? tank.height : "—"}</Typography>
         </Paper>
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="caption" color="text.secondary">
-            BÁN KÍNH (cm)
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <StraightenIcon fontSize="small" />
+              BÁN KÍNH (cm)
+            </span>
           </Typography>
           <Typography sx={{ mt: 1 }}>{typeof tank.radius === "number" ? tank.radius : "—"}</Typography>
         </Paper>
@@ -79,9 +97,12 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard }
         </Paper>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
+      <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
         <Button variant="contained" color="primary" onClick={onAddBoard}>
           Thêm bảng mạch
+        </Button>
+        <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(tank)}>
+          Xóa bể
         </Button>
       </Box>
     </Box>

@@ -7,5 +7,6 @@ export type ControlDevice = {
   commandOff?: string;
   masterBoardId?: string;
   masterBoardName?: string;
+  controlDeviceTypeId?: string;
   controlDeviceTypeName?: string;
 };

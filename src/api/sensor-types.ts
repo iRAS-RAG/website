@@ -6,7 +6,7 @@ function toUi(item: Record<string, unknown>): SensorType {
     id: String(item.id ?? ""),
     name: item.name ? String(item.name) : "",
     measureType: item.measureType ? String(item.measureType) : undefined,
-    unit: item.unit ? String(item.unit) : undefined,
+    unitOfMeasure: item.unitOfMeasure ? String(item.unitOfMeasure) : undefined,
   };
 }
 

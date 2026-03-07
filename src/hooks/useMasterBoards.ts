@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { createMasterBoard, getMasterBoards, updateMasterBoard } from "../api/masterboards";
+import { createMasterBoard, deleteMasterBoard, getMasterBoards, updateMasterBoard } from "../api/masterboards";
 import type { MasterBoard } from "../types/masterboard";
-import type { Tank } from "../types/tank";
 
 export type MasterBoardSaveInput = {
   name: string;
@@ -9,7 +8,7 @@ export type MasterBoardSaveInput = {
   fishTankId?: string | null;
 };
 
-export default function useMasterBoards(tanks: Tank[]) {
+export default function useMasterBoards() {
   const [loading, setLoading] = useState(true);
   const [masterBoards, setMasterBoards] = useState<MasterBoard[]>([]);
 
@@ -36,13 +35,11 @@ export default function useMasterBoards(tanks: Tank[]) {
   }, []);
 
   async function handleSaveMasterBoard(value: MasterBoardSaveInput, editingBoard?: MasterBoard | null) {
-    const fishTankName = value.fishTankId ? tanks.find((tank) => tank.id === value.fishTankId)?.name : undefined;
-
     if (editingBoard) {
       const updated = await updateMasterBoard(editingBoard.id, {
         name: value.name,
         macAddress: value.macAddress ?? undefined,
-        fishTankName,
+        fishTankId: value.fishTankId ?? null,
       });
       if (!updated) throw new Error("Update failed");
       setMasterBoards((prev) => prev.map((board) => (board.id === updated.id ? updated : board)));
@@ -52,14 +49,21 @@ export default function useMasterBoards(tanks: Tank[]) {
     const created = await createMasterBoard({
       name: value.name,
       macAddress: value.macAddress ?? undefined,
-      fishTankName,
+      fishTankId: value.fishTankId ?? null,
     });
     setMasterBoards((prev) => [...prev, created]);
+  }
+
+  async function handleDeleteMasterBoard(id?: string | null) {
+    if (!id) throw new Error("No masterboard selected");
+    await deleteMasterBoard(id);
+    setMasterBoards((prev) => prev.filter((board) => board.id !== id));
   }
 
   return {
     loading,
     masterBoards,
     handleSaveMasterBoard,
+    handleDeleteMasterBoard,
   } as const;
 }

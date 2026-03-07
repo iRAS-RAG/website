@@ -20,6 +20,13 @@ export async function getTanks(): Promise<Tank[]> {
   return items.map((i) => toTank(i as Record<string, unknown>));
 }
 
+export async function createTank(payload: Partial<Tank>): Promise<Tank | null> {
+  const body: Record<string, unknown> = { ...payload };
+  const created = await apiFetch<Record<string, unknown>>("/tanks", { method: "POST", body });
+  if (!created) return null;
+  return toTank(created as Record<string, unknown>);
+}
+
 export async function updateTank(id: string, payload: Partial<Tank>): Promise<Tank | null> {
   const body: Record<string, unknown> = { ...payload };
   const updated = await apiFetch<Record<string, unknown>>(`/tanks/${id}`, { method: "PUT", body });
@@ -27,4 +34,9 @@ export async function updateTank(id: string, payload: Partial<Tank>): Promise<Ta
   return toTank(updated as Record<string, unknown>);
 }
 
-export default { getTanks, updateTank };
+export async function deleteTank(id: string): Promise<boolean> {
+  await apiFetch(`/tanks/${id}`, { method: "DELETE" });
+  return true;
+}
+
+export default { getTanks, createTank, updateTank, deleteTank };

@@ -1,48 +1,27 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
+import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
-import { getTanks } from "../../../api/tanks";
 import type { MasterBoard } from "../../../types/masterboard";
-import type { Tank } from "../../../types/tank";
 
 const MasterBoardFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
   onSave: (v: { name: string; macAddress?: string; fishTankId?: string | null }) => Promise<void>;
   initial: MasterBoard | null;
-}> = ({ open, onClose, onSave, initial }) => {
+  defaultFishTankId?: string | null;
+}> = ({ open, onClose, onSave, initial, defaultFishTankId }) => {
   const [name, setName] = useState(initial?.name ?? "");
   const [macAddress, setMacAddress] = useState(initial?.macAddress ?? "");
-  const [fishTankId, setFishTankId] = useState<string | undefined>(undefined);
-  const [tanks, setTanks] = useState<Tank[]>([]);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const t = await getTanks();
-        if (!mounted) return;
-        setTanks(t);
-        if (initial && initial.fishTankName) {
-          const found = t.find((x) => x.name === initial.fishTankName);
-          if (found) setFishTankId(found.id);
-        }
-      } catch (e) {
-        console.error("Failed to load tanks for masterboard form", e);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [initial]);
-
-  useEffect(() => {
     setName(initial?.name ?? "");
     setMacAddress(initial?.macAddress ?? "");
-  }, [initial]);
+  }, [initial, defaultFishTankId]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
@@ -54,16 +33,32 @@ const MasterBoardFormDialog: React.FC<{
           </Typography>
         )}
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Tên" value={name} onChange={(e) => setName(e.target.value)} fullWidth error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} />
-          <TextField label="MAC Address" value={macAddress} onChange={(e) => setMacAddress(e.target.value)} fullWidth error={Boolean(fieldErrors.macAddress)} helperText={fieldErrors.macAddress} />
-          <TextField select label="Bể" value={fishTankId ?? ""} onChange={(e) => setFishTankId(e.target.value)} error={Boolean(fieldErrors.fishTankId)}>
-            <MenuItem value="">(Chọn bể)</MenuItem>
-            {tanks.map((t) => (
-              <MenuItem key={t.id} value={t.id}>
-                {t.name}
-              </MenuItem>
-            ))}
-          </TextField>
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <DeveloperBoardIcon fontSize="small" />
+                Tên
+              </span>
+            }
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.name)}
+            helperText={fieldErrors.name}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <SettingsEthernetIcon fontSize="small" />
+                MAC Address
+              </span>
+            }
+            value={macAddress}
+            onChange={(e) => setMacAddress(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.macAddress)}
+            helperText={fieldErrors.macAddress}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -86,7 +81,7 @@ const MasterBoardFormDialog: React.FC<{
 
             setSaving(true);
             try {
-              await onSave({ name, macAddress: macAddress || undefined, fishTankId: fishTankId || null });
+              await onSave({ name, macAddress: macAddress || undefined, fishTankId: defaultFishTankId || null });
             } catch (e) {
               const err = e as ApiError;
               if (err && err.data && (err.data as Record<string, unknown>).errors) {

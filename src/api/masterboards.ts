@@ -16,25 +16,30 @@ export async function getMasterBoards(): Promise<MasterBoard[]> {
   return items.map((i) => toMasterBoard(i as Record<string, unknown>));
 }
 
-export async function createMasterBoard(payload: Partial<MasterBoard>): Promise<MasterBoard> {
+export async function createMasterBoard(payload: { name: string; macAddress?: string | null; fishTankId?: string | null }): Promise<MasterBoard> {
   const body: Record<string, unknown> = {
     name: payload.name ?? "",
     macAddress: payload.macAddress ?? null,
-    fishTankName: payload.fishTankName ?? null,
+    fishTankId: payload.fishTankId ?? null,
   };
   const created = await apiFetch<Record<string, unknown>>("/hardware/masterboards", { method: "POST", body });
   return toMasterBoard(created as Record<string, unknown>);
 }
 
-export async function updateMasterBoard(id: string, payload: Partial<MasterBoard>): Promise<MasterBoard | null> {
+export async function updateMasterBoard(id: string, payload: { name: string; macAddress?: string | null; fishTankId?: string | null }): Promise<MasterBoard | null> {
   const body: Record<string, unknown> = {
     name: payload.name ?? "",
     macAddress: payload.macAddress ?? null,
-    fishTankName: payload.fishTankName ?? null,
+    fishTankId: payload.fishTankId ?? null,
   };
   const updated = await apiFetch<Record<string, unknown>>(`/hardware/masterboards/${id}`, { method: "PUT", body });
   if (!updated) return null;
   return toMasterBoard(updated as Record<string, unknown>);
 }
 
-export default { getMasterBoards, createMasterBoard, updateMasterBoard };
+export async function deleteMasterBoard(id: string): Promise<boolean> {
+  await apiFetch(`/hardware/masterboards/${id}`, { method: "DELETE" });
+  return true;
+}
+
+export default { getMasterBoards, createMasterBoard, updateMasterBoard, deleteMasterBoard };

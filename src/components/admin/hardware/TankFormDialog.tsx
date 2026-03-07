@@ -1,3 +1,8 @@
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import CodeIcon from "@mui/icons-material/Code";
+import HeightIcon from "@mui/icons-material/Height";
+import PoolIcon from "@mui/icons-material/Pool";
+import StraightenIcon from "@mui/icons-material/Straighten";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
@@ -38,11 +43,71 @@ const TankFormDialog: React.FC<{
           </Typography>
         )}
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Tên" value={name} onChange={(e) => setName(e.target.value)} fullWidth error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} />
-          <TextField label="Chiều cao (cm)" value={height} onChange={(e) => setHeight(e.target.value)} fullWidth error={Boolean(fieldErrors.height)} helperText={fieldErrors.height} />
-          <TextField label="Bán kính (cm)" value={radius} onChange={(e) => setRadius(e.target.value)} fullWidth error={Boolean(fieldErrors.radius)} helperText={fieldErrors.radius} />
-          <TextField label="Mã chủ đề" value={topicCode} onChange={(e) => setTopicCode(e.target.value)} fullWidth error={Boolean(fieldErrors.topicCode)} helperText={fieldErrors.topicCode} />
-          <TextField label="Camera URL" value={cameraUrl} onChange={(e) => setCameraUrl(e.target.value)} fullWidth error={Boolean(fieldErrors.cameraUrl)} helperText={fieldErrors.cameraUrl} />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <PoolIcon fontSize="small" />
+                Tên
+              </span>
+            }
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.name)}
+            helperText={fieldErrors.name}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <HeightIcon fontSize="small" />
+                Chiều cao (cm)
+              </span>
+            }
+            value={height}
+            onChange={(e) => setHeight(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.height)}
+            helperText={fieldErrors.height}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <StraightenIcon fontSize="small" />
+                Bán kính (cm)
+              </span>
+            }
+            value={radius}
+            onChange={(e) => setRadius(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.radius)}
+            helperText={fieldErrors.radius}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <CodeIcon fontSize="small" />
+                Mã chủ đề
+              </span>
+            }
+            value={topicCode}
+            onChange={(e) => setTopicCode(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.topicCode)}
+            helperText={fieldErrors.topicCode}
+          />
+          <TextField
+            label={
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <CameraAltIcon fontSize="small" />
+                Camera URL
+              </span>
+            }
+            value={cameraUrl}
+            onChange={(e) => setCameraUrl(e.target.value)}
+            fullWidth
+            error={Boolean(fieldErrors.cameraUrl)}
+            helperText={fieldErrors.cameraUrl}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTanks, updateTank } from "../api/tanks";
+import { createTank, deleteTank, getTanks, updateTank } from "../api/tanks";
 import type { Tank } from "../types/tank";
 
 export type TankUpdatePayload = {
@@ -10,6 +10,8 @@ export type TankUpdatePayload = {
   topicCode?: string;
   cameraUrl?: string;
 };
+
+const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 
 export default function useTanks() {
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,16 @@ export default function useTanks() {
     };
   }, []);
 
+  async function handleCreateTank(payload: TankUpdatePayload) {
+    const created = await createTank({
+      ...payload,
+      farmId: DEFAULT_FARM_ID,
+    });
+    if (!created) throw new Error("Create failed");
+    setTanks((prev) => [...prev, created]);
+    return created;
+  }
+
   async function handleUpdateTank(payload: TankUpdatePayload, id?: string | null) {
     if (!id) throw new Error("No tank selected");
     const updated = await updateTank(id, payload);
@@ -44,9 +56,17 @@ export default function useTanks() {
     setTanks((prev) => prev.map((tank) => (tank.id === id ? updated : tank)));
   }
 
+  async function handleDeleteTank(id?: string | null) {
+    if (!id) throw new Error("No tank selected");
+    await deleteTank(id);
+    setTanks((prev) => prev.filter((tank) => tank.id !== id));
+  }
+
   return {
     loading,
     tanks,
+    handleCreateTank,
     handleUpdateTank,
+    handleDeleteTank,
   } as const;
 }
