@@ -4,8 +4,11 @@ import { apiFetch } from "./client";
 function toUi(item: Record<string, unknown>): SpeciesThreshold {
   return {
     id: String(item.id ?? ""),
+    speciesId: item.speciesId ? String(item.speciesId) : undefined,
     speciesName: item.speciesName ? String(item.speciesName) : undefined,
+    growthStageId: item.growthStageId ? String(item.growthStageId) : undefined,
     growthStageName: item.growthStageName ? String(item.growthStageName) : undefined,
+    sensorTypeId: item.sensorTypeId ? String(item.sensorTypeId) : undefined,
     sensorTypeName: item.sensorTypeName ? String(item.sensorTypeName) : undefined,
     minValue: item.minValue !== undefined ? Number(item.minValue) : undefined,
     maxValue: item.maxValue !== undefined ? Number(item.maxValue) : undefined,
@@ -13,7 +16,7 @@ function toUi(item: Record<string, unknown>): SpeciesThreshold {
 }
 
 export async function getSpeciesThresholds(): Promise<SpeciesThreshold[]> {
-  const res = await apiFetch<unknown>("/species-threshholds");
+  const res = await apiFetch<unknown>("/config/thresholds");
   if (Array.isArray(res)) return (res as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 
   if (res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
@@ -27,7 +30,7 @@ export async function getSpeciesThresholds(): Promise<SpeciesThreshold[]> {
 
 export async function getSpeciesThreshold(id: string): Promise<SpeciesThreshold | null> {
   try {
-    const res = await apiFetch<unknown>(`/species-threshholds/${id}`);
+    const res = await apiFetch<unknown>(`/config/thresholds/${id}`);
     if (!res) return null;
     if (Array.isArray(res)) return toUi(res[0] as Record<string, unknown>);
     if (typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
@@ -37,14 +40,14 @@ export async function getSpeciesThreshold(id: string): Promise<SpeciesThreshold 
     }
     if (typeof res === "object") return toUi(res as Record<string, unknown>);
   } catch (e) {
-    // ignore
+    console.error("Failed to fetch species threshold", e);
   }
   return null;
 }
 
 export async function createSpeciesThreshold(payload: SpeciesThresholdCreate): Promise<SpeciesThreshold> {
   const body = { ...payload };
-  const created = await apiFetch<Record<string, unknown>>("/species-threshholds", { method: "POST", body });
+  const created = await apiFetch<Record<string, unknown>>("/config/thresholds", { method: "POST", body });
   if (!created) throw new Error("Failed to create species threshold");
   if (created && typeof created === "object" && Object.prototype.hasOwnProperty.call(created, "data")) {
     const inner = (created as Record<string, unknown>).data as Record<string, unknown> | undefined;
@@ -56,7 +59,7 @@ export async function createSpeciesThreshold(payload: SpeciesThresholdCreate): P
 export async function updateSpeciesThreshold(id: string, payload: Partial<SpeciesThresholdCreate>): Promise<SpeciesThreshold | null> {
   const body: Record<string, unknown> = {};
   Object.assign(body, payload);
-  const updated = await apiFetch<Record<string, unknown>>(`/species-threshholds/${id}`, { method: "PUT", body });
+  const updated = await apiFetch<Record<string, unknown>>(`/config/thresholds/${id}`, { method: "PUT", body });
   if (!updated) return null;
   if (typeof updated === "object" && Object.prototype.hasOwnProperty.call(updated, "data")) {
     const inner = (updated as Record<string, unknown>).data as Record<string, unknown> | undefined;
@@ -66,7 +69,7 @@ export async function updateSpeciesThreshold(id: string, payload: Partial<Specie
 }
 
 export async function deleteSpeciesThreshold(id: string): Promise<boolean> {
-  await apiFetch(`/species-threshholds/${id}`, { method: "DELETE" });
+  await apiFetch(`/config/thresholds/${id}`, { method: "DELETE" });
   return true;
 }
 

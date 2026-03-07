@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
-import * as hardwareApi from "../../../api/hardware";
+import { getMasterBoards } from "../../../api/masterboards";
 import type { ControlDevice } from "../../../types/hardware";
 
 const ControlDeviceFormDialog: React.FC<{
@@ -26,7 +26,7 @@ const ControlDeviceFormDialog: React.FC<{
     let mounted = true;
     (async () => {
       try {
-        const mbs = await hardwareApi.getMasterBoards();
+        const mbs = await getMasterBoards();
         if (!mounted) return;
         setMasterBoards(mbs.map((m) => ({ id: m.id, name: m.name })));
       } catch (e) {

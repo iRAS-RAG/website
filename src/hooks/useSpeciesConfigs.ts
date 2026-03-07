@@ -5,10 +5,12 @@ function generateId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export type SensorThreshold = { sensor: string; min: number | null; max: number | null };
+export type SensorThreshold = { id?: string; sensor: string; sensorTypeId?: string; min: number | null; max: number | null };
 export type Stage = {
   id: string;
   name: string;
+  growthStageId?: string;
+  configId?: string;
   feedType: string;
   feedPer100: number; // kg per 100 fishes
   frequencyPerDay: number;
@@ -71,7 +73,7 @@ export default function useSpeciesConfigs() {
     } catch {}
   }
 
-  function updateStageThreshold(speciesId: string, stageId: string, sensor: string, min: number | null, max: number | null) {
+  function updateStageThreshold(speciesId: string, stageId: string, sensor: string, min: number | null, max: number | null, id?: string) {
     const next = speciesConfigs.map((sp) => {
       if (sp.id !== speciesId) return sp;
       return {
@@ -79,7 +81,7 @@ export default function useSpeciesConfigs() {
         stages: sp.stages.map((st) => {
           if (st.id !== stageId) return st;
           const other = st.thresholds.filter((t) => t.sensor !== sensor);
-          other.push({ sensor, min, max });
+          other.push({ id, sensor, min, max });
           return { ...st, thresholds: other };
         }),
       };
@@ -87,8 +89,16 @@ export default function useSpeciesConfigs() {
     persist(next);
   }
 
-  function addStage(speciesId: string, name?: string) {
-    const next = speciesConfigs.map((sp) => (sp.id === speciesId ? { ...sp, stages: [...sp.stages, defaultStage(name)] } : sp));
+  function addStage(speciesId: string, growthStageId?: string, name?: string) {
+    const next = speciesConfigs.map((sp) => {
+      if (sp.id !== speciesId) return sp;
+      // prevent duplicate growthStageId
+      if (growthStageId && sp.stages.some((s) => s.growthStageId === growthStageId)) return sp;
+      const st = defaultStage(name);
+      if (growthStageId) st.growthStageId = growthStageId;
+      if (name) st.name = name;
+      return { ...sp, stages: [...sp.stages, st] };
+    });
     persist(next);
   }
 
@@ -103,5 +113,10 @@ export default function useSpeciesConfigs() {
     persist(next);
   }
 
-  return { speciesConfigs, setSpeciesConfigs: persist, updateStageThreshold, addStage, updateStage };
+  function removeStage(speciesId: string, stageId: string) {
+    const next = speciesConfigs.map((sp) => (sp.id === speciesId ? { ...sp, stages: sp.stages.filter((s) => s.id !== stageId) } : sp));
+    persist(next);
+  }
+
+  return { speciesConfigs, setSpeciesConfigs: persist, updateStageThreshold, addStage, updateStage, removeStage } as const;
 }

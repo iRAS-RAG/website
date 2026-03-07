@@ -27,6 +27,16 @@ type Links = { self?: string | null; first?: string | null; prev?: string | null
 
 type ApiWrappedResponse<T> = { message?: string; data?: T; meta?: Meta; links?: Links };
 
+export function extractArray(res: unknown): unknown[] {
+  if (Array.isArray(res)) return res;
+  if (res && typeof res === "object") {
+    const obj = res as Record<string, unknown>;
+    const data = obj["data"];
+    if (Array.isArray(data)) return data;
+  }
+  return [];
+}
+
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE,
   headers: {

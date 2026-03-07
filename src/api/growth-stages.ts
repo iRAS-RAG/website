@@ -10,7 +10,7 @@ function toUi(item: Record<string, unknown>): GrowthStage {
 }
 
 export async function getGrowthStages(): Promise<GrowthStage[]> {
-  const res = await apiFetch<unknown>("/growth-stages");
+  const res = await apiFetch<unknown>("/config/growth-stages");
   if (Array.isArray(res)) return (res as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 
   if (res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
@@ -24,7 +24,7 @@ export async function getGrowthStages(): Promise<GrowthStage[]> {
 
 export async function getGrowthStage(id: string): Promise<GrowthStage | null> {
   try {
-    const res = await apiFetch<unknown>(`/growth-stages/${id}`);
+    const res = await apiFetch<unknown>(`/config/growth-stages/${id}`);
     if (!res) return null;
     if (Array.isArray(res)) return toUi(res[0] as Record<string, unknown>);
     if (typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
@@ -41,7 +41,7 @@ export async function getGrowthStage(id: string): Promise<GrowthStage | null> {
 
 export async function createGrowthStage(payload: { name: string; description?: string }): Promise<GrowthStage> {
   const body = { name: payload.name, description: payload.description };
-  const created = await apiFetch<Record<string, unknown>>("/growth-stages", { method: "POST", body });
+  const created = await apiFetch<Record<string, unknown>>("/config/growth-stages", { method: "POST", body });
   if (!created) throw new Error("Failed to create growth stage");
   // created may be wrapped
   if (created && typeof created === "object" && Object.prototype.hasOwnProperty.call(created, "data")) {
@@ -55,7 +55,7 @@ export async function updateGrowthStage(id: string, payload: Partial<{ name: str
   const body: Record<string, unknown> = {};
   if (payload.name !== undefined) body.name = payload.name;
   if (payload.description !== undefined) body.description = payload.description;
-  const updated = await apiFetch<Record<string, unknown>>(`/growth-stages/${id}`, { method: "PUT", body });
+  const updated = await apiFetch<Record<string, unknown>>(`/config/growth-stages/${id}`, { method: "PUT", body });
   if (!updated) return null;
   if (typeof updated === "object" && Object.prototype.hasOwnProperty.call(updated, "data")) {
     const inner = (updated as Record<string, unknown>).data as Record<string, unknown> | undefined;
@@ -65,7 +65,7 @@ export async function updateGrowthStage(id: string, payload: Partial<{ name: str
 }
 
 export async function deleteGrowthStage(id: string): Promise<boolean> {
-  await apiFetch(`/growth-stages/${id}`, { method: "DELETE" });
+  await apiFetch(`/config/growth-stages/${id}`, { method: "DELETE" });
   return true;
 }
 

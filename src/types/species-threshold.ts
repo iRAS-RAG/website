@@ -1,7 +1,10 @@
 export type SpeciesThreshold = {
   id: string;
+  speciesId?: string;
   speciesName?: string;
+  growthStageId?: string;
   growthStageName?: string;
+  sensorTypeId?: string;
   sensorTypeName?: string;
   minValue?: number;
   maxValue?: number;

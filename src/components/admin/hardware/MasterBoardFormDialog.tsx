@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
-import * as hardwareApi from "../../../api/hardware";
+import { getTanks } from "../../../api/tanks";
 import type { MasterBoard, Tank } from "../../../types/hardware";
 
 const MasterBoardFormDialog: React.FC<{
@@ -22,7 +22,7 @@ const MasterBoardFormDialog: React.FC<{
     let mounted = true;
     (async () => {
       try {
-        const t = await hardwareApi.getTanks();
+        const t = await getTanks();
         if (!mounted) return;
         setTanks(t);
         if (initial && initial.fishTankName) {

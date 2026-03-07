@@ -1,6 +1,5 @@
+import type { Species } from "../types/species";
 import { apiFetch } from "./client";
-
-export type Species = { id: string; name: string; optimalTemp?: string };
 
 function toUi(item: Record<string, unknown>): Species {
   return {

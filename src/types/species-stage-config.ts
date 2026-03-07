@@ -1,7 +1,10 @@
 export type SpeciesStageConfig = {
   id: string;
+  speciesId?: string;
   speciesName?: string;
+  growthStageId?: string;
   growthStageName?: string;
+  feedTypeId?: string;
   feedTypeName?: string;
   amountPer100Fish?: number;
   frequencyPerDay?: number;

@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import * as hardwareApi from "../api/hardware";
+import { createControlDevice, getControlDevices, updateControlDevice } from "../api/control-devices";
+import { createMasterBoard, getMasterBoards, updateMasterBoard } from "../api/masterboards";
+import { getSensorTypes } from "../api/sensor-types";
+import { createSensor, getSensors, updateSensor } from "../api/sensors";
+import { getTanks, updateTank } from "../api/tanks";
 import type { ControlDevice, MasterBoard, Sensor, SensorType, Tank } from "../types/hardware";
 
 export default function useHardwareData() {
@@ -18,7 +22,7 @@ export default function useHardwareData() {
     async function load() {
       setLoading(true);
       try {
-        const [st, mb, s, cd, tk] = await Promise.all([hardwareApi.getSensorTypes(), hardwareApi.getMasterBoards(), hardwareApi.getSensors(), hardwareApi.getControlDevices(), hardwareApi.getTanks()]);
+        const [st, mb, s, cd, tk] = await Promise.all([getSensorTypes(), getMasterBoards(), getSensors(), getControlDevices(), getTanks()]);
         if (!mounted) return;
         setSensorTypes(st);
         setMasterBoards(mb);
@@ -39,7 +43,7 @@ export default function useHardwareData() {
 
   async function handleSaveMasterBoard(v: { name: string; macAddress?: string; fishTankId?: string | null }, editingBoard?: MasterBoard | null) {
     if (editingBoard) {
-      const updated = await hardwareApi.updateMasterBoard(editingBoard.id, {
+      const updated = await updateMasterBoard(editingBoard.id, {
         name: v.name,
         macAddress: v.macAddress ?? undefined,
         fishTankName: v.fishTankId ? tanks.find((t) => t.id === v.fishTankId)?.name : undefined,
@@ -49,7 +53,7 @@ export default function useHardwareData() {
       setSnackMsg("Cập nhật masterboard thành công");
       setSnackOpen(true);
     } else {
-      const created = await hardwareApi.createMasterBoard({
+      const created = await createMasterBoard({
         name: v.name,
         macAddress: v.macAddress ?? undefined,
         fishTankName: v.fishTankId ? tanks.find((t) => t.id === v.fishTankId)?.name : undefined,
@@ -62,7 +66,7 @@ export default function useHardwareData() {
 
   async function handleUpdateTank(payload: { name: string; height?: number; radius?: number; farmId?: string; topicCode?: string; cameraUrl?: string }, id?: string | null) {
     if (!id) throw new Error("No tank selected");
-    const updated = await hardwareApi.updateTank(id, payload);
+    const updated = await updateTank(id, payload);
     if (!updated) throw new Error("Update failed");
     setTanks((p) => p.map((t) => (t.id === id ? updated : t)));
     setSnackMsg("Cập nhật bể thành công");
@@ -71,7 +75,7 @@ export default function useHardwareData() {
 
   async function handleSaveSensor(v: { name: string; pinCode?: number; sensorTypeId?: string | null; masterBoardId?: string | null }, editingSensorId?: string | null) {
     if (editingSensorId) {
-      const updated = await hardwareApi.updateSensor(editingSensorId, {
+      const updated = await updateSensor(editingSensorId, {
         name: v.name,
         pinCode: v.pinCode,
         masterBoardId: v.masterBoardId ?? undefined,
@@ -81,7 +85,7 @@ export default function useHardwareData() {
       setSnackMsg("Cập nhật cảm biến thành công");
       setSnackOpen(true);
     } else {
-      const created = await hardwareApi.createSensor({
+      const created = await createSensor({
         name: v.name,
         pinCode: v.pinCode,
         masterBoardId: v.masterBoardId ?? undefined,
@@ -94,7 +98,7 @@ export default function useHardwareData() {
 
   async function handleSaveControl(v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeName?: string; state?: boolean }, editingControlId?: string | null) {
     if (editingControlId) {
-      const updated = await hardwareApi.updateControlDevice(editingControlId, {
+      const updated = await updateControlDevice(editingControlId, {
         name: v.name,
         pinCode: v.pinCode,
         masterBoardId: v.masterBoardId ?? undefined,
@@ -106,7 +110,7 @@ export default function useHardwareData() {
       setSnackMsg("Cập nhật thiết bị điều khiển thành công");
       setSnackOpen(true);
     } else {
-      const created = await hardwareApi.createControlDevice({
+      const created = await createControlDevice({
         name: v.name,
         pinCode: v.pinCode,
         masterBoardId: v.masterBoardId ?? undefined,

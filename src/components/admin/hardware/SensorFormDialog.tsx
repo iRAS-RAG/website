@@ -1,7 +1,8 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
-import * as hardwareApi from "../../../api/hardware";
+import { getMasterBoards } from "../../../api/masterboards";
+import { getSensorTypes } from "../../../api/sensor-types";
 import type { Sensor } from "../../../types/hardware";
 
 const SensorFormDialog: React.FC<{
@@ -24,8 +25,8 @@ const SensorFormDialog: React.FC<{
     let mounted = true;
     (async () => {
       try {
-        const sts = await hardwareApi.getSensorTypes();
-        const mbs = await hardwareApi.getMasterBoards();
+        const sts = await getSensorTypes();
+        const mbs = await getMasterBoards();
         if (!mounted) return;
         setSensorTypes(sts.map((s) => ({ id: s.id, name: s.name })));
         setMasterBoards(mbs.map((m) => ({ id: m.id, name: m.name })));

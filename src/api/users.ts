@@ -1,11 +1,5 @@
+import type { User } from "../types/user";
 import { apiFetch } from "./client";
-
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-};
 
 export function toUiUser(item: Record<string, unknown>): User {
   const firstName = String(item["firstName"] ?? "");
