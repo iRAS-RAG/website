@@ -28,9 +28,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// 1. Cập nhật Interface khớp với AlertCenter.tsx
+// ĐÃ SỬA: id thành string | number
 export interface AlertData {
-  id: number;
+  id: string | number;
   time: string;
   sensorCode: string;
   sensorName: string;
@@ -128,7 +128,10 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Mã: ALT-{new Date().getFullYear()}-
-            {data.id.toString().padStart(3, "0")}
+            {/* ĐÃ SỬA: Cắt lấy 8 ký tự đầu của chuỗi ID cho đẹp */}
+            {typeof data.id === "string"
+              ? data.id.substring(0, 8).toUpperCase()
+              : data.id.toString().padStart(3, "0")}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">

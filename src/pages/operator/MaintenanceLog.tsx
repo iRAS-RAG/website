@@ -533,7 +533,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
     <Paper
       elevation={0}
       sx={{
-        width: "100%", // 🔥 Quan trọng nhất: full width trong grid
+        width: "100%",
         p: 3,
         borderRadius: "16px",
         border: `1px solid ${theme.palette.divider}`,
