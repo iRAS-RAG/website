@@ -32,7 +32,6 @@ export const SensorCard: React.FC<SensorCardProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Map màu sắc nền và text cho trạng thái
   const colorMap = {
     success: { bg: "#ECFDF5", text: "#10B981", iconBg: "#D1FAE5" }, // Xanh lá
     warning: { bg: "#FFF7ED", text: "#F97316", iconBg: "#FFEDD5" }, // Cam
@@ -40,10 +39,6 @@ export const SensorCard: React.FC<SensorCardProps> = ({
   };
 
   const colors = colorMap[statusColor];
-
-  // Xác định màu xu hướng (Trend color)
-  // Nếu là warning/error -> trend thường là màu đỏ/cam. Nếu success -> xanh.
-  // Ở đây ta đơn giản hóa: Nếu status là error/warning thì trend màu đỏ, ngược lại xanh.
   const trendColor =
     statusColor === "success"
       ? theme.palette.success.main

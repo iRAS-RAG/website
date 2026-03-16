@@ -3,147 +3,176 @@ import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import { alpha, Avatar, Box, Button, Chip, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme, type PaletteColor } from "@mui/material";
-import React, { useState } from "react";
+// import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import {
+  Avatar,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+  useTheme,
+  type PaletteColor,
+  alpha,
+  Chip,
+} from "@mui/material";
+import React, { useState, useEffect, useMemo } from "react";
+import dayjs from "dayjs";
 
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { useCorrectiveActions } from "../../hooks/useCorrectiveActions";
+import { correctiveActionApi } from "../../api/correctiveActions";
+import { apiFetch, isApiError } from "../../api/client";
 
-// --- Interfaces ---
-interface MaintenanceEntry {
-  id: number;
-  time: string;
-  device: string;
-  deviceId: string;
-  issue: string;
-  reason: string;
-  parts: string[];
-  operator: string;
-  status: "Hoàn thành" | "Đang thực hiện" | "Chờ xử lý";
+interface IAlertOption {
+  id: string;
+  sensorTypeName: string;
+  fishTankName: string;
+  raisedAt: string;
 }
-
-interface SummaryCardProps {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  colorType: "primary" | "success" | "warning" | "info" | "error"; // Dùng key của palette thay vì mã màu
-}
-
-// --- Mock Data ---
-const maintenanceData: MaintenanceEntry[] = [
-  {
-    id: 1,
-    time: "13/01/2024 10:30",
-    device: "Hệ thống sục khí Bể A-01",
-    deviceId: "MC-001",
-    issue: "Blower quá nhiệt và rung bất thường",
-    reason: "Bạc đạn bị mòn, hệ thống làm mát kém",
-    parts: ["Bạc đạn Blower", "Quạt làm mát"],
-    operator: "Nguyễn Văn A",
-    status: "Hoàn thành",
-  },
-  {
-    id: 2,
-    time: "12/01/2024 14:15",
-    device: "Máy bơm tuần hoàn Bể B-02",
-    deviceId: "MC-003",
-    issue: "Áp suất nước giảm, có tiếng kêu lạ",
-    reason: "Impeller bị mòn, đường ống có rò rỉ nhỏ",
-    parts: ["Impeller", "Đệm cao su đường ống"],
-    operator: "Trần Thị B",
-    status: "Hoàn thành",
-  },
-  {
-    id: 3,
-    time: "12/01/2024 09:00",
-    device: "Cảm biến DO Bể A-02",
-    deviceId: "SEN-005",
-    issue: "Hiển thị giá trị không chính xác",
-    reason: "Đầu cảm biến bị bám bẩn, cần hiệu chuẩn",
-    parts: ["Màng cảm biến DO"],
-    operator: "Lê Văn C",
-    status: "Hoàn thành",
-  },
-  {
-    id: 4,
-    time: "11/01/2024 15:45",
-    device: "Hệ thống lọc sinh học Bể C-01",
-    deviceId: "MC-004",
-    issue: "Lưu lượng nước giảm đột ngột",
-    reason: "Vật liệu lọc bị tắc nghẽn",
-    parts: ["Vật liệu lọc sinh học"],
-    operator: "Nguyễn Văn A",
-    status: "Hoàn thành",
-  },
-  {
-    id: 5,
-    time: "11/01/2024 08:30",
-    device: "Máy bơm tuần hoàn Bể A-01",
-    deviceId: "MC-002",
-    issue: "Rò rỉ nước ở phớt trục",
-    reason: "Phớt cơ khí bị hỏng",
-    parts: ["Phớt cơ khí", "Vòng đệm"],
-    operator: "Trần Thị B",
-    status: "Đang thực hiện",
-  },
-  {
-    id: 6,
-    time: "10/01/2024 16:20",
-    device: "Đầu sục khí Bể B-01",
-    deviceId: "CP-008",
-    issue: "Một số đầu sục bị tắc",
-    reason: "Cặn bẩn tích tụ lâu ngày",
-    parts: ["Đầu sục khí (x3)"],
-    operator: "Lê Văn C",
-    status: "Hoàn thành",
-  },
-  {
-    id: 7,
-    time: "10/01/2024 10:00",
-    device: "Van điện từ Bể A-03",
-    deviceId: "VLV-012",
-    issue: "Van không đóng mở",
-    reason: "Cuộn dây điện từ bị cháy",
-    parts: ["Cuộn dây điện từ"],
-    operator: "Nguyễn Văn A",
-    status: "Chờ xử lý",
-  },
-];
 
 const MaintenanceLog: React.FC = () => {
   const theme = useTheme();
-  const [filter, setFilter] = useState("Tất cả");
 
-  // Helper function for status styling sử dụng theme
-  const getStatusStyle = (status: MaintenanceEntry["status"]) => {
-    switch (status) {
-      case "Hoàn thành":
-        return {
-          bgcolor: theme.palette.success.light, // Hoặc alpha(theme.palette.success.main, 0.1)
-          color: theme.palette.success.main,
-          borderColor: alpha(theme.palette.success.main, 0.3),
+  // 1. Lấy danh sách Nhật ký (từ hook)
+  const { data: logs, loading, error, refetch } = useCorrectiveActions();
+
+  // 2. State quản lý danh sách Cảnh báo (Alerts) dùng chung cho cả Bảng và Modal
+  const [alertsList, setAlertsList] = useState<IAlertOption[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+
+  // Gọi API lấy danh sách Alerts ngay khi load trang
+  useEffect(() => {
+    const fetchAllAlerts = async () => {
+      setLoadingAlerts(true);
+      try {
+        const res = await apiFetch<unknown>("/alerts?page=1&pageSize=100", {
+          method: "GET",
+        });
+        const resObj = res as { data?: IAlertOption[] };
+        const alertsData = Array.isArray(res) ? res : resObj?.data || [];
+
+        // Console log để kiểm tra xem danh sách cảnh báo tải về có bị rỗng không
+        console.log("Danh sách Alerts lấy về để map:", alertsData);
+
+        setAlertsList(alertsData as IAlertOption[]);
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách cảnh báo:", err);
+      } finally {
+        setLoadingAlerts(false);
+      }
+    };
+    fetchAllAlerts();
+  }, []);
+
+  // 3. Tạo "Từ điển" (Map) để tra cứu nhanh tên Cảnh báo từ ID
+  // Xử lý luôn trường hợp ID khác biệt chữ hoa/thường (toLowerCase)
+  const alertMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    alertsList.forEach((alert) => {
+      if (alert && alert.id) {
+        map[alert.id.toLowerCase()] =
+          `${alert.fishTankName || "Bể ẩn"} - ${alert.sensorTypeName || "Cảm biến"}`;
+      }
+    });
+    return map;
+  }, [alertsList]);
+
+  // --- State cho Modal Thêm Nhật Ký ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    alertId: "",
+    actionTaken: "",
+    notes: "",
+  });
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormData({ alertId: "", actionTaken: "", notes: "" });
+  };
+
+  const handleFormChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.alertId || !formData.actionTaken) {
+      alert("Vui lòng điền đầy đủ Mã cảnh báo và Hành động khắc phục!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Định nghĩa kiểu dữ liệu mong đợi (không dùng any nữa)
+      type UserProfileResponse = {
+        id?: string;
+        data?: {
+          id?: string;
         };
-      case "Đang thực hiện":
-        return {
-          bgcolor: theme.palette.warning.light,
-          color: theme.palette.warning.main,
-          borderColor: alpha(theme.palette.warning.main, 0.3),
-        };
-      case "Chờ xử lý":
-        return {
-          bgcolor: theme.palette.info.light, // Hoặc primary.light tùy theme
-          color: theme.palette.info.main,
-          borderColor: alpha(theme.palette.info.main, 0.3),
-        };
-      default:
-        return {
-          bgcolor: theme.palette.action.hover,
-          color: theme.palette.text.secondary,
-          borderColor: theme.palette.divider,
-        };
+      };
+
+      // 2. Truyền kiểu dữ liệu vào apiFetch
+      const userProfileRes = await apiFetch<UserProfileResponse>("/users/me", {
+        method: "GET",
+      });
+
+      console.log("Dữ liệu User Profile tải về:", userProfileRes);
+
+      // 3. Lấy ID an toàn, TypeScript sẽ không báo lỗi vì đã biết trước cấu trúc
+      const currentUserId = userProfileRes?.id || userProfileRes?.data?.id;
+
+      if (!currentUserId) {
+        alert(
+          "Không thể xác định thông tin người dùng. Vui lòng đăng nhập lại.",
+        );
+        return;
+      }
+
+      // 2. Gửi API lưu nhật ký
+      await correctiveActionApi.create({
+        alertId: formData.alertId,
+        userId: currentUserId,
+        actionTaken: formData.actionTaken,
+        notes: formData.notes,
+      });
+
+      // 3. Đóng Modal và làm mới bảng
+      handleCloseModal();
+      refetch();
+    } catch (err: unknown) {
+      console.error("Lỗi khi gửi form:", err);
+      if (isApiError(err)) {
+        const errorData = err.data as { message?: string };
+        alert(errorData?.message || "Có lỗi xảy ra khi lưu nhật ký.");
+      } else if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("Có lỗi xảy ra khi lưu nhật ký.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -167,8 +196,12 @@ const MaintenanceLog: React.FC = () => {
         <OperatorHeader />
 
         <Box sx={{ p: 3 }}>
-          {/* 1. Header Section */}
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="flex-start"
+            sx={{ mb: 4 }}
+          >
             <Box>
               <Typography
                 variant="h1"
@@ -178,14 +211,17 @@ const MaintenanceLog: React.FC = () => {
                   color: theme.palette.text.primary,
                 }}
               >
-                Nhật ký bảo trì
+                Nhật ký bảo trì & Khắc phục
               </Typography>
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-                Quản lý và theo dõi lịch sử bảo trì thiết bị
+              <Typography
+                variant="body2"
+                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
+              >
+                Quản lý và theo dõi lịch sử xử lý cảnh báo hệ thống
               </Typography>
             </Box>
             <Stack direction="row" spacing={2}>
-              <Button
+              {/* <Button
                 variant="outlined"
                 startIcon={<FileDownloadIcon />}
                 sx={{
@@ -195,98 +231,56 @@ const MaintenanceLog: React.FC = () => {
                   borderColor: theme.palette.divider,
                   color: theme.palette.text.primary,
                   bgcolor: theme.palette.background.paper,
-                  "&:hover": {
-                    bgcolor: theme.palette.action.hover,
-                    borderColor: theme.palette.text.secondary,
-                  },
                 }}
               >
                 Xuất báo cáo
-              </Button>
+              </Button> */}
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
+                onClick={handleOpenModal}
                 sx={{
                   borderRadius: "8px",
                   fontWeight: 600,
                   textTransform: "none",
                   bgcolor: theme.palette.primary.main,
                   boxShadow: "none",
-                  "&:hover": {
-                    bgcolor: theme.palette.primary.dark,
-                    boxShadow: "none",
-                  },
                 }}
               >
-                Thêm nhật ký bảo trì
+                Thêm nhật ký
               </Button>
             </Stack>
           </Stack>
 
-          {/* 2. Summary Cards */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: "repeat(3, 1fr)", // đúng số card
               gap: 3,
               mb: 4,
+              justifyItems: "center", // căn giữa từng card
             }}
           >
-            <SummaryCard label="Tổng số nhật ký" value="7" icon={<AssignmentIcon />} colorType="primary" />
-            <SummaryCard label="Hoàn thành" value="5" icon={<CheckCircleOutlineIcon />} colorType="success" />
-            <SummaryCard label="Đang thực hiện" value="1" icon={<AccessTimeIcon />} colorType="warning" />
-            <SummaryCard label="Chờ xử lý" value="1" icon={<ErrorOutlineIcon />} colorType="info" />
+            <SummaryCard
+              label="Tổng số lần xử lý"
+              value={logs.length.toString()}
+              icon={<AssignmentIcon />}
+              colorType="primary"
+            />
+            <SummaryCard
+              label="Đã hoàn thành"
+              value={logs.length.toString()}
+              icon={<CheckCircleOutlineIcon />}
+              colorType="success"
+            />
+            <SummaryCard
+              label="Đang thực hiện"
+              value="0"
+              icon={<AccessTimeIcon />}
+              colorType="warning"
+            />
           </Box>
 
-          {/* 3. Filter Bar */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1,
-              px: 2,
-              mb: 3,
-              borderRadius: "12px",
-              border: `1px solid ${theme.palette.divider}`,
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              bgcolor: theme.palette.background.paper,
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: theme.palette.text.secondary }}>
-              <FilterListIcon fontSize="small" />
-              <Typography variant="body2" fontWeight={500}>
-                Lọc theo trạng thái:
-              </Typography>
-            </Stack>
-
-            <Stack direction="row" spacing={1}>
-              {["Tất cả", "Hoàn thành", "Đang thực hiện", "Chờ xử lý"].map((item) => {
-                const isActive = filter === item;
-                return (
-                  <Button
-                    key={item}
-                    onClick={() => setFilter(item)}
-                    size="small"
-                    sx={{
-                      textTransform: "none",
-                      borderRadius: "6px",
-                      fontWeight: isActive ? 600 : 500,
-                      bgcolor: isActive ? theme.palette.primary.main : "transparent",
-                      color: isActive ? theme.palette.primary.contrastText : theme.palette.text.secondary,
-                      "&:hover": {
-                        bgcolor: isActive ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.08),
-                      },
-                    }}
-                  >
-                    {item}
-                  </Button>
-                );
-              })}
-            </Stack>
-          </Paper>
-
-          {/* 4. Details Table */}
           <TableContainer
             component={Paper}
             elevation={0}
@@ -296,197 +290,266 @@ const MaintenanceLog: React.FC = () => {
               overflow: "hidden",
             }}
           >
-            <Table>
-              <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
-                <TableRow>
-                  {["Thời gian", "Thiết bị", "Lỗi", "Nguyên nhân", "Linh kiện thay thế", "Người sửa", "Trạng thái"].map((head) => (
-                    <TableCell
-                      key={head}
-                      sx={{
-                        fontWeight: 600,
-                        color: theme.palette.text.secondary,
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      {head}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {maintenanceData.map((row) => (
-                  <TableRow key={row.id} hover>
-                    {/* Thời gian */}
-                    <TableCell
-                      sx={{
-                        fontSize: "0.85rem",
-                        whiteSpace: "nowrap",
-                        color: theme.palette.text.secondary,
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <CalendarTodayIcon fontSize="inherit" />
-                        <Typography variant="body2" fontSize="0.85rem">
-                          {row.time}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-
-                    {/* Thiết bị */}
-                    <TableCell>
-                      <Box>
-                        <Typography
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: "0.85rem",
-                            color: theme.palette.text.primary,
-                          }}
-                        >
-                          {row.device}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: theme.palette.text.secondary,
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {row.deviceId}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Lỗi */}
-                    <TableCell
-                      sx={{
-                        fontSize: "0.85rem",
-                        maxWidth: 200,
-                        color: theme.palette.text.primary,
-                      }}
-                    >
-                      {row.issue}
-                    </TableCell>
-
-                    {/* Nguyên nhân */}
-                    <TableCell
-                      sx={{
-                        fontSize: "0.85rem",
-                        maxWidth: 200,
-                        color: theme.palette.text.secondary,
-                      }}
-                    >
-                      {row.reason}
-                    </TableCell>
-
-                    {/* Linh kiện */}
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                        {row.parts.map((part) => (
-                          <Chip
-                            key={part}
-                            label={part}
-                            size="small"
-                            sx={{
-                              fontSize: "0.75rem",
-                              bgcolor: alpha(theme.palette.info.main, 0.1),
-                              color: theme.palette.info.main,
-                              fontWeight: 500,
-                              borderRadius: "6px",
-                              height: 24,
-                              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-                            }}
-                          />
-                        ))}
-                      </Stack>
-                    </TableCell>
-
-                    {/* Người sửa */}
-                    <TableCell>
-                      <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Avatar
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            fontSize: "0.75rem",
-                            bgcolor: theme.palette.primary.main,
-                            color: theme.palette.primary.contrastText,
-                          }}
-                        >
-                          {row.operator.charAt(0)}
-                        </Avatar>
-                        <Typography
-                          sx={{
-                            fontSize: "0.85rem",
-                            fontWeight: 500,
-                            color: theme.palette.text.primary,
-                          }}
-                        >
-                          {row.operator}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-
-                    {/* Trạng thái */}
-                    <TableCell>
-                      <Box
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Box sx={{ p: 3, color: "error.main", textAlign: "center" }}>
+                {error}
+              </Box>
+            ) : (
+              <Table>
+                <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
+                  <TableRow>
+                    {[
+                      "Cảnh báo xử lý",
+                      "Thời gian",
+                      "Người thực hiện",
+                      "Hành động khắc phục",
+                      "Ghi chú",
+                    ].map((head) => (
+                      <TableCell
+                        key={head}
                         sx={{
-                          display: "inline-flex",
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: "16px",
-                          fontSize: "0.75rem",
                           fontWeight: 600,
-                          border: "1px solid",
-                          ...getStatusStyle(row.status),
+                          color: theme.palette.text.secondary,
+                          fontSize: "0.75rem",
+                          textTransform: "uppercase",
                         }}
                       >
-                        {row.status}
-                      </Box>
-                    </TableCell>
+                        {head}
+                      </TableCell>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {logs.map((row) => (
+                    <TableRow key={row.id} hover>
+                      {/* 1. Cảnh báo xử lý */}
+                      <TableCell>
+                        {alertMap[(row.alertId || "").toLowerCase()] ? (
+                          <Chip
+                            label={alertMap[(row.alertId || "").toLowerCase()]}
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            sx={{ fontWeight: 500, borderRadius: "6px" }}
+                          />
+                        ) : (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontFamily: "monospace",
+                              color: "text.disabled",
+                            }}
+                          >
+                            ID: {row.alertId.substring(0, 8)}...
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      {/* 2. Thời gian */}
+                      <TableCell
+                        sx={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <CalendarTodayIcon
+                            fontSize="inherit"
+                            color="action"
+                          />
+                          <Typography variant="body2" fontSize="0.85rem">
+                            {dayjs(row.timestamp).format("DD/MM/YYYY HH:mm")}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+
+                      {/* 3. Người thực hiện */}
+                      <TableCell>
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                        >
+                          <Avatar
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              fontSize: "0.75rem",
+                              bgcolor: theme.palette.primary.main,
+                            }}
+                          >
+                            {row.performedBy
+                              ? row.performedBy.charAt(0).toUpperCase()
+                              : "U"}
+                          </Avatar>
+                          <Box>
+                            <Typography
+                              sx={{ fontSize: "0.85rem", fontWeight: 500 }}
+                            >
+                              {row.performedBy || "Chưa rõ"}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {row.userEmail}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+
+                      {/* 4. Hành động khắc phục */}
+                      <TableCell
+                        sx={{
+                          fontSize: "0.85rem",
+                          maxWidth: 250,
+                          color: theme.palette.text.primary,
+                        }}
+                      >
+                        {row.actionTaken}
+                      </TableCell>
+
+                      {/* 5. Ghi chú */}
+                      <TableCell
+                        sx={{
+                          fontSize: "0.85rem",
+                          maxWidth: 200,
+                          color: theme.palette.text.secondary,
+                        }}
+                      >
+                        {row.notes || "Không có ghi chú"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </TableContainer>
         </Box>
       </Box>
+
+      {/* Modal Thêm Nhật Ký */}
+      <Dialog
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          Thêm nhật ký khắc phục
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Chọn cảnh báo (Alert) *</InputLabel>
+              <Select
+                value={formData.alertId}
+                label="Chọn cảnh báo (Alert) *"
+                onChange={(e) => handleFormChange("alertId", e.target.value)}
+                disabled={loadingAlerts}
+              >
+                {loadingAlerts ? (
+                  <MenuItem disabled>
+                    <CircularProgress size={20} sx={{ mr: 1 }} /> Đang tải...
+                  </MenuItem>
+                ) : alertsList.length === 0 ? (
+                  <MenuItem disabled>Không có cảnh báo nào</MenuItem>
+                ) : (
+                  alertsList.map((alert) => (
+                    <MenuItem key={alert.id} value={alert.id}>
+                      {alert.fishTankName} - {alert.sensorTypeName} (
+                      {dayjs(alert.raisedAt).format("DD/MM HH:mm")})
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Hành động đã thực hiện *"
+              placeholder="VD: Đã thay màng lọc, vệ sinh cảm biến..."
+              fullWidth
+              multiline
+              rows={3}
+              value={formData.actionTaken}
+              onChange={(e) => handleFormChange("actionTaken", e.target.value)}
+            />
+
+            <TextField
+              label="Ghi chú thêm (Không bắt buộc)"
+              placeholder="Nhập nguyên nhân hoặc lưu ý..."
+              fullWidth
+              multiline
+              rows={2}
+              value={formData.notes}
+              onChange={(e) => handleFormChange("notes", e.target.value)}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={handleCloseModal}
+            color="inherit"
+            disabled={isSubmitting}
+          >
+            Hủy bỏ
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Lưu nhật ký"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-const SummaryCard: React.FC<SummaryCardProps> = ({ label, value, icon, colorType }) => {
+// Component SummaryCard
+interface SummaryCardProps {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  colorType: "primary" | "success" | "warning" | "info" | "error";
+}
+
+const SummaryCard: React.FC<SummaryCardProps> = ({
+  label,
+  value,
+  icon,
+  colorType,
+}) => {
   const theme = useTheme();
-  // Lấy màu từ theme dựa trên colorType (primary, success, etc.)
   const colorMain = (theme.palette[colorType] as PaletteColor).main;
 
   return (
     <Paper
       elevation={0}
       sx={{
+        width: "100%", // 🔥 Quan trọng nhất: full width trong grid
         p: 3,
         borderRadius: "16px",
         border: `1px solid ${theme.palette.divider}`,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        bgcolor: theme.palette.background.paper,
       }}
     >
       <Box>
         <Typography
           variant="caption"
-          sx={{
-            color: theme.palette.text.secondary,
-            fontWeight: 600,
-            fontSize: "0.75rem",
-            textTransform: "uppercase",
-          }}
+          sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}
         >
           {label}
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 600, mt: 1, color: theme.palette.text.primary }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mt: 1 }}>
           {value}
         </Typography>
       </Box>
@@ -495,7 +558,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ label, value, icon, colorType
           width: 48,
           height: 48,
           borderRadius: "12px",
-          bgcolor: alpha(colorMain, 0.1), // Dùng alpha để tạo nền nhạt
+          bgcolor: alpha(colorMain, 0.1),
           color: colorMain,
           display: "flex",
           alignItems: "center",
