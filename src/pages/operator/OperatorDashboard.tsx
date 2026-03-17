@@ -24,27 +24,40 @@ import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { SensorCard } from "../../components/operator/SensorCard";
 import AirIcon from "@mui/icons-material/Air";
-// import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ScienceIcon from "@mui/icons-material/Science";
-// import SpeedIcon from "@mui/icons-material/Speed";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
-// import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
-// Hooks & APIs
-import useRealTimeTanks from "../../hooks/useRealTimeTanks";
-import type { TankWithSensors } from "../../hooks/useRealTimeTanks";
+// APIs & Types
 import { getStatusColor, getStatusText } from "../../utils/statusMapper";
 import { recommendationApi } from "../../api/recommendations";
 import type { Recommendation } from "../../types/recommendation";
 import { TrendLineChart } from "../../components/operator/TrendLineChart";
+import { realtimeApi } from "../../api/realtimeApi";
+import { extractArray } from "../../api/client";
+import type { ITank, ILatestSensorData } from "../../types/realtime";
+
+// Định nghĩa kiểu dữ liệu mở rộng cho Dashboard
+export interface TankWithSensors extends ITank {
+  latestData: ILatestSensorData[];
+  status: "Normal" | "Warning" | "Danger";
+}
 
 // Component con hiển thị từng Bể nuôi
 const TankCard = ({ tank }: { tank: TankWithSensors }) => {
   const theme = useTheme();
   const statusKey = getStatusColor(tank.status);
 
-  const getSensor = (type: string) =>
-    tank.latestData.find((s) => s.sensorType === type);
+  // Hàm lấy giá trị cảm biến linh hoạt dựa vào tên (để không bị lỗi type)
+  const getSensorValue = (type: "Temperature" | "pH" | "DO") => {
+    const sensor = tank.latestData.find((s: ILatestSensorData) => {
+      const lower = s.sensorTypeName?.toLowerCase() || "";
+      if (type === "Temperature") return lower.includes("nhiệt độ");
+      if (type === "pH") return lower.includes("ph");
+      if (type === "DO") return lower.includes("oxy") || lower.includes("do");
+      return false;
+    });
+    return sensor?.latestData?.latestValue ?? "--";
+  };
 
   return (
     <Paper
@@ -74,14 +87,7 @@ const TankCard = ({ tank }: { tank: TankWithSensors }) => {
       </Stack>
 
       <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 2 }}>
-        {/* <LocationOnIcon
-          sx={{ fontSize: 12, color: theme.palette.primary.main }}
-        /> */}
-        {/* <Typography
-          sx={{ fontSize: "11px", color: theme.palette.text.secondary }}
-        >
-          ID: {tank.id.substring(0, 8)}...
-        </Typography> */}
+        {/* Placeholder cho thông tin phụ */}
       </Stack>
 
       <Stack direction="row" spacing={1} justifyContent="space-between">
@@ -90,7 +96,7 @@ const TankCard = ({ tank }: { tank: TankWithSensors }) => {
             sx={{ fontSize: 12, color: theme.palette.text.secondary }}
           />
           <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>
-            {getSensor("Temperature")?.value ?? "--"}°C
+            {getSensorValue("Temperature")}°C
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -98,13 +104,13 @@ const TankCard = ({ tank }: { tank: TankWithSensors }) => {
             sx={{ fontSize: 12, color: theme.palette.text.secondary }}
           />
           <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>
-            {getSensor("pH")?.value ?? "--"} pH
+            {getSensorValue("pH")} pH
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <AirIcon sx={{ fontSize: 12, color: theme.palette.text.secondary }} />
           <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
-            {getSensor("DO")?.value ?? "--"} DO
+            {getSensorValue("DO")} mg/L
           </Typography>
         </Box>
       </Stack>
@@ -114,8 +120,69 @@ const TankCard = ({ tank }: { tank: TankWithSensors }) => {
 
 const OperatorDashboard = () => {
   const theme = useTheme();
-  const { loading, tanksData } = useRealTimeTanks();
   const [advice, setAdvice] = useState<Recommendation | null>(null);
+
+  // State độc lập cho Dashboard
+  const [loading, setLoading] = useState<boolean>(true);
+  const [tanksData, setTanksData] = useState<TankWithSensors[]>([]);
+
+  // Lấy dữ liệu Dashboard
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const res = await realtimeApi.getTanks();
+        const tanks = extractArray(res) as ITank[];
+
+        const detailedTanks = await Promise.all(
+          tanks.map(async (tank) => {
+            try {
+              const dataRes = await realtimeApi.getTankLatestData(tank.id);
+              const dataResObj = dataRes as { data?: ILatestSensorData[] };
+              const sensors = Array.isArray(dataRes)
+                ? dataRes
+                : dataResObj?.data || [];
+
+              const overallStatus = sensors.some((s) => s.latestData?.isWarning)
+                ? "Danger"
+                : "Normal";
+
+              return {
+                ...tank,
+                latestData: sensors as ILatestSensorData[],
+                status: overallStatus as "Normal" | "Warning" | "Danger",
+              };
+            } catch (err) {
+              console.error(`Lỗi tải dữ liệu bể ${tank.id}:`, err);
+              return { ...tank, latestData: [], status: "Normal" as const };
+            }
+          }),
+        );
+        setTanksData(detailedTanks);
+      } catch (error) {
+        console.error("Lỗi đồng bộ Dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 30000); // 30s update 1 lần
+    return () => clearInterval(interval);
+  }, []);
+
+  // Lấy khuyến nghị AI
+  useEffect(() => {
+    const fetchAdvice = async () => {
+      try {
+        const res = await recommendationApi.getAll({ page: 1, pageSize: 1 });
+        const resObj = res as { data?: Recommendation[] };
+        if (resObj?.data && resObj.data.length > 0) setAdvice(resObj.data[0]);
+      } catch (err) {
+        console.error("Lỗi khi lấy khuyến nghị AI:", err);
+      }
+    };
+    fetchAdvice();
+  }, []);
 
   // Dữ liệu mẫu (Sau này kết nối API AnalyticsController/Compare)
   const mockTrendData = [
@@ -175,27 +242,27 @@ const OperatorDashboard = () => {
         };
     }
   };
-  useEffect(() => {
-    const fetchAdvice = async () => {
-      try {
-        const res = await recommendationApi.getAll({ page: 1, pageSize: 1 });
-        if (res.data && res.data.length > 0) setAdvice(res.data[0]);
-      } catch (err) {
-        console.error("Lỗi khi lấy khuyến nghị AI:", err);
-      }
-    };
-    fetchAdvice();
-  }, []);
+
+  // Tính trung bình cho một loại cảm biến trên toàn bộ các bể
   const getAvg = (type: string): string => {
-    // Thêm định nghĩa kiểu trả về là string
     if (!tanksData || tanksData.length === 0) return "--";
 
     const vals = tanksData
-      .flatMap((t) => t.latestData || []) // Bảo vệ nếu latestData bị undefined
-      .filter((s) => s.sensorType === type);
+      .flatMap((t: TankWithSensors) => t.latestData || [])
+      .filter((s: ILatestSensorData) => {
+        const lower = s.sensorTypeName?.toLowerCase() || "";
+        if (type === "Temperature") return lower.includes("nhiệt độ");
+        if (type === "pH") return lower.includes("ph");
+        if (type === "DO") return lower.includes("oxy") || lower.includes("do");
+        return false;
+      })
+      .map((s: ILatestSensorData) => s.latestData?.latestValue)
+      .filter((val): val is number => val !== undefined && val !== null); // Đảm bảo chỉ lấy số hợp lệ
 
     return vals.length > 0
-      ? (vals.reduce((a, b) => a + b.value, 0) / vals.length).toFixed(1)
+      ? (vals.reduce((a: number, b: number) => a + b, 0) / vals.length).toFixed(
+          1,
+        )
       : "--";
   };
 
@@ -243,14 +310,7 @@ const OperatorDashboard = () => {
           </Box>
 
           {/* 1. Chỉ số cảm biến hệ thống */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              mb: 4,
-              flexWrap: "wrap",
-            }}
-          >
+          <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
             {[
               {
                 type: "Temperature",
@@ -274,10 +334,9 @@ const OperatorDashboard = () => {
                 icon: AirIcon,
               },
             ].map((sensor) => {
-              const avgValue = getAvg(sensor.type) ?? "--"; // Sử dụng Nullish coalescing để bảo vệ
+              const avgValue = getAvg(sensor.type) ?? "--";
               const systemStatus = getSystemStatus(sensor.type, avgValue);
 
-              // Đảm bảo các giá trị không bị undefined trước khi truyền vào component
               const statusLabel = systemStatus?.status ?? "Ngoại tuyến";
               const statusColor = systemStatus?.color ?? "error";
               const trendText = systemStatus?.trend ?? "Đang kiểm tra";
@@ -298,19 +357,13 @@ const OperatorDashboard = () => {
               );
             })}
           </Box>
+
           {/* 3. Danh sách bể nuôi */}
           <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 700 }}>
             Danh sách bể nuôi ({tanksData.length})
           </Typography>
 
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 3,
-              mb: 6,
-            }}
-          >
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 6 }}>
             {tanksData.map((tank) => (
               <Box key={tank.id} sx={{ flex: "1 1 320px" }}>
                 <TankCard tank={tank} />
@@ -319,14 +372,7 @@ const OperatorDashboard = () => {
           </Box>
 
           {/* 2. Biểu đồ xu hướng */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-              mb: 4,
-              flexWrap: "wrap",
-            }}
-          >
+          <Box sx={{ display: "flex", gap: 3, mb: 4, flexWrap: "wrap" }}>
             <Box sx={{ flex: "1 1 400px" }}>
               <TrendLineChart
                 title="Xu hướng Oxy hòa tan (DO) - 24h"
@@ -335,7 +381,6 @@ const OperatorDashboard = () => {
                 color="#10B981"
               />
             </Box>
-
             <Box sx={{ flex: "1 1 400px" }}>
               <TrendLineChart
                 title="Xu hướng độ pH - 24h"
@@ -390,7 +435,7 @@ const OperatorDashboard = () => {
                   Trợ lý iRAS Advisory:{" "}
                 </Box>
                 {advice
-                  ? advice.content
+                  ? advice.suggestionText
                   : "Đang phân tích dữ liệu từ bể nuôi để đưa ra khuyến nghị..."}
               </Typography>
             </Box>
