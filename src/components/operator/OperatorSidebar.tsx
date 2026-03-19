@@ -13,8 +13,12 @@ const menuItems: MenuItemType[] = [
     icon: <DashboardIcon />,
     path: "/operator/dashboard",
   },
-  { text: "Bể nuôi", icon: <WaterIcon />, path: "/operator/tanks" },
-  { text: "Cảm biến", icon: <SensorsIcon />, path: "/operator/sensors" },
+  { text: "Lô nuôi", icon: <WaterIcon />, path: "/operator/tanks" },
+  {
+    text: "Cảm biến bể ",
+    icon: <SensorsIcon />,
+    path: "/operator/sensors",
+  },
   { text: "Cảnh báo", icon: <WarningIcon />, path: "/operator/alerts" },
   {
     text: "Tư vấn AI",
