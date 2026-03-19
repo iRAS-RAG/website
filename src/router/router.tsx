@@ -15,7 +15,7 @@ import AlertCenter from "../pages/operator/AlertCenter";
 import MaintenanceLog from "../pages/operator/MaintenanceLog";
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import RealTimeSensors from "../pages/operator/RealTimeSensors";
-import TankManagement from "../pages/operator/TankManagement";
+import TankManagement from "../pages/operator/BatchManagement";
 import BatchDetailPage from "../pages/supervisor/BatchDetailPage";
 import BatchListPage from "../pages/supervisor/BatchListPage";
 import CompareBatchesPage from "../pages/supervisor/CompareBatchesPage";

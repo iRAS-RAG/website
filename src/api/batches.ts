@@ -1,11 +1,22 @@
-import type { Batch, BatchComparison, BatchOperationLog, BatchPerformance, CreateBatchPayload, HarvestBatchPayload } from "../types/batch";
+import type {
+  Batch,
+  BatchComparison,
+  BatchOperationLog,
+  BatchPerformance,
+  CreateBatchPayload,
+  HarvestBatchPayload,
+} from "../types/batch";
 import { apiFetch, extractArray } from "./client";
 
 // Type converters
 function toBatch(item: Record<string, unknown>): Batch {
   const initialQty = Number(item.initialQuantity ?? 0);
-  const currentQty = typeof item.currentQuantity === "number" ? item.currentQuantity : initialQty;
-  const survivalRate = initialQty > 0 ? (currentQty / initialQty) * 100 : undefined;
+  const currentQty =
+    typeof item.currentQuantity === "number"
+      ? item.currentQuantity
+      : initialQty;
+  const survivalRate =
+    initialQty > 0 ? (currentQty / initialQty) * 100 : undefined;
 
   return {
     id: String(item.id ?? ""),
@@ -18,7 +29,10 @@ function toBatch(item: Record<string, unknown>): Batch {
     growthStageId: (item.growthStageId as string) || undefined,
     stageName: (item.stageName as string) || undefined,
     status: (item.status as Batch["status"]) ?? "ACTIVE",
-    pausedReason: item.pausedReason === null ? null : (item.pausedReason as string) || undefined,
+    pausedReason:
+      item.pausedReason === null
+        ? null
+        : (item.pausedReason as string) || undefined,
     startDate: String(item.startDate ?? ""),
     estimatedHarvestDate: (item.estimatedHarvestDate as string) || undefined,
     actualHarvestDate: (item.actualHarvestDate as string) || undefined,
@@ -27,7 +41,10 @@ function toBatch(item: Record<string, unknown>): Batch {
     unitOfMeasure: String(item.unitOfMeasure ?? "con"),
     survivalRate,
     createdAt: (item.createdAt as string) || undefined,
-    modifiedAt: item.modifiedAt === null ? null : (item.modifiedAt as string) || undefined,
+    modifiedAt:
+      item.modifiedAt === null
+        ? null
+        : (item.modifiedAt as string) || undefined,
   };
 }
 
@@ -35,13 +52,21 @@ function toBatchOperationLog(item: Record<string, unknown>): BatchOperationLog {
   return {
     id: String(item.id ?? ""),
     batchId: String(item.batchId ?? item.batch_id ?? ""),
-    operationType: (item.operationType as BatchOperationLog["operationType"]) || (item.operation_type as BatchOperationLog["operationType"]) || "other",
+    operationType:
+      (item.operationType as BatchOperationLog["operationType"]) ||
+      (item.operation_type as BatchOperationLog["operationType"]) ||
+      "other",
     description: String(item.description ?? ""),
     quantity: typeof item.quantity === "number" ? item.quantity : undefined,
-    loggedBy: (item.loggedBy as string) || (item.logged_by as string) || undefined,
-    loggedByName: (item.loggedByName as string) || (item.logged_by_name as string) || undefined,
+    loggedBy:
+      (item.loggedBy as string) || (item.logged_by as string) || undefined,
+    loggedByName:
+      (item.loggedByName as string) ||
+      (item.logged_by_name as string) ||
+      undefined,
     timestamp: String(item.timestamp ?? item.created_at ?? ""),
-    createdAt: (item.createdAt as string) || (item.created_at as string) || undefined,
+    createdAt:
+      (item.createdAt as string) || (item.created_at as string) || undefined,
   };
 }
 
@@ -49,11 +74,26 @@ function toBatchPerformance(item: Record<string, unknown>): BatchPerformance {
   return {
     batchId: String(item.batchId ?? item.batch_id ?? ""),
     date: String(item.date ?? ""),
-    averageTemp: typeof item.averageTemp === "number" ? item.averageTemp : (item.average_temp as number) || undefined,
-    averagePh: typeof item.averagePh === "number" ? item.averagePh : (item.average_ph as number) || undefined,
-    averageDo: typeof item.averageDo === "number" ? item.averageDo : (item.average_do as number) || undefined,
-    estimatedBiomass: typeof item.estimatedBiomass === "number" ? item.estimatedBiomass : (item.estimated_biomass as number) || undefined,
-    feedAmount: typeof item.feedAmount === "number" ? item.feedAmount : (item.feed_amount as number) || undefined,
+    averageTemp:
+      typeof item.averageTemp === "number"
+        ? item.averageTemp
+        : (item.average_temp as number) || undefined,
+    averagePh:
+      typeof item.averagePh === "number"
+        ? item.averagePh
+        : (item.average_ph as number) || undefined,
+    averageDo:
+      typeof item.averageDo === "number"
+        ? item.averageDo
+        : (item.average_do as number) || undefined,
+    estimatedBiomass:
+      typeof item.estimatedBiomass === "number"
+        ? item.estimatedBiomass
+        : (item.estimated_biomass as number) || undefined,
+    feedAmount:
+      typeof item.feedAmount === "number"
+        ? item.feedAmount
+        : (item.feed_amount as number) || undefined,
   };
 }
 
@@ -62,7 +102,9 @@ function toBatchPerformance(item: Record<string, unknown>): BatchPerformance {
 /**
  * Get all batches with optional status filter
  */
-export async function getBatches(status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED"): Promise<Batch[]> {
+export async function getBatches(
+  status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED",
+): Promise<Batch[]> {
   const query = status ? `?status=${status}` : "";
   const res = await apiFetch<unknown>(`/batches${query}`);
   const items = extractArray(res);
@@ -86,7 +128,9 @@ export async function getBatch(id: string): Promise<Batch | null> {
 /**
  * Create a new batch
  */
-export async function createBatch(payload: CreateBatchPayload): Promise<Batch | null> {
+export async function createBatch(
+  payload: CreateBatchPayload,
+): Promise<Batch | null> {
   try {
     const body = {
       fishTankId: payload.fishTankId,
@@ -97,7 +141,10 @@ export async function createBatch(payload: CreateBatchPayload): Promise<Batch | 
       initialQuantity: payload.initialQuantity,
       unitOfMeasure: payload.unitOfMeasure,
     };
-    const res = await apiFetch<Record<string, unknown>>("/batches", { method: "POST", body });
+    const res = await apiFetch<Record<string, unknown>>("/batches", {
+      method: "POST",
+      body,
+    });
     if (!res) return null;
     return toBatch(res);
   } catch (error) {
@@ -109,18 +156,26 @@ export async function createBatch(payload: CreateBatchPayload): Promise<Batch | 
 /**
  * Update batch information
  */
-export async function updateBatch(id: string, payload: Partial<CreateBatchPayload>): Promise<Batch | null> {
+export async function updateBatch(
+  id: string,
+  payload: Partial<CreateBatchPayload>,
+): Promise<Batch | null> {
   try {
     const body: Record<string, unknown> = {};
     if (payload.name) body.name = payload.name;
     if (payload.fishTankId) body.fishTankId = payload.fishTankId;
-    if (payload.speciesStageConfigId) body.speciesStageConfigId = payload.speciesStageConfigId;
+    if (payload.speciesStageConfigId)
+      body.speciesStageConfigId = payload.speciesStageConfigId;
     if (payload.startDate) body.startDate = payload.startDate;
-    if (payload.estimatedHarvestDate) body.estimatedHarvestDate = payload.estimatedHarvestDate;
+    if (payload.estimatedHarvestDate)
+      body.estimatedHarvestDate = payload.estimatedHarvestDate;
     if (payload.initialQuantity) body.initialQuantity = payload.initialQuantity;
     if (payload.unitOfMeasure) body.unitOfMeasure = payload.unitOfMeasure;
 
-    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}`, { method: "PUT", body });
+    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}`, {
+      method: "PUT",
+      body,
+    });
     if (!res) return null;
     return toBatch(res);
   } catch (error) {
@@ -132,7 +187,10 @@ export async function updateBatch(id: string, payload: Partial<CreateBatchPayloa
 /**
  * Harvest/close a batch
  */
-export async function harvestBatch(id: string, payload: HarvestBatchPayload): Promise<Batch | null> {
+export async function harvestBatch(
+  id: string,
+  payload: HarvestBatchPayload,
+): Promise<Batch | null> {
   try {
     const body = {
       actualHarvestDate: payload.actualHarvestDate,
@@ -140,7 +198,10 @@ export async function harvestBatch(id: string, payload: HarvestBatchPayload): Pr
       notes: payload.notes,
       status: "HARVESTED",
     };
-    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}/harvest`, { method: "POST", body });
+    const res = await apiFetch<Record<string, unknown>>(
+      `/batches/${id}/harvest`,
+      { method: "POST", body },
+    );
     if (!res) return null;
     return toBatch(res);
   } catch (error) {
@@ -152,10 +213,16 @@ export async function harvestBatch(id: string, payload: HarvestBatchPayload): Pr
 /**
  * Mark a batch as terminated
  */
-export async function terminateBatch(id: string, reason: string): Promise<Batch | null> {
+export async function terminateBatch(
+  id: string,
+  reason: string,
+): Promise<Batch | null> {
   try {
     const body = { status: "TERMINATED", pausedReason: reason };
-    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}`, { method: "PUT", body });
+    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}`, {
+      method: "PUT",
+      body,
+    });
     if (!res) return null;
     return toBatch(res);
   } catch (error) {
@@ -182,7 +249,9 @@ export async function deleteBatch(id: string): Promise<boolean> {
 /**
  * Get operation logs for a batch
  */
-export async function getBatchOperationLogs(batchId: string): Promise<BatchOperationLog[]> {
+export async function getBatchOperationLogs(
+  batchId: string,
+): Promise<BatchOperationLog[]> {
   try {
     const res = await apiFetch<unknown>(`/batches/${batchId}/logs`);
     const items = extractArray(res);
@@ -199,7 +268,10 @@ export async function getBatchOperationLogs(batchId: string): Promise<BatchOpera
 /**
  * Create an operation log entry
  */
-export async function createBatchOperationLog(batchId: string, log: Omit<BatchOperationLog, "id" | "batchId" | "createdAt">): Promise<BatchOperationLog | null> {
+export async function createBatchOperationLog(
+  batchId: string,
+  log: Omit<BatchOperationLog, "id" | "batchId" | "createdAt">,
+): Promise<BatchOperationLog | null> {
   try {
     const body = {
       operation_type: log.operationType,
@@ -207,7 +279,10 @@ export async function createBatchOperationLog(batchId: string, log: Omit<BatchOp
       quantity: log.quantity,
       timestamp: log.timestamp,
     };
-    const res = await apiFetch<Record<string, unknown>>(`/batches/${batchId}/logs`, { method: "POST", body });
+    const res = await apiFetch<Record<string, unknown>>(
+      `/batches/${batchId}/logs`,
+      { method: "POST", body },
+    );
     if (!res) return null;
     return toBatchOperationLog(res);
   } catch (error) {
@@ -221,9 +296,14 @@ export async function createBatchOperationLog(batchId: string, log: Omit<BatchOp
 /**
  * Get performance metrics for a batch
  */
-export async function getBatchPerformance(batchId: string, days: number = 7): Promise<BatchPerformance[]> {
+export async function getBatchPerformance(
+  batchId: string,
+  days: number = 7,
+): Promise<BatchPerformance[]> {
   try {
-    const res = await apiFetch<unknown>(`/batches/${batchId}/performance?days=${days}`);
+    const res = await apiFetch<unknown>(
+      `/batches/${batchId}/performance?days=${days}`,
+    );
     const items = extractArray(res);
     return items.map((i) => toBatchPerformance(i as Record<string, unknown>));
   } catch (error) {
@@ -237,7 +317,9 @@ export async function getBatchPerformance(batchId: string, days: number = 7): Pr
 /**
  * Compare multiple batches
  */
-export async function compareBatches(batchIds: string[]): Promise<BatchComparison[]> {
+export async function compareBatches(
+  batchIds: string[],
+): Promise<BatchComparison[]> {
   try {
     const query = batchIds.map((id) => `batchIds=${id}`).join("&");
     const res = await apiFetch<unknown>(`/reports/compare-batches?${query}`);

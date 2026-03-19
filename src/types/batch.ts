@@ -26,7 +26,13 @@ export type Batch = {
 export type BatchOperationLog = {
   id: string;
   batchId: string;
-  operationType: "feeding" | "sampling" | "mortality" | "treatment" | "water_change" | "other";
+  operationType:
+    | "feeding"
+    | "sampling"
+    | "mortality"
+    | "treatment"
+    | "water_change"
+    | "other";
   description: string;
   quantity?: number; // for mortality events
   loggedBy?: string;
