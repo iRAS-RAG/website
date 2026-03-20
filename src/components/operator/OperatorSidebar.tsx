@@ -38,7 +38,7 @@ export const OperatorSidebar = () => {
     <Sidebar
       menu={menuItems}
       activeStyle="primary"
-      userName={"Nguyễn Văn A"}
+      userName={"Operator"}
       userRole={"Kỹ thuật viên"}
       userInitials={"A"}
       zIndex={1200}
