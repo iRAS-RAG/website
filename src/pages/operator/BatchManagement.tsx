@@ -801,7 +801,7 @@ const BatchListItem = ({
             variant="body2"
             sx={{ fontSize: "0.8rem", fontWeight: 500 }}
           >
-            GĐ: {data.stageName}
+            Giai đoạn: {data.stageName}
           </Typography>
         </Stack>
       </Stack>
