@@ -1,12 +1,23 @@
 import AddIcon from "@mui/icons-material/Add";
 import BlockIcon from "@mui/icons-material/Block";
 import EditIcon from "@mui/icons-material/Edit";
-import EmailIcon from "@mui/icons-material/Email";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import PersonIcon from "@mui/icons-material/Person";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
-import { Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Paper, Stack, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  IconButton,
+  Paper,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
 import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { isSupervisor } from "../../api/auth";
@@ -23,6 +34,21 @@ import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useUserManagement from "../../hooks/useUserManagement";
 import type { User } from "../../types/user";
 
+// Hàm tạo màu Pastel ngẫu nhiên cho Avatar
+const stringToPastelColor = (string: string) => {
+  let hash = 0;
+  for (let i = 0; i < string.length; i += 1) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = "#";
+  for (let i = 0; i < 3; i += 1) {
+    const value = (hash >> (i * 8)) & 0xff;
+    const pastel = Math.floor((value + 255) / 2);
+    color += `00${pastel.toString(16)}`.slice(-2);
+  }
+  return color;
+};
+
 const OperatorManagement: React.FC = () => {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
@@ -32,16 +58,30 @@ const OperatorManagement: React.FC = () => {
   const [openRestore, setOpenRestore] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
-  const { tableParams, setTableParamsLocal, data, meta, loading, error, updateUrlWithParams, load, createOrUpdate, disable, restore } = useUserManagement();
+  const {
+    tableParams,
+    setTableParamsLocal,
+    data,
+    meta,
+    loading,
+    error,
+    updateUrlWithParams,
+    load,
+    createOrUpdate,
+    disable,
+    restore,
+  } = useUserManagement();
   const toast = useToast();
 
-  // Ensure this page filters to operators by default
   React.useEffect(() => {
     if (tableParams?.searchTerm !== "Operator") {
-      setTableParamsLocal({ ...(tableParams ?? {}), searchTerm: "Operator", page: 1 });
+      setTableParamsLocal({
+        ...(tableParams ?? {}),
+        searchTerm: "Operator",
+        page: 1,
+      });
       updateUrlWithParams({ searchTerm: "Operator", page: 1 });
     }
-    // only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -65,64 +105,122 @@ const OperatorManagement: React.FC = () => {
     setOpenRestore(true);
   }, []);
 
+  // COLUMNS: Đã bỏ cột Trạng thái và Đăng nhập lần cuối
   const columns = useMemo(
     () =>
       [
         {
           field: "name",
-          label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <PersonIcon fontSize="small" />
-              Họ và tên
-            </span>
-          ),
+          label: "Nhân viên",
           sortable: true,
           sortKey: "lastName",
+          render: (r: User) => {
+            const userExt = r as User & {
+              firstName?: string;
+              lastName?: string;
+            };
+            const displayName =
+              userExt.name ||
+              `${userExt.firstName || ""} ${userExt.lastName || ""}`.trim() ||
+              "Unknown";
+            const initial = displayName.charAt(0).toUpperCase();
+
+            return (
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar
+                  sx={{
+                    bgcolor: stringToPastelColor(displayName),
+                    color: "#0F172A",
+                    fontWeight: 600,
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  {initial}
+                </Avatar>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      color: "#0F172A",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    {displayName}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#64748B" }}>
+                    {r.email}
+                  </Typography>
+                </Box>
+              </Stack>
+            );
+          },
         },
         {
-          field: "email",
-          label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <EmailIcon fontSize="small" />
-              Email
-            </span>
+          field: "role",
+          label: "Vai trò",
+          render: (r: User) => (
+            <Typography
+              variant="body2"
+              sx={{ color: "#334155", fontWeight: 500 }}
+            >
+              {r.role || "Operator"}
+            </Typography>
           ),
-          sortable: true,
-          sortKey: "email",
         },
         {
           field: "actions",
-          label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <MoreHorizIcon fontSize="small" />
-              Hành động
-            </span>
-          ),
+          label: "Hành động",
           render: (r: User) => (
-            <Stack direction="row" spacing={1}>
-              <IconButton size="small" aria-label="edit-user" onClick={() => openEdit(r)}>
-                <EditIcon />
+            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+              <IconButton
+                size="small"
+                onClick={() => openEdit(r)}
+                sx={{
+                  color: "#64748B",
+                  "&:hover": { color: "#2A85FF", bgcolor: "#EFF6FF" },
+                }}
+              >
+                <EditIcon fontSize="small" />
               </IconButton>
               {tableParams?.isDeleted ? (
-                <IconButton size="small" aria-label="restore-user" onClick={() => confirmRestore(r.id)}>
-                  <RestoreFromTrashIcon />
+                <IconButton
+                  size="small"
+                  onClick={() => confirmRestore(r.id)}
+                  sx={{
+                    color: "#64748B",
+                    "&:hover": { color: "#10B981", bgcolor: "#ECFDF5" },
+                  }}
+                >
+                  <RestoreFromTrashIcon fontSize="small" />
                 </IconButton>
               ) : (
-                <IconButton size="small" aria-label="disable-user" onClick={() => confirmDisable(r.id)}>
-                  <BlockIcon />
+                <IconButton
+                  size="small"
+                  onClick={() => confirmDisable(r.id)}
+                  sx={{
+                    color: "#64748B",
+                    "&:hover": { color: "#EF4444", bgcolor: "#FEF2F2" },
+                  }}
+                >
+                  <BlockIcon fontSize="small" />
                 </IconButton>
               )}
             </Stack>
           ),
         },
       ] as Column<User>[],
-
     [openEdit, confirmDisable, confirmRestore, tableParams?.isDeleted],
   );
 
   if (!isSupervisor()) return <Navigate to="/" replace />;
 
-  async function handleSave(values: { firstName: string; lastName: string; email: string; password?: string }) {
+  async function handleSave(values: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password?: string;
+  }) {
     try {
       if (!editing) {
         await createOperator(values);
@@ -134,16 +232,24 @@ const OperatorManagement: React.FC = () => {
           role: editing?.role ?? "Operator",
           ...(values.password ? { password: values.password } : {}),
         };
-        await createOrUpdate(editing?.id ?? null, payload, editing as User | null);
+        await createOrUpdate(
+          editing?.id ?? null,
+          payload,
+          editing as User | null,
+        );
       }
       setOpenForm(false);
-      if (editing) toast.success("Cập nhật người dùng thành công");
-      else toast.success("Tạo người dùng thành công");
+      if (editing) toast.success("Cập nhật nhân viên thành công");
+      else toast.success("Thêm nhân viên thành công");
     } catch (e: unknown) {
-      if (isApiError(e) && e.data && (e.data as Record<string, unknown>).errors) {
+      if (
+        isApiError(e) &&
+        e.data &&
+        (e.data as Record<string, unknown>).errors
+      ) {
         throw e;
       }
-      toast.error("Lưu người dùng thất bại");
+      toast.error("Lưu nhân viên thất bại");
     }
   }
 
@@ -152,10 +258,10 @@ const OperatorManagement: React.FC = () => {
     try {
       await disable(disablingId);
       setOpenDisable(false);
-      toast.success("Vô hiệu hóa người dùng thành công");
+      toast.success("Vô hiệu hóa tài khoản thành công");
     } catch (e) {
-      console.error("Vô hiệu hóa người dùng thất bại", e);
-      toast.error("Vô hiệu hóa người dùng thất bại");
+      console.error("Vô hiệu hóa thất bại", e);
+      toast.error("Vô hiệu hóa thất bại");
     }
   }
 
@@ -165,78 +271,150 @@ const OperatorManagement: React.FC = () => {
       await restore(restoringId);
       setOpenRestore(false);
       setRestoringId(null);
-      toast.success("Khôi phục người dùng thành công");
+      toast.success("Khôi phục tài khoản thành công");
     } catch (e) {
-      console.error("Khôi phục người dùng thất bại", e);
-      toast.error("Khôi phục người dùng thất bại");
+      console.error("Khôi phục thất bại", e);
+      toast.error("Khôi phục thất bại");
     }
   }
 
-  const editingWithRaw = editing as (User & { rawFirstName?: string; rawLastName?: string }) | null;
+  const editingWithRaw = editing as
+    | (User & { rawFirstName?: string; rawLastName?: string })
+    | null;
 
   return (
-    <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        bgcolor: "#F8FAFC",
+        minHeight: "100vh",
+        width: "100%",
+      }}
+    >
       <SupervisorSidebar />
 
-      <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          ml: "240px",
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
         <SupervisorHeader />
 
-        <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <div>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Quản lý nhân viên
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Quản lý tài khoản operator và đặt lại mật khẩu.
-              </Typography>
-            </div>
+        {/* ĐÃ SỬA CHỖ NÀY: Bỏ maxWidth và mx: "auto" để full width */}
+        <Box
+          component="main"
+          sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}
+        >
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 4 }}
+          >
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B" }}>
+              Quản lý nhân viên
+            </Typography>
 
-            <Stack direction="row" spacing={1}>
-              <Button startIcon={<RefreshIcon />} variant="outlined" onClick={load} disabled={loading}>
+            <Stack direction="row" spacing={2}>
+              <Button
+                startIcon={<RefreshIcon />}
+                variant="outlined"
+                onClick={load}
+                disabled={loading}
+                sx={{
+                  borderRadius: "8px",
+                  color: "#475569",
+                  borderColor: "#CBD5E1",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": { bgcolor: "#F1F5F9", borderColor: "#94A3B8" },
+                }}
+              >
                 Làm mới
               </Button>
-              <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+              <Button
+                startIcon={<AddIcon />}
+                variant="contained"
+                onClick={openCreate}
+                sx={{
+                  borderRadius: "8px",
+                  bgcolor: "#2A85FF",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  boxShadow: "none",
+                  "&:hover": { bgcolor: "#1F6FDB" },
+                }}
+              >
                 Thêm nhân viên
               </Button>
             </Stack>
           </Stack>
 
           {error && (
-            <Typography color="error" sx={{ mt: 1, mb: 1 }}>
+            <Typography color="error" sx={{ mt: 1, mb: 2 }}>
               {error}
             </Typography>
           )}
 
-          <Paper sx={{ p: 2 }}>
+          {/* THANH CÔNG CỤ VÀ BẢNG */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+            }}
+          >
             <TableToolbar
               searchTerm={String(tableParams.searchTerm ?? "")}
               onSearchTermChange={(v) => {
-                setTableParamsLocal({ ...(tableParams ?? {}), searchTerm: v, page: 1 });
+                setTableParamsLocal({
+                  ...(tableParams ?? {}),
+                  searchTerm: v,
+                  page: 1,
+                });
                 updateUrlWithParams({ searchTerm: v, page: 1 });
               }}
               pageSize={tableParams.pageSize}
               onPageSizeChange={(n) => {
-                setTableParamsLocal({ ...(tableParams ?? {}), pageSize: n, page: 1 });
+                setTableParamsLocal({
+                  ...(tableParams ?? {}),
+                  pageSize: n,
+                  page: 1,
+                });
                 updateUrlWithParams({ pageSize: n, page: 1 });
               }}
               filters={
-                <>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={Boolean(tableParams.isDeleted)}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setTableParamsLocal({ ...(tableParams ?? {}), isDeleted: val, page: 1 });
-                          updateUrlWithParams({ isDeleted: val, page: 1 });
-                        }}
-                        size="small"
-                      />
-                    }
-                    label="Đã vô hiệu hóa"
-                  />
-                </>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(tableParams.isDeleted)}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setTableParamsLocal({
+                          ...(tableParams ?? {}),
+                          isDeleted: val,
+                          page: 1,
+                        });
+                        updateUrlWithParams({ isDeleted: val, page: 1 });
+                      }}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#475569", fontWeight: 500 }}
+                    >
+                      Hiển thị tài khoản vô hiệu hóa
+                    </Typography>
+                  }
+                />
               }
             />
 
@@ -246,21 +424,29 @@ const OperatorManagement: React.FC = () => {
               sortBy={tableParams.sortBy as string | undefined}
               sortDir={tableParams.sortDir as "asc" | "desc" | undefined}
               onSort={(s, d) => {
-                setTableParamsLocal({ ...(tableParams ?? {}), sortBy: s, sortDir: d, page: 1 });
+                setTableParamsLocal({
+                  ...(tableParams ?? {}),
+                  sortBy: s,
+                  sortDir: d,
+                  page: 1,
+                });
                 updateUrlWithParams({ sortBy: s, sortDir: d, page: 1 });
               }}
             />
 
-            <PaginationControls
-              page={meta?.page ?? 1}
-              totalPages={meta?.totalPages ?? 1}
-              onPageChange={(p) => {
-                setTableParamsLocal({ ...(tableParams ?? {}), page: p });
-                updateUrlWithParams({ page: p });
-              }}
-            />
+            <Box sx={{ p: 2, borderTop: "1px solid #E2E8F0" }}>
+              <PaginationControls
+                page={meta?.page ?? 1}
+                totalPages={meta?.totalPages ?? 1}
+                onPageChange={(p) => {
+                  setTableParamsLocal({ ...(tableParams ?? {}), page: p });
+                  updateUrlWithParams({ page: p });
+                }}
+              />
+            </Box>
           </Paper>
 
+          {/* DIALOGS */}
           <OperatorFormDialog
             key={openForm ? (editing?.id ?? "new") : "closed"}
             open={openForm}
@@ -271,23 +457,65 @@ const OperatorManagement: React.FC = () => {
             initialLastName={editingWithRaw?.rawLastName ?? null}
           />
 
-          <Dialog open={openDisable} onClose={() => setOpenDisable(false)}>
-            <DialogTitle>Vô hiệu hóa người dùng</DialogTitle>
-            <DialogContent>Bạn có chắc chắn muốn vô hiệu hóa người dùng này?</DialogContent>
+          <Dialog
+            open={openDisable}
+            onClose={() => setOpenDisable(false)}
+            PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
+          >
+            <DialogTitle sx={{ fontWeight: 700, color: "#0F172A" }}>
+              Vô hiệu hóa tài khoản
+            </DialogTitle>
+            <DialogContent>
+              <Typography sx={{ color: "#475569" }}>
+                Bạn có chắc chắn muốn vô hiệu hóa nhân viên này? Họ sẽ không thể
+                đăng nhập vào hệ thống.
+              </Typography>
+            </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpenDisable(false)}>Hủy</Button>
-              <Button color="warning" onClick={handleDisable}>
+              <Button
+                onClick={() => setOpenDisable(false)}
+                sx={{ color: "#64748B", fontWeight: 600 }}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={handleDisable}
+                sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none" }}
+              >
                 Vô hiệu hóa
               </Button>
             </DialogActions>
           </Dialog>
 
-          <Dialog open={openRestore} onClose={() => setOpenRestore(false)}>
-            <DialogTitle>Khôi phục người dùng</DialogTitle>
-            <DialogContent>Bạn có chắc chắn muốn khôi phục người dùng này?</DialogContent>
+          <Dialog
+            open={openRestore}
+            onClose={() => setOpenRestore(false)}
+            PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
+          >
+            <DialogTitle sx={{ fontWeight: 700, color: "#0F172A" }}>
+              Khôi phục tài khoản
+            </DialogTitle>
+            <DialogContent>
+              <Typography sx={{ color: "#475569" }}>
+                Bạn có chắc chắn muốn khôi phục quyền truy cập cho nhân viên
+                này?
+              </Typography>
+            </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpenRestore(false)}>Hủy</Button>
-              <Button color="primary" onClick={handleRestoreConfirm}>
+              <Button
+                onClick={() => setOpenRestore(false)}
+                sx={{ color: "#64748B", fontWeight: 600 }}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleRestoreConfirm}
+                sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none" }}
+              >
                 Khôi phục
               </Button>
             </DialogActions>
