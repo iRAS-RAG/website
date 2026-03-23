@@ -217,23 +217,27 @@ const RealTimeSensors = () => {
                   mb: 5,
                 }}
               >
-                {latestData.map((sensor, idx) => (
-                  <SensorCard
-                    key={idx}
-                    label={sensor.sensorName}
-                    value={sensor.latestData?.latestValue?.toString() || "--"}
-                    unit={sensor.unitOfMeasure}
-                    trend="Cập nhật real-time"
-                    status={
-                      sensor.latestData?.isWarning ? "Cảnh báo" : "An toàn"
-                    }
-                    statusColor={
-                      sensor.latestData?.isWarning ? "error" : "success"
-                    }
-                    icon={getSensorIcon(sensor.sensorTypeName)}
-                    optimalRange="Tham khảo AI"
-                  />
-                ))}
+                {latestData.map((sensor, idx) => {
+                  // Đã xóa phần tính toán min, max và rangeText ở đây
+
+                  return (
+                    <SensorCard
+                      key={idx}
+                      label={sensor.sensorName}
+                      value={sensor.latestData?.latestValue?.toString() || "--"}
+                      unit={sensor.unitOfMeasure}
+                      trend="Cập nhật real-time"
+                      status={
+                        sensor.latestData?.isWarning ? "Cảnh báo" : "An toàn"
+                      }
+                      statusColor={
+                        sensor.latestData?.isWarning ? "error" : "success"
+                      }
+                      icon={getSensorIcon(sensor.sensorTypeName)}
+                      // Đã xóa prop optimalRange
+                    />
+                  );
+                })}
                 {latestData.length === 0 && (
                   <Typography variant="body2">
                     Bể này chưa có dữ liệu cảm biến.
@@ -594,7 +598,7 @@ const RealTimeSensors = () => {
             </Button>
 
             {loading ? (
-              <CircularProgress size={24} />
+              <CircularProgress size={23} />
             ) : (
               <Stack spacing={2}>
                 {recommendations.map((rec) => (
@@ -714,8 +718,9 @@ const DetailedActionCard = ({
               borderRadius: "8px",
               textTransform: "none",
               fontWeight: 600,
-              py: "1px", // giảm chiều cao
-              minHeight: 30, // optional
+              py: "1px",
+              minHeight: 30,
+              whiteSpace: "nowrap", // 🟢 Fix: Không cho xuống dòng
             }}
           >
             Áp dụng
