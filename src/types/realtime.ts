@@ -12,6 +12,13 @@ export interface ILatestSensorData {
   sensorName: string;
   sensorTypeName: string;
   unitOfMeasure: string;
+
+  // KHAI BÁO CÁC TRƯỜNG NGƯỠNG Ở ĐÂY
+  minThreshold?: number;
+  maxThreshold?: number;
+  minValue?: number;
+  maxValue?: number;
+
   latestData?: {
     latestValue: number;
     isWarning: boolean;

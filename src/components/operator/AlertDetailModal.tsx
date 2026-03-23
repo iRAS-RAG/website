@@ -28,7 +28,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// ĐÃ SỬA: id thành string | number
+// 1. CẬP NHẬT INTERFACE: Xóa level, sửa status
 export interface AlertData {
   id: string | number;
   time: string;
@@ -36,13 +36,11 @@ export interface AlertData {
   sensorName: string;
   value: string;
   limit: string;
-  level: "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp";
   tank: string;
   staff: string;
-  status: "Đang xử lý" | "Chờ xử lý" | "Đã xử lý";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
 }
 
-// Dữ liệu biểu đồ giả lập (Trong thực tế sẽ lấy từ API dựa trên id cảnh báo)
 const shortTermData = [
   { time: "08:00", value: 6.5 },
   { time: "08:30", value: 6.2 },
@@ -67,37 +65,12 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
   if (!data) return null;
 
-  // Helper để lấy màu dựa trên mức độ cảnh báo
-  const getLevelColorInfo = (level: string) => {
-    switch (level) {
-      case "Nghiêm trọng":
-        return {
-          main: theme.palette.error.main,
-          light: theme.palette.error.light,
-          bg: "#FEF2F2",
-        };
-      case "Cao":
-        return {
-          main: theme.palette.warning.main,
-          light: theme.palette.warning.light,
-          bg: "#FFF7ED",
-        };
-      case "Trung bình":
-        return {
-          main: theme.palette.warning.main,
-          light: theme.palette.warning.light,
-          bg: "#FFFBEB",
-        };
-      default:
-        return {
-          main: theme.palette.text.secondary,
-          light: theme.palette.action.hover,
-          bg: "#F3F4F6",
-        };
-    }
+  // Cố định một màu đỏ cho tất cả các cảnh báo (thay vì phụ thuộc vào Level)
+  const alertTheme = {
+    main: theme.palette.error.main,
+    light: theme.palette.error.light,
+    bg: "#FEF2F2",
   };
-
-  const levelColor = getLevelColorInfo(data.level);
 
   return (
     <Dialog
@@ -125,13 +98,6 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Chi tiết cảnh báo
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Mã: ALT-{new Date().getFullYear()}-
-            {/* ĐÃ SỬA: Cắt lấy 8 ký tự đầu của chuỗi ID cho đẹp */}
-            {typeof data.id === "string"
-              ? data.id.substring(0, 8).toUpperCase()
-              : data.id.toString().padStart(3, "0")}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -213,34 +179,21 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {data.sensorCode}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {data.sensorName}
-            </Typography>
           </Box>
-
-          <Chip
-            label={data.level}
-            sx={{
-              fontWeight: 700,
-              borderRadius: "8px",
-              bgcolor: levelColor.bg,
-              color: levelColor.main,
-              border: `1px solid ${levelColor.light}`,
-            }}
-          />
+          {/* Đã xóa Chip Mức độ */}
         </Stack>
 
-        {/* Thông báo phân tích */}
+        {/* 2. CẬP NHẬT CÂU THÔNG BÁO: Dùng sensorName (Ví dụ: Độ pH, Nhiệt độ) thay vì ID */}
         <Typography
           variant="body2"
           sx={{
             p: 2,
-            bgcolor: levelColor.bg,
+            bgcolor: alertTheme.bg,
             borderRadius: "12px",
-            color: levelColor.main,
+            color: alertTheme.main,
             mb: 3,
             fontWeight: 500,
-            border: `1px solid ${levelColor.light}`,
+            border: `1px solid ${alertTheme.light}`,
           }}
         >
           Giá trị <strong>{data.sensorName}</strong> đang ở mức {data.value},
@@ -253,7 +206,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             sx={{
               flex: 1,
               p: 2,
-              border: `1px solid ${levelColor.light}`,
+              border: `1px solid ${alertTheme.light}`,
               borderRadius: "16px",
               bgcolor: "#fff",
             }}
@@ -267,7 +220,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             </Typography>
             <Typography
               variant="h4"
-              sx={{ fontWeight: 800, color: levelColor.main }}
+              sx={{ fontWeight: 800, color: alertTheme.main }}
             >
               {data.value}
             </Typography>
@@ -275,7 +228,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               direction="row"
               alignItems="center"
               spacing={0.5}
-              sx={{ color: levelColor.main }}
+              sx={{ color: alertTheme.main }}
             >
               <TrendingDownIcon sx={{ fontSize: 16 }} />
               <Typography variant="caption" sx={{ fontWeight: 700 }}>
@@ -313,6 +266,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </Box>
         </Stack>
 
+        {/* Biểu đồ */}
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
           Xu hướng gần đây
         </Typography>
@@ -346,9 +300,9 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke={levelColor.main}
+                stroke={alertTheme.main}
                 strokeWidth={3}
-                dot={{ r: 4, fill: levelColor.main }}
+                dot={{ r: 4, fill: alertTheme.main }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -394,64 +348,57 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
         <Divider sx={{ mb: 3 }} />
 
-        {/* Footer Actions */}
+        {/* 3. CẬP NHẬT NÚT HÀNH ĐỘNG: Ẩn nút nếu trạng thái là Đóng sự cố */}
         <Stack
           direction="row"
           justifyContent="space-between"
           alignItems="center"
         >
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Avatar
-              sx={{
-                width: 36,
-                height: 36,
-                bgcolor: theme.palette.primary.main,
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
-              {data.staff ? data.staff.charAt(0) : "?"}
-            </Avatar>
-            <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontWeight: 700, display: "block", fontSize: "9px" }}
-              >
-                KỸ THUẬT VIÊN PHỤ TRÁCH
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {data.staff || "Chưa phân công"}
-              </Typography>
-            </Box>
-          </Stack>
+          <Stack direction="row" spacing={1.5} alignItems="center"></Stack>
+
           <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="outlined"
-              startIcon={<SendIcon />}
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                fontWeight: 600,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.secondary,
-              }}
-            >
-              Gửi hỗ trợ
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircleIcon />}
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                fontWeight: 700,
-                boxShadow: "none",
-              }}
-            >
-              Đã xử lý
-            </Button>
+            {data.status !== "Đóng sự cố" ? (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<SendIcon />}
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    borderColor: theme.palette.divider,
+                    color: theme.palette.text.secondary,
+                  }}
+                >
+                  Gửi hỗ trợ
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleIcon />}
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 700,
+                    boxShadow: "none",
+                  }}
+                >
+                  Đã xử lý
+                </Button>
+              </>
+            ) : (
+              <Chip
+                label="Sự cố đã được đóng"
+                color="success"
+                variant="outlined"
+                sx={{
+                  fontWeight: 700,
+                  borderRadius: "8px",
+                  borderStyle: "dashed",
+                  height: 36,
+                }}
+              />
+            )}
           </Stack>
         </Stack>
       </DialogContent>

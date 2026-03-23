@@ -25,7 +25,7 @@ export const operatorBatchesApi = {
 
   // CẬP NHẬT: Gửi thêm feedTypeId xuống Backend
   recordFeeding: async (batchId: string, amount: number, feedTypeId: string) =>
-    await apiFetch<unknown>(`/feeding-logs`, {
+    await apiFetch<unknown>(`/batches/${batchId}/feeding`, {
       method: "POST",
       body: {
         farmingBatchId: batchId,

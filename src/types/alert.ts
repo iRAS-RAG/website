@@ -1,7 +1,11 @@
 // src/types/alert.ts
 
-// Dùng Union Type thay cho enum để tương thích với 'erasableSyntaxOnly'
-export type AlertStatus = 0 | 1 | 2;
+export type AlertStatus =
+  | "OPEN"
+  | "ACKNOWLEDGED"
+  | "RESOLVED"
+  | string
+  | number;
 
 export interface IAlert {
   id: string;
@@ -16,13 +20,18 @@ export interface IAlert {
   value: number;
   raisedAt: string;
   resolvedAt?: string;
-  status: AlertStatus | string | number;
+  status: AlertStatus;
   createdAt?: string;
   modifiedAt?: string;
+
+  // THÊM 3 TRƯỜNG NÀY ĐỂ HIỂN THỊ NGƯỠNG
+  unitOfMeasure: string;
+  minThreshold: number;
+  maxThreshold: number;
 }
 
 export interface IAlertListRequest {
   page?: number;
   pageSize?: number;
-  status?: AlertStatus | string | number;
+  status?: AlertStatus;
 }

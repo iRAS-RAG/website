@@ -27,15 +27,13 @@ import type { IAlert } from "../../types/alert";
 // Icons
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import type { JSX } from "react";
 
-// Định nghĩa dữ liệu truyền vào Modal và Bảng (Sửa id thành string | number)
+// Định nghĩa dữ liệu truyền vào Modal (Đã xóa trường level)
 export interface AlertData {
   id: string | number;
   time: string;
@@ -43,10 +41,9 @@ export interface AlertData {
   sensorName: string;
   value: string;
   limit: string;
-  level: "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp";
   tank: string;
   staff: string;
-  status: "Đang xử lý" | "Chờ xử lý" | "Đã xử lý";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
 }
 
 interface SummaryCardProps {
@@ -57,24 +54,13 @@ interface SummaryCardProps {
 }
 
 // Hàm hỗ trợ map trạng thái từ Backend (Số/Chuỗi) sang UI Text
-// Đã dùng 'unknown' thay cho 'any' để ESLint không báo lỗi
 const getStatusLabel = (
   status: unknown,
-): "Đang xử lý" | "Chờ xử lý" | "Đã xử lý" => {
-  const s = String(status).toLowerCase();
-  if (s === "1" || s === "processing") return "Đang xử lý";
-  if (s === "2" || s === "resolved") return "Đã xử lý";
-  return "Chờ xử lý"; // Default (0 hoặc pending)
-};
-
-// Hàm giả lập mức độ cảnh báo (Vì BE hiện không trả về Level)
-const getAlertLevel = (
-  value: number,
-): "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp" => {
-  if (value > 50) return "Nghiêm trọng";
-  if (value > 30) return "Cao";
-  if (value > 10) return "Trung bình";
-  return "Thấp";
+): "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" => {
+  const s = String(status).toUpperCase();
+  if (s === "ACKNOWLEDGED") return "Đang xử lý";
+  if (s === "RESOLVED") return "Đóng sự cố";
+  return "Chờ xử lý"; // Mặc định cho trạng thái "OPEN"
 };
 
 const AlertCenter = () => {
@@ -90,20 +76,30 @@ const AlertCenter = () => {
     totalCount,
   } = useAlerts(1, 10);
 
-  // State Modal (Sử dụng interface AlertData chuẩn)
+  // Tính toán số lượng cho Summary Cards
+  const openCount = alerts.filter(
+    (a) => String(a.status).toUpperCase() === "OPEN",
+  ).length;
+
+  const ackCount = alerts.filter(
+    (a) => String(a.status).toUpperCase() === "ACKNOWLEDGED",
+  ).length;
+
+  const resolvedCount = alerts.filter(
+    (a) => String(a.status).toUpperCase() === "RESOLVED",
+  ).length;
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertData | null>(null);
 
   const handleOpenDetail = (alert: IAlert) => {
-    // Map dữ liệu IAlert từ Backend sang format UI của Modal
     setSelectedAlert({
       id: alert.id,
       time: dayjs(alert.raisedAt).format("DD/MM/YYYY HH:mm:ss"),
       sensorCode: alert.sensorTypeName,
-      sensorName: "ID: " + alert.sensorTypeId.substring(0, 8),
+      sensorName: alert.sensorTypeName, // Truyền Tên cảm biến thật vào thay vì ID
       value: `${alert.value}`,
-      limit: `ID: ${alert.speciesThresholdId.substring(0, 8)}`,
-      level: getAlertLevel(alert.value),
+      limit: `${alert.minThreshold} - ${alert.maxThreshold} ${alert.unitOfMeasure}`,
       tank: alert.fishTankName,
       staff: "Chưa phân công",
       status: getStatusLabel(alert.status),
@@ -150,11 +146,10 @@ const AlertCenter = () => {
             </Typography>
           </Box>
 
-          {/* SUMMARY CARDS */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: "repeat(4, 1fr)", // Đổi lại thành 4 cột cho 4 trạng thái
               gap: 3,
               mb: 4,
             }}
@@ -166,71 +161,24 @@ const AlertCenter = () => {
               color="primary"
             />
             <SummaryCard
-              label="Nghiêm trọng"
-              value="-"
-              icon={<ErrorOutlineIcon />}
-              color="error"
-            />
-            <SummaryCard
               label="Chờ xử lý"
-              value="-"
-              icon={<PendingActionsIcon />}
-              color="warning"
+              value={openCount.toString()}
+              icon={<ErrorOutlineIcon />}
+              color="error" // Màu đỏ báo động cần xử lý ngay
             />
             <SummaryCard
-              label="Đã xử lý"
-              value="-"
+              label="Đang xử lý"
+              value={ackCount.toString()}
+              icon={<PendingActionsIcon />}
+              color="warning" // Màu cam cho tiến trình đang chạy
+            />
+            <SummaryCard
+              label="Đóng sự cố"
+              value={resolvedCount.toString()}
               icon={<CheckCircleOutlineIcon />}
-              color="success"
+              color="success" // Màu xanh lá khi hoàn tất
             />
           </Box>
-
-          {/* FILTERS & EXPORT */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              mb: 3,
-              borderRadius: "12px",
-              border: `1px solid ${theme.palette.divider}`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              bgcolor: "white",
-            }}
-          >
-            <Button
-              variant="outlined"
-              startIcon={<FilterListIcon />}
-              sx={{
-                color: theme.palette.text.primary,
-                borderColor: theme.palette.divider,
-                textTransform: "none",
-                fontWeight: 600,
-                borderRadius: "8px",
-                height: 40,
-                px: 2,
-              }}
-            >
-              Bộ lọc
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<FileDownloadIcon />}
-              color="success"
-              sx={{
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                borderRadius: "8px",
-                height: 40,
-                boxShadow: "none",
-                px: 2,
-              }}
-            >
-              Xuất báo cáo
-            </Button>
-          </Paper>
 
           {/* ALERT LOG TABLE */}
           <TableContainer
@@ -260,8 +208,7 @@ const AlertCenter = () => {
                       "Cảm biến",
                       "Giá trị",
                       "Ngưỡng",
-                      "Mức độ",
-                      "Bể ảnh hưởng",
+                      "Bể ảnh hưởng", // Đã xóa cột Mức độ
                       "Trạng thái",
                       "Hành động",
                     ].map((head, index) => (
@@ -313,7 +260,7 @@ const AlertCenter = () => {
                         </Stack>
                       </TableCell>
 
-                      {/* Cảm biến */}
+                      {/* Cảm biến (Đã xóa ID dài ngoằng bên dưới) */}
                       <TableCell>
                         <Box>
                           <Typography
@@ -325,15 +272,6 @@ const AlertCenter = () => {
                             }}
                           >
                             {row.sensorTypeName}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: theme.palette.text.secondary,
-                              fontFamily: "monospace",
-                            }}
-                          >
-                            {row.sensorTypeId.substring(0, 8)}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -353,16 +291,12 @@ const AlertCenter = () => {
                       <TableCell
                         sx={{
                           color: theme.palette.text.secondary,
-                          fontSize: "0.75rem",
-                          fontFamily: "monospace",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
                         }}
                       >
-                        ID: {row.speciesThresholdId.substring(0, 8)}
-                      </TableCell>
-
-                      {/* Mức độ (Tính toán giả lập) */}
-                      <TableCell>
-                        <LevelChip level={getAlertLevel(row.value)} />
+                        {row.minThreshold} - {row.maxThreshold}{" "}
+                        {row.unitOfMeasure}
                       </TableCell>
 
                       {/* Bể ảnh hưởng */}
@@ -410,7 +344,7 @@ const AlertCenter = () => {
                   ))}
                   {alerts.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                         Chưa có cảnh báo nào
                       </TableCell>
                     </TableRow>
@@ -419,7 +353,6 @@ const AlertCenter = () => {
               </Table>
             )}
           </TableContainer>
-
           {/* PAGINATION */}
           <Stack
             direction="row"
@@ -531,56 +464,10 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
   );
 };
 
-const LevelChip = ({
-  level,
-}: {
-  level: "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp";
-}) => {
-  const theme = useTheme();
-  const getStyle = () => {
-    switch (level) {
-      case "Nghiêm trọng":
-        return {
-          bgcolor: theme.palette.error.light,
-          color: theme.palette.error.main,
-        };
-      case "Cao":
-        return {
-          bgcolor: theme.palette.warning.light,
-          color: theme.palette.warning.main,
-        };
-      case "Trung bình":
-        return {
-          bgcolor: theme.palette.warning.light,
-          color: theme.palette.warning.main,
-        };
-      default:
-        return {
-          bgcolor: theme.palette.background.default,
-          color: theme.palette.text.secondary,
-        };
-    }
-  };
-  const style = getStyle();
-  return (
-    <Chip
-      label={level}
-      size="small"
-      sx={{
-        fontWeight: 700,
-        borderRadius: "6px",
-        fontSize: "0.75rem",
-        bgcolor: style.bgcolor,
-        color: style.color,
-      }}
-    />
-  );
-};
-
 const StatusChip = ({
   status,
 }: {
-  status: "Đang xử lý" | "Chờ xử lý" | "Đã xử lý";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
 }) => {
   const theme = useTheme();
   const getStyle = () => {
@@ -595,7 +482,7 @@ const StatusChip = ({
           bgcolor: theme.palette.warning.light,
           color: theme.palette.warning.main,
         };
-      case "Đã xử lý":
+      case "Đóng sự cố":
         return {
           bgcolor: theme.palette.success.light,
           color: theme.palette.success.main,

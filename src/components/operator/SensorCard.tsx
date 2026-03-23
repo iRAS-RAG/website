@@ -1,13 +1,6 @@
+// src/components/operator/SensorCard.tsx
 import React from "react";
-import {
-  Paper,
-  Box,
-  Typography,
-  Chip,
-  Stack,
-  Divider,
-  useTheme,
-} from "@mui/material";
+import { Paper, Box, Typography, Chip, Stack, useTheme } from "@mui/material";
 
 interface SensorCardProps {
   label: string;
@@ -17,7 +10,7 @@ interface SensorCardProps {
   status: string;
   statusColor: "success" | "warning" | "error";
   icon: React.ElementType;
-  optimalRange: string;
+  // Đã xóa optimalRange
 }
 
 export const SensorCard: React.FC<SensorCardProps> = ({
@@ -28,14 +21,14 @@ export const SensorCard: React.FC<SensorCardProps> = ({
   status,
   statusColor,
   icon: Icon,
-  optimalRange,
+  // Đã xóa optimalRange
 }) => {
   const theme = useTheme();
 
   const colorMap = {
-    success: { bg: "#ECFDF5", text: "#10B981", iconBg: "#D1FAE5" }, // Xanh lá
-    warning: { bg: "#FFF7ED", text: "#F97316", iconBg: "#FFEDD5" }, // Cam
-    error: { bg: "#FEF2F2", text: "#EF4444", iconBg: "#FEE2E2" }, // Đỏ
+    success: { bg: "#ECFDF5", text: "#10B981", iconBg: "#D1FAE5" },
+    warning: { bg: "#FFF7ED", text: "#F97316", iconBg: "#FFEDD5" },
+    error: { bg: "#FEF2F2", text: "#EF4444", iconBg: "#FEE2E2" },
   };
 
   const colors = colorMap[statusColor];
@@ -54,7 +47,7 @@ export const SensorCard: React.FC<SensorCardProps> = ({
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
+        // Đã bỏ justifyContent: "space-between" để nội dung tự đẩy lên trên cho đẹp
         height: "100%",
       }}
     >
@@ -70,7 +63,7 @@ export const SensorCard: React.FC<SensorCardProps> = ({
             width: 48,
             height: 48,
             borderRadius: "12px",
-            bgcolor: colors.iconBg, // Nền icon theo trạng thái
+            bgcolor: colors.iconBg,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -94,7 +87,7 @@ export const SensorCard: React.FC<SensorCardProps> = ({
       </Stack>
 
       {/* Content: Label & Value */}
-      <Box mb={2}>
+      <Box>
         <Typography
           variant="body2"
           sx={{ fontWeight: 600, color: theme.palette.text.secondary, mb: 0.5 }}
@@ -126,20 +119,7 @@ export const SensorCard: React.FC<SensorCardProps> = ({
           {trend}
         </Typography>
       </Box>
-
-      {/* Footer: Optimal Range */}
-      <Box>
-        <Divider sx={{ my: 1.5, borderStyle: "dashed" }} />
-        <Typography
-          variant="caption"
-          sx={{ color: theme.palette.text.secondary }}
-        >
-          Ngưỡng:{" "}
-          <Box component="span" sx={{ fontWeight: 600 }}>
-            {optimalRange}
-          </Box>
-        </Typography>
-      </Box>
+      {/* Đã xóa hoàn toàn Footer chứa Ngưỡng */}
     </Paper>
   );
 };
