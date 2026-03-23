@@ -3,7 +3,16 @@ import CodeIcon from "@mui/icons-material/Code";
 import HeightIcon from "@mui/icons-material/Height";
 import PoolIcon from "@mui/icons-material/Pool";
 import StraightenIcon from "@mui/icons-material/Straighten";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
 import type { Tank } from "../../../types/tank";
@@ -11,12 +20,23 @@ import type { Tank } from "../../../types/tank";
 const TankFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: { name: string; height?: number; radius?: number; farmId?: string; topicCode?: string; cameraUrl?: string }) => Promise<void>;
+  onSave: (v: {
+    name: string;
+    height?: number;
+    radius?: number;
+    farmId?: string;
+    topicCode?: string;
+    cameraUrl?: string;
+  }) => Promise<void>;
   initial: Tank | null;
 }> = ({ open, onClose, onSave, initial }) => {
   const [name, setName] = useState(initial?.name ?? "");
-  const [height, setHeight] = useState(initial?.height != null ? String(initial.height) : "");
-  const [radius, setRadius] = useState(initial?.radius != null ? String(initial.radius) : "");
+  const [height, setHeight] = useState(
+    initial?.height != null ? String(initial.height) : "",
+  );
+  const [radius, setRadius] = useState(
+    initial?.radius != null ? String(initial.radius) : "",
+  );
   const [topicCode, setTopicCode] = useState(initial?.topicCode ?? "");
   const [cameraUrl, setCameraUrl] = useState(initial?.cameraUrl ?? "");
   const [saving, setSaving] = useState(false);
@@ -45,7 +65,9 @@ const TankFormDialog: React.FC<{
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField
             label={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <PoolIcon fontSize="small" />
                 Tên
               </span>
@@ -58,7 +80,9 @@ const TankFormDialog: React.FC<{
           />
           <TextField
             label={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <HeightIcon fontSize="small" />
                 Chiều cao (cm)
               </span>
@@ -71,7 +95,9 @@ const TankFormDialog: React.FC<{
           />
           <TextField
             label={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <StraightenIcon fontSize="small" />
                 Bán kính (cm)
               </span>
@@ -84,7 +110,9 @@ const TankFormDialog: React.FC<{
           />
           <TextField
             label={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <CodeIcon fontSize="small" />
                 Mã chủ đề
               </span>
@@ -97,7 +125,9 @@ const TankFormDialog: React.FC<{
           />
           <TextField
             label={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <CameraAltIcon fontSize="small" />
                 Camera URL
               </span>
@@ -120,7 +150,14 @@ const TankFormDialog: React.FC<{
             setFormError(null);
             setFieldErrors({});
             try {
-              const payload: { name: string; height?: number; radius?: number; farmId?: string; topicCode?: string; cameraUrl?: string } = {
+              const payload: {
+                name: string;
+                height?: number;
+                radius?: number;
+                farmId?: string;
+                topicCode?: string;
+                cameraUrl?: string;
+              } = {
                 name: name,
                 height: height ? parseFloat(height) : undefined,
                 radius: radius ? parseFloat(radius) : undefined,
@@ -131,8 +168,13 @@ const TankFormDialog: React.FC<{
               await onSave(payload);
             } catch (e) {
               const err = e as ApiError;
-              if (err && err.data && (err.data as Record<string, unknown>).errors) {
-                const errs = (err.data as Record<string, unknown>).errors as Record<string, string[]>;
+              if (
+                err &&
+                err.data &&
+                (err.data as Record<string, unknown>).errors
+              ) {
+                const errs = (err.data as Record<string, unknown>)
+                  .errors as Record<string, string[]>;
                 const mapped: Record<string, string> = {};
                 for (const k of Object.keys(errs)) {
                   const key = k.toLowerCase();
@@ -141,12 +183,15 @@ const TankFormDialog: React.FC<{
                   else if (key.includes("height")) mapped.height = msg;
                   else if (key.includes("radius")) mapped.radius = msg;
                   else if (key.includes("topic")) mapped.topicCode = msg;
-                  else if (key.includes("camera") || key.includes("url")) mapped.cameraUrl = msg;
+                  else if (key.includes("camera") || key.includes("url"))
+                    mapped.cameraUrl = msg;
                   else mapped[k] = msg;
                 }
                 setFieldErrors(mapped);
               } else {
-                setFormError((err && err.message) || String(e) || "Save failed");
+                setFormError(
+                  (err && err.message) || String(e) || "Save failed",
+                );
               }
             } finally {
               setSaving(false);

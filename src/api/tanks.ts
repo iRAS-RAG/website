@@ -19,14 +19,16 @@ function toTank(item: Record<string, unknown>): Tank {
 }
 
 export async function getTanks(): Promise<Tank[]> {
-  const res = await apiFetch<unknown>("/tanks");
+  // SỬA: /tanks -> /fish-tanks
+  const res = await apiFetch<unknown>("/fish-tanks");
   const items = extractArray(res);
   return items.map((i) => toTank(i as Record<string, unknown>));
 }
 
 export async function createTank(payload: Partial<Tank>): Promise<Tank | null> {
   const body: Record<string, unknown> = { ...payload };
-  const created = await apiFetch<Record<string, unknown>>("/tanks", {
+  // SỬA: /tanks -> /fish-tanks
+  const created = await apiFetch<Record<string, unknown>>("/fish-tanks", {
     method: "POST",
     body,
   });
@@ -39,7 +41,8 @@ export async function updateTank(
   payload: Partial<Tank>,
 ): Promise<Tank | null> {
   const body: Record<string, unknown> = { ...payload };
-  const updated = await apiFetch<Record<string, unknown>>(`/tanks/${id}`, {
+  // SỬA: /tanks -> /fish-tanks
+  const updated = await apiFetch<Record<string, unknown>>(`/fish-tanks/${id}`, {
     method: "PUT",
     body,
   });
@@ -48,9 +51,11 @@ export async function updateTank(
 }
 
 export async function deleteTank(id: string): Promise<boolean> {
-  await apiFetch(`/tanks/${id}`, { method: "DELETE" });
+  // SỬA: /tanks -> /fish-tanks
+  await apiFetch(`/fish-tanks/${id}`, { method: "DELETE" });
   return true;
 }
+
 /**
  * Lấy dữ liệu cảm biến mới nhất của một bể cụ thể
  * [HttpGet("{id}/latest-data")] trong FishTankController
@@ -58,7 +63,8 @@ export async function deleteTank(id: string): Promise<boolean> {
 export async function getTankLatestData(
   id: string,
 ): Promise<LatestDataResponse> {
-  return await apiFetch<LatestDataResponse>(`/tanks/${id}/latest-data`);
+  // SỬA: tanks -> /fish-tanks (Thêm dấu / ở đầu cho chuẩn format)
+  return await apiFetch<LatestDataResponse>(`/fish-tanks/${id}/latest-data`);
 }
 
 /**
@@ -74,9 +80,11 @@ export async function getSensorLogs(
     ? `?page=${params.page}&pageSize=${params.pageSize}`
     : "";
 
+  // SensorController nên đường dẫn /sensors giữ nguyên
   return await apiFetch<SensorLogResponse>(
     `/sensors/${sensorId}/logs${queryString}`,
     { method: "GET" }, // FETCH_OPTIONS mặc định thường chỉ nhận method, headers, body
   );
 }
+
 export default { getTanks, createTank, updateTank, deleteTank };

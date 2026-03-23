@@ -1,10 +1,11 @@
 import React from "react";
 import {
+  Avatar,
   Box,
-  Paper,
-  Typography,
-  useTheme,
   CircularProgress,
+  Paper,
+  Stack,
+  Typography,
 } from "@mui/material";
 
 // Components & Icons
@@ -12,16 +13,16 @@ import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // Material UI Icons
-import WaterIcon from "@mui/icons-material/Water";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SensorsIcon from "@mui/icons-material/Sensors";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
-import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import WaterIcon from "@mui/icons-material/Water";
 
-// Import Custom Hook vừa tạo
+// Import Custom Hook
 import { useOperatorDashboard } from "../../hooks/useOperatorDashboard";
 
-// Interface Component (Giữ nguyên)
+// Interface Component
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -29,51 +30,61 @@ interface StatCardProps {
   color: string;
 }
 
-// Component Thẻ Thống Kê (Giữ nguyên)
+// Component Thẻ Thống Kê (Đã thiết kế lại theo chuẩn Enterprise SaaS)
 const StatCard = ({ title, value, icon: Icon, color }: StatCardProps) => {
-  const theme = useTheme();
   return (
     <Paper
+      elevation={0}
       sx={{
-        p: 2.5,
+        p: 3,
         borderRadius: "16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 2,
-        flex: "1 1 200px",
-        border: `1px solid ${theme.palette.divider}`,
-        boxShadow: "none",
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+        transition: "transform 0.2s",
+        height: "100%",
+        "&:hover": { transform: "translateY(-4px)" },
       }}
     >
-      <Box
-        sx={{
-          p: 1.5,
-          borderRadius: "12px",
-          bgcolor: `${color}15`,
-          color: color,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ height: "100%" }}
       >
-        <Icon fontSize="medium" />
-      </Box>
-      <Box>
-        <Typography variant="body2" color="text.secondary" fontWeight={600}>
-          {title}
-        </Typography>
-        <Typography variant="h5" fontWeight={700} color="text.primary">
-          {value}
-        </Typography>
-      </Box>
+        <Box>
+          <Typography
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: "#64748B",
+              mb: 1,
+              textTransform: "uppercase",
+            }}
+          >
+            {title}
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: "#0F172A" }}>
+            {value}
+          </Typography>
+        </Box>
+        <Avatar
+          sx={{
+            bgcolor: `${color}15`, // Tạo nền màu pastel dựa trên mã hex
+            color: color,
+            width: 48,
+            height: 48,
+            borderRadius: "12px",
+          }}
+        >
+          <Icon />
+        </Avatar>
+      </Stack>
     </Paper>
   );
 };
 
 const OperatorDashboard = () => {
-  const theme = useTheme();
-
-  // Toàn bộ logic API phức tạp đã được "giấu" vào hook này
+  // Logic API được giữ nguyên tuyệt đối
   const { stats, loading } = useOperatorDashboard();
 
   if (loading) {
@@ -84,6 +95,7 @@ const OperatorDashboard = () => {
           justifyContent: "center",
           alignItems: "center",
           height: "100vh",
+          bgcolor: "#F8FAFC",
         }}
       >
         <CircularProgress />
@@ -92,8 +104,16 @@ const OperatorDashboard = () => {
   }
 
   return (
-    <Box sx={{ display: "flex", bgcolor: "#F8FAFC", minHeight: "100vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        bgcolor: "#F8FAFC",
+        minHeight: "100vh",
+        width: "100%",
+      }}
+    >
       <OperatorSidebar />
+
       <Box
         sx={{
           flexGrow: 1,
@@ -105,55 +125,76 @@ const OperatorDashboard = () => {
       >
         <OperatorHeader />
 
-        <Box component="main" sx={{ p: 4 }}>
+        <Box
+          component="main"
+          sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}
+        >
           {/* Header Section */}
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" sx={{ fontWeight: 600, color: "#1E293B" }}>
-              Bảng điều khiển
-            </Typography>
             <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
+              variant="h4"
+              sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
             >
-              Tổng quan tài sản và vận hành từ hệ thống giám sát iRAS-RAG
+              Tổng quan hệ thống giám sát
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              Chào mừng trở lại! Dưới đây là tóm tắt tài sản và tình trạng vận
+              hành từ iRAS-RAG.
             </Typography>
           </Box>
 
-          {/* Thống kê tổng quan hệ thống */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-            Tài sản & Vận hành
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 6 }}>
-            <StatCard
-              title="Tổng số bể"
-              value={stats.totalTanks}
-              icon={WaterIcon}
-              color="#3B82F6"
-            />
-            <StatCard
-              title="Tổng lô nuôi"
-              value={stats.totalBatches}
-              icon={InventoryIcon}
-              color="#10B981"
-            />
-            <StatCard
-              title="Tổng cảm biến"
-              value={stats.totalSensors}
-              icon={SensorsIcon}
-              color="#8B5CF6"
-            />
-            <StatCard
-              title="Tổng thiết bị"
-              value={stats.totalDevices}
-              icon={SettingsSuggestIcon}
-              color="#F59E0B"
-            />
-            <StatCard
-              title="Nhật ký bảo trì"
-              value={stats.totalMaintenance}
-              icon={AssignmentTurnedInIcon}
-              color="#EC4899"
-            />
+          {/* Thống kê tổng quan hệ thống (Sử dụng Grid thay vì Flexbox để đều cột) */}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 3,
+            }}
+          >
+            <Box sx={{ flex: "1 1 calc(33.333% - 24px)", minWidth: "260px" }}>
+              <StatCard
+                title="Tổng số bể"
+                value={stats.totalTanks}
+                icon={WaterIcon}
+                color="#2A85FF"
+              />
+            </Box>
+
+            <Box sx={{ flex: "1 1 calc(33.333% - 24px)", minWidth: "260px" }}>
+              <StatCard
+                title="Tổng lô nuôi"
+                value={stats.totalBatches}
+                icon={InventoryIcon}
+                color="#10B981"
+              />
+            </Box>
+
+            <Box sx={{ flex: "1 1 calc(33.333% - 24px)", minWidth: "260px" }}>
+              <StatCard
+                title="Tổng cảm biến"
+                value={stats.totalSensors}
+                icon={SensorsIcon}
+                color="#9333EA"
+              />
+            </Box>
+
+            <Box sx={{ flex: "1 1 calc(33.333% - 24px)", minWidth: "260px" }}>
+              <StatCard
+                title="Tổng thiết bị"
+                value={stats.totalDevices}
+                icon={SettingsSuggestIcon}
+                color="#F59E0B"
+              />
+            </Box>
+
+            <Box sx={{ flex: "1 1 calc(33.333% - 24px)", minWidth: "260px" }}>
+              <StatCard
+                title="Nhật ký bảo trì"
+                value={stats.totalMaintenance}
+                icon={AssignmentTurnedInIcon}
+                color="#EC4899"
+              />
+            </Box>
           </Box>
         </Box>
       </Box>

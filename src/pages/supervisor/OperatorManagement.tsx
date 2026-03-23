@@ -74,15 +74,8 @@ const OperatorManagement: React.FC = () => {
   const toast = useToast();
 
   React.useEffect(() => {
-    if (tableParams?.searchTerm !== "Operator") {
-      setTableParamsLocal({
-        ...(tableParams ?? {}),
-        searchTerm: "Operator",
-        page: 1,
-      });
-      updateUrlWithParams({ searchTerm: "Operator", page: 1 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // ĐÃ SỬA CHỖ NÀY: Gỡ bỏ logic tự động điền "Operator" vào thanh tìm kiếm
+    // Để hệ thống load toàn bộ danh sách nhân viên mặc định
   }, []);
 
   const openCreate = useCallback(() => {
@@ -105,7 +98,6 @@ const OperatorManagement: React.FC = () => {
     setOpenRestore(true);
   }, []);
 
-  // COLUMNS: Đã bỏ cột Trạng thái và Đăng nhập lần cuối
   const columns = useMemo(
     () =>
       [
@@ -304,20 +296,28 @@ const OperatorManagement: React.FC = () => {
       >
         <SupervisorHeader />
 
-        {/* ĐÃ SỬA CHỖ NÀY: Bỏ maxWidth và mx: "auto" để full width */}
         <Box
           component="main"
           sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}
         >
+          {/* HEADER */}
           <Stack
             direction="row"
             justifyContent="space-between"
             alignItems="center"
             sx={{ mb: 4 }}
           >
-            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B" }}>
-              Quản lý nhân viên
-            </Typography>
+            <Box>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
+              >
+                Quản lý nhân viên
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#64748B" }}>
+                Quản lý tài khoản vận hành và phân quyền hệ thống.
+              </Typography>
+            </Box>
 
             <Stack direction="row" spacing={2}>
               <Button
@@ -371,6 +371,7 @@ const OperatorManagement: React.FC = () => {
             }}
           >
             <TableToolbar
+              searchPlaceholder="Tìm kiếm theo tên, vai trò ..." // ĐÃ THÊM: Câu Placeholder chuyên nghiệp
               searchTerm={String(tableParams.searchTerm ?? "")}
               onSearchTermChange={(v) => {
                 setTableParamsLocal({
