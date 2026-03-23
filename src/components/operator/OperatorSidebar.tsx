@@ -9,7 +9,7 @@ import Sidebar, { type MenuItemType } from "../common/Sidebar";
 
 const menuItems: MenuItemType[] = [
   {
-    text: "Bảng điều khiển",
+    text: "Tổng quan",
     icon: <DashboardIcon />,
     path: "/operator/dashboard",
   },

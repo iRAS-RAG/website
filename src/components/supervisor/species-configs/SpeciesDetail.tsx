@@ -4,7 +4,6 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import EditIcon from "@mui/icons-material/Edit";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LocalDiningIcon from "@mui/icons-material/LocalDining";
-import PetsIcon from "@mui/icons-material/Pets";
 import SaveIcon from "@mui/icons-material/Save";
 import ScaleIcon from "@mui/icons-material/Scale";
 import ScheduleIcon from "@mui/icons-material/Schedule";
@@ -37,7 +36,10 @@ import {
   Typography,
 } from "@mui/material";
 import React from "react";
-import { createGrowthStage, deleteGrowthStage } from "../../../api/growth-stages";
+import {
+  createGrowthStage,
+  deleteGrowthStage,
+} from "../../../api/growth-stages";
 import useFeedTypes from "../../../hooks/useFeedTypes";
 import useGrowthStages from "../../../hooks/useGrowthStages";
 import useSensorTypes from "../../../hooks/useSensorTypes";
@@ -49,18 +51,42 @@ import ThresholdEditor from "./ThresholdEditor";
 
 const SpeciesDetail: React.FC<{
   species: SpeciesConfig;
-  updateStage: (speciesId: string, stageId: string, patch: Partial<Stage>) => void;
-  updateStageThreshold: (speciesId: string, stageId: string, sensor: string, min: number | null, max: number | null, id?: string) => void;
+  updateStage: (
+    speciesId: string,
+    stageId: string,
+    patch: Partial<Stage>,
+  ) => void;
+  updateStageThreshold: (
+    speciesId: string,
+    stageId: string,
+    sensor: string,
+    min: number | null,
+    max: number | null,
+    id?: string,
+  ) => void;
   addStage: (speciesId: string, growthStageId?: string, name?: string) => void;
   removeStage?: (speciesId: string, stageId: string) => void;
   onDeleteSpecies?: (speciesId: string) => Promise<void> | void;
   onRenameSpecies?: (speciesId: string, name: string) => Promise<void> | void;
-}> = ({ species, updateStage, updateStageThreshold, addStage, removeStage, onDeleteSpecies, onRenameSpecies }) => {
+}> = ({
+  species,
+  updateStage,
+  updateStageThreshold,
+  addStage,
+  removeStage,
+  onDeleteSpecies,
+  onRenameSpecies,
+}) => {
   const toast = useToast();
   const { feeds: feedTypes, loading: feedLoading } = useFeedTypes();
-  const { stages: growthStages, setStages: setGrowthStages, loading: growthLoading } = useGrowthStages();
+  const {
+    stages: growthStages,
+    setStages: setGrowthStages,
+    loading: growthLoading,
+  } = useGrowthStages();
   const { createConfig, updateConfig, removeConfig } = useSpeciesStageConfigs();
-  const { create: createThreshold, update: updateThreshold } = useSpeciesThresholds();
+  const { create: createThreshold, update: updateThreshold } =
+    useSpeciesThresholds();
   const { items: sensorTypes } = useSensorTypes();
 
   const [saving, setSaving] = React.useState<Record<string, boolean>>({});
@@ -78,7 +104,10 @@ const SpeciesDetail: React.FC<{
   }, [species.id, species.name]);
 
   const labelWithIcon = (icon: React.ReactNode, text: string) => (
-    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+    <Box
+      component="span"
+      sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}
+    >
       {icon}
       {text}
     </Box>
@@ -93,7 +122,10 @@ const SpeciesDetail: React.FC<{
     if (!newStageName) return;
     setCreatingStage(true);
     try {
-      const created = await createGrowthStage({ name: newStageName, description: newStageDesc });
+      const created = await createGrowthStage({
+        name: newStageName,
+        description: newStageDesc,
+      });
       if (created) {
         setGrowthStages((s) => [created, ...s]);
         handleAddStage({ id: created.id, name: created.name });
@@ -126,18 +158,18 @@ const SpeciesDetail: React.FC<{
 
   async function handleDeleteStageConfig(st: Stage) {
     if (!st.configId) return;
-    if (!window.confirm(`Bạn có chắc muốn xóa cấu hình giai đoạn "${st.name}"?`)) return;
+    if (
+      !window.confirm(`Bạn có chắc muốn xóa cấu hình giai đoạn "${st.name}"?`)
+    )
+      return;
 
     try {
       await removeConfig(st.configId);
-      // remove config from local species stages
       if (typeof removeStage === "function") {
         removeStage(species.id, st.id);
         toast.success("Xóa cấu hình giai đoạn thành công");
         return;
       }
-
-      // fallback: clear linkage
       updateStage(species.id, st.id, { configId: undefined, thresholds: [] });
       toast.success("Xóa cấu hình giai đoạn thành công");
     } catch (e) {
@@ -169,7 +201,6 @@ const SpeciesDetail: React.FC<{
         }
       }
 
-      // persist thresholds
       for (const th of st.thresholds || []) {
         const sensor = sensorTypes.find((s) => s.name === th.sensor);
         if (!sensor) continue;
@@ -186,7 +217,9 @@ const SpeciesDetail: React.FC<{
         } else {
           const created = await createThreshold(tPayload);
           if (created && created.id) {
-            const nextThresholds = (st.thresholds || []).map((tt) => (tt.sensor === th.sensor ? { ...tt, id: created.id } : tt));
+            const nextThresholds = (st.thresholds || []).map((tt) =>
+              tt.sensor === th.sensor ? { ...tt, id: created.id } : tt,
+            );
             updateStage(species.id, st.id, { thresholds: nextThresholds });
           }
         }
@@ -202,7 +235,12 @@ const SpeciesDetail: React.FC<{
 
   async function handleDeleteSpecies() {
     if (!onDeleteSpecies || deletingSpecies) return;
-    if (!window.confirm(`Bạn có chắc muốn xóa loài "${species.name}"?`)) return;
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn xóa loài "${species.name}"? Tác vụ này không thể hoàn tác.`,
+      )
+    )
+      return;
 
     setDeletingSpecies(true);
     try {
@@ -231,120 +269,277 @@ const SpeciesDetail: React.FC<{
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Typography variant="h6" sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
-          <PetsIcon fontSize="small" />
+      {/* HEADER CỦA LOÀI */}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 2 }}
+      >
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            color: "#0F172A",
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
           {species.name}
         </Typography>
-        <IconButton size="small" aria-label="edit-species-name" onClick={() => setRenameOpen(true)} disabled={!onRenameSpecies || renamingSpecies}>
-          <EditIcon fontSize="small" />
-        </IconButton>
+        <Stack direction="row" spacing={1}>
+          <IconButton
+            size="small"
+            onClick={() => setRenameOpen(true)}
+            disabled={!onRenameSpecies || renamingSpecies}
+            sx={{
+              color: "#64748B",
+              bgcolor: "#F1F5F9",
+              "&:hover": { bgcolor: "#E2E8F0", color: "#2A85FF" },
+            }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={handleDeleteSpecies}
+            disabled={!onDeleteSpecies || deletingSpecies}
+            sx={{
+              color: "#EF4444",
+              bgcolor: "#FEF2F2",
+              "&:hover": { bgcolor: "#FEE2E2", color: "#DC2626" },
+            }}
+          >
+            {deletingSpecies ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <DeleteIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Stack>
       </Stack>
-      <Divider sx={{ my: 1 }} />
+      <Divider sx={{ mb: 3 }} />
 
       <Stack spacing={2}>
         {species.stages.map((st) => (
-          <Accordion key={st.id}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>{st.name}</Typography>
-              {st.configId ? (
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleDeleteStageConfig(st);
-                  }}
-                  sx={{ ml: 1 }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              ) : null}
+          <Accordion
+            key={st.id}
+            elevation={0}
+            sx={{
+              border: "1px solid #E2E8F0",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              sx={{ bgcolor: "#F8FAFC" }}
+            >
+              {/* Bọc Flexbox để giữ Title và Icon thẳng hàng */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  pr: 2,
+                }}
+              >
+                <Typography sx={{ fontWeight: 600, color: "#334155" }}>
+                  {st.name}
+                </Typography>
+                {st.configId && (
+                  <IconButton
+                    component="span" // FIX LỖI NESTED BUTTON
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleDeleteStageConfig(st);
+                    }}
+                    onFocus={(e) => e.stopPropagation()} // Chống bubble khi dùng phím tab
+                    sx={{ ml: 1, color: "#94A3B8" }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
             </AccordionSummary>
 
-            <AccordionDetails>
-              <Grid container spacing={2}>
-                {/* Growth stage name is not editable */}
-
+            <AccordionDetails sx={{ pt: 3 }}>
+              <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth>
-                    <InputLabel id={`feedtype-label-${st.id}`}>{labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại thức ăn")}</InputLabel>
+                    <InputLabel id={`feedtype-label-${st.id}`}>
+                      {labelWithIcon(
+                        <LocalDiningIcon fontSize="small" />,
+                        "Loại thức ăn",
+                      )}
+                    </InputLabel>
                     <Select
                       labelId={`feedtype-label-${st.id}`}
-                      label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại thức ăn")}
+                      label={labelWithIcon(
+                        <LocalDiningIcon fontSize="small" />,
+                        "Loại thức ăn",
+                      )}
                       value={st.feedType ?? ""}
-                      onChange={(e) => updateStage(species.id, st.id, { feedType: String(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          feedType: String(e.target.value),
+                        })
+                      }
                     >
                       {feedLoading ? (
                         <MenuItem value="">
                           <CircularProgress size={18} />
                         </MenuItem>
                       ) : (
-                        feedTypes.map((f) => (
-                          <MenuItem key={f.id} value={f.id}>
-                            {f.name}
-                          </MenuItem>
-                        ))
+                        [
+                          // FIX LỖI VÀNG CỦA SELECT OUT-OF-RANGE
+                          <MenuItem
+                            key="empty"
+                            value=""
+                            sx={{ display: "none" }}
+                          ></MenuItem>,
+                          st.feedType &&
+                          !feedTypes.some((f) => f.id === st.feedType) ? (
+                            <MenuItem
+                              key="fallback"
+                              value={st.feedType}
+                              sx={{ display: "none" }}
+                            >
+                              {st.feedType}
+                            </MenuItem>
+                          ) : null,
+                          // Render mảng data thực tế
+                          ...feedTypes.map((f) => (
+                            <MenuItem key={f.id} value={f.id}>
+                              {f.name}
+                            </MenuItem>
+                          )),
+                        ]
                       )}
                     </Select>
                   </FormControl>
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
-                    label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Lượng thức ăn (kg/100 cá)")}
+                    label={labelWithIcon(
+                      <LocalDiningIcon fontSize="small" />,
+                      "Lượng thức ăn (kg/100 cá)",
+                    )}
                     type="number"
                     fullWidth
                     value={st.feedPer100}
-                    onChange={(e) => updateStage(species.id, st.id, { feedPer100: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateStage(species.id, st.id, {
+                        feedPer100: Number(e.target.value),
+                      })
+                    }
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
-                    label={labelWithIcon(<TimelineIcon fontSize="small" />, "Số lần/ngày")}
+                    label={labelWithIcon(
+                      <TimelineIcon fontSize="small" />,
+                      "Số lần/ngày",
+                    )}
                     type="number"
                     fullWidth
                     value={st.frequencyPerDay}
-                    onChange={(e) => updateStage(species.id, st.id, { frequencyPerDay: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateStage(species.id, st.id, {
+                        frequencyPerDay: Number(e.target.value),
+                      })
+                    }
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
-                    label={labelWithIcon(<ScaleIcon fontSize="small" />, "Mật độ tối đa (cá/m3)")}
+                    label={labelWithIcon(
+                      <ScaleIcon fontSize="small" />,
+                      "Mật độ tối đa (cá/m3)",
+                    )}
                     type="number"
                     fullWidth
                     value={st.maxStockingDensity}
-                    onChange={(e) => updateStage(species.id, st.id, { maxStockingDensity: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateStage(species.id, st.id, {
+                        maxStockingDensity: Number(e.target.value),
+                      })
+                    }
                   />
                 </Grid>
-
-                <Grid size={{ xs: 12, md: 6 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
-                    label={labelWithIcon(<ScheduleIcon fontSize="small" />, "Thời gian (ngày)")}
+                    label={labelWithIcon(
+                      <ScheduleIcon fontSize="small" />,
+                      "Thời gian (ngày)",
+                    )}
                     type="number"
                     fullWidth
                     value={st.expectedDurationDays}
-                    onChange={(e) => updateStage(species.id, st.id, { expectedDurationDays: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateStage(species.id, st.id, {
+                        expectedDurationDays: Number(e.target.value),
+                      })
+                    }
                   />
                 </Grid>
 
                 <Grid size={12}>
-                  <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
-                    <SensorsIcon fontSize="small" />
-                    Ngưỡng cảm biến
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.75,
+                      mb: 1,
+                      color: "#475569",
+                    }}
+                  >
+                    <SensorsIcon fontSize="small" /> Ngưỡng cảm biến
                   </Typography>
                   <ThresholdEditor
                     speciesId={species.id}
                     stage={st}
-                    onSaveThreshold={(sensor, min, max, id) => updateStageThreshold(species.id, st.id, sensor, min, max, id)}
+                    onSaveThreshold={(sensor, min, max, id) =>
+                      updateStageThreshold(
+                        species.id,
+                        st.id,
+                        sensor,
+                        min,
+                        max,
+                        id,
+                      )
+                    }
                     onRemoveThreshold={(sensor) => {
-                      const next = (st.thresholds || []).filter((t) => t.sensor !== sensor);
+                      const next = (st.thresholds || []).filter(
+                        (t) => t.sensor !== sensor,
+                      );
                       updateStage(species.id, st.id, { thresholds: next });
                     }}
                   />
-                  <Box sx={{ mt: 1 }}>
-                    <Button variant="outlined" size="small" startIcon={!saving[st.id] ? <SaveIcon fontSize="small" /> : undefined} onClick={() => saveStage(st)} disabled={!!saving[st.id]}>
-                      {saving[st.id] ? <CircularProgress size={16} /> : "Lưu giai đoạn"}
+                  <Box
+                    sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}
+                  >
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={
+                        !saving[st.id] ? (
+                          <SaveIcon fontSize="small" />
+                        ) : undefined
+                      }
+                      onClick={() => saveStage(st)}
+                      disabled={!!saving[st.id]}
+                    >
+                      {saving[st.id] ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        "Lưu giai đoạn này"
+                      )}
                     </Button>
                   </Box>
                 </Grid>
@@ -353,19 +548,29 @@ const SpeciesDetail: React.FC<{
           </Accordion>
         ))}
 
-        <Stack direction="row" spacing={1}>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
-            Thêm giai đoạn
+        {/* NÚT THÊM GIAI ĐOẠN Ở ĐÁY */}
+        <Box sx={{ mt: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => setDialogOpen(true)}
+            sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+          >
+            Thêm giai đoạn phát triển
           </Button>
-          <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={handleDeleteSpecies} disabled={!onDeleteSpecies || deletingSpecies}>
-            {deletingSpecies ? <CircularProgress size={16} color="inherit" /> : "Xóa loài"}
-          </Button>
-        </Stack>
+        </Box>
 
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-          <DialogTitle sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
-            <AddIcon fontSize="small" />
-            Thêm giai đoạn
+        {/* CÁC DIALOGS GIỮ NGUYÊN... */}
+        <Dialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle
+            sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+          >
+            <AddIcon fontSize="small" /> Thêm giai đoạn
           </DialogTitle>
           <DialogContent>
             {growthLoading ? (
@@ -374,7 +579,9 @@ const SpeciesDetail: React.FC<{
               <>
                 <List>
                   {growthStages.map((gs) => {
-                    const already = species.stages.some((s) => s.growthStageId === gs.id);
+                    const already = species.stages.some(
+                      (s) => s.growthStageId === gs.id,
+                    );
                     return (
                       <ListItem
                         key={gs.id}
@@ -391,29 +598,71 @@ const SpeciesDetail: React.FC<{
                           </IconButton>
                         }
                       >
-                        <ListItemButton disabled={already} onClick={() => handleAddStage(gs)}>
-                          <ListItemText primary={already ? `${gs.name} — Đã cấu hình` : gs.name} secondary={gs.description ?? undefined} />
+                        <ListItemButton
+                          disabled={already}
+                          onClick={() => handleAddStage(gs)}
+                        >
+                          <ListItemText
+                            primary={
+                              already ? `${gs.name} — Đã cấu hình` : gs.name
+                            }
+                            secondary={gs.description ?? undefined}
+                          />
                         </ListItemButton>
                       </ListItem>
                     );
                   })}
                 </List>
-
                 <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
-                    <AddIcon fontSize="small" />
-                    Tạo giai đoạn mới
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.75,
+                    }}
+                  >
+                    <AddIcon fontSize="small" /> Tạo giai đoạn mới
                   </Typography>
                   <Grid container spacing={1} sx={{ mt: 1 }}>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField label={labelWithIcon(<TimelineIcon fontSize="small" />, "Tên")} value={newStageName} onChange={(e) => setNewStageName(e.target.value)} fullWidth />
+                      <TextField
+                        label={labelWithIcon(
+                          <TimelineIcon fontSize="small" />,
+                          "Tên",
+                        )}
+                        value={newStageName}
+                        onChange={(e) => setNewStageName(e.target.value)}
+                        fullWidth
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField label={labelWithIcon(<DescriptionIcon fontSize="small" />, "Mô tả")} value={newStageDesc} onChange={(e) => setNewStageDesc(e.target.value)} fullWidth />
+                      <TextField
+                        label={labelWithIcon(
+                          <DescriptionIcon fontSize="small" />,
+                          "Mô tả",
+                        )}
+                        value={newStageDesc}
+                        onChange={(e) => setNewStageDesc(e.target.value)}
+                        fullWidth
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      <Button variant="contained" startIcon={!creatingStage ? <AddIcon fontSize="small" /> : undefined} onClick={handleCreateStage} disabled={creatingStage || !newStageName}>
-                        {creatingStage ? <CircularProgress size={16} /> : "Tạo và thêm"}
+                      <Button
+                        variant="contained"
+                        startIcon={
+                          !creatingStage ? (
+                            <AddIcon fontSize="small" />
+                          ) : undefined
+                        }
+                        onClick={handleCreateStage}
+                        disabled={creatingStage || !newStageName}
+                      >
+                        {creatingStage ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          "Tạo và thêm"
+                        )}
                       </Button>
                     </Grid>
                   </Grid>
@@ -426,21 +675,43 @@ const SpeciesDetail: React.FC<{
           </DialogActions>
         </Dialog>
 
-        <Dialog open={renameOpen} onClose={() => !renamingSpecies && setRenameOpen(false)} fullWidth maxWidth="xs">
-          <DialogTitle sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
-            <EditIcon fontSize="small" />
-            Đổi tên loài
+        <Dialog
+          open={renameOpen}
+          onClose={() => !renamingSpecies && setRenameOpen(false)}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle
+            sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+          >
+            <EditIcon fontSize="small" /> Đổi tên loài
           </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 1 }}>
-              <TextField label="Tên loài" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus fullWidth />
+              <TextField
+                label="Tên loài"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                autoFocus
+                fullWidth
+              />
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setRenameOpen(false)} disabled={renamingSpecies}>
+            <Button
+              onClick={() => setRenameOpen(false)}
+              disabled={renamingSpecies}
+            >
               Hủy
             </Button>
-            <Button variant="contained" startIcon={!renamingSpecies ? <SaveIcon fontSize="small" /> : undefined} onClick={handleRenameSpecies} disabled={renamingSpecies || !renameValue.trim()}>
+            <Button
+              variant="contained"
+              startIcon={
+                !renamingSpecies ? <SaveIcon fontSize="small" /> : undefined
+              }
+              onClick={handleRenameSpecies}
+              disabled={renamingSpecies || !renameValue.trim()}
+            >
               {renamingSpecies ? <CircularProgress size={16} /> : "Lưu tên"}
             </Button>
           </DialogActions>

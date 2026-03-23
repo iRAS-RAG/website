@@ -9,6 +9,7 @@ type Props = {
   onPageSizeChange?: (n: number) => void;
   pageSizeOptions?: number[];
   filters?: React.ReactNode;
+  searchPlaceholder?: string; // Bổ sung prop này
 };
 
 export const TableToolbar: React.FC<Props> = ({
@@ -18,6 +19,7 @@ export const TableToolbar: React.FC<Props> = ({
   onPageSizeChange,
   pageSizeOptions = [5, 10, 25, 50],
   filters,
+  searchPlaceholder = "Tìm kiếm theo tên hoặc email...", // Giá trị mặc định
 }) => {
   return (
     <Box
@@ -32,7 +34,7 @@ export const TableToolbar: React.FC<Props> = ({
         bgcolor: "#FFFFFF",
       }}
     >
-      {/* Box TRÁI: Search và Bộ lọc (Switch) */}
+      {/* Box TRÁI: Search và Bộ lọc (Switch/Select) */}
       <Box
         sx={{
           display: "flex",
@@ -44,7 +46,7 @@ export const TableToolbar: React.FC<Props> = ({
       >
         <TextField
           size="small"
-          placeholder="Tìm kiếm theo tên hoặc email..."
+          placeholder={searchPlaceholder} // Sử dụng prop mới ở đây
           value={searchTerm}
           onChange={(e) => onSearchTermChange?.(e.target.value)}
           sx={{

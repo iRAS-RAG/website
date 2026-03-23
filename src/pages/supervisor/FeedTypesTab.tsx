@@ -1,12 +1,19 @@
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DescriptionIcon from "@mui/icons-material/Description";
 import EditIcon from "@mui/icons-material/Edit";
 import FactoryIcon from "@mui/icons-material/Factory";
-import LocalDiningIcon from "@mui/icons-material/LocalDining";
-import MedicationIcon from "@mui/icons-material/Medication";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, Button, IconButton, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import {
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import React, { useState } from "react";
 import DataTable, { type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
@@ -25,7 +32,13 @@ const FeedTypesTab: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const [tableParams, setTableParams] = useState({ page: 1, pageSize: 10, searchTerm: "", sortBy: undefined as string | undefined, sortDir: undefined as "asc" | "desc" | undefined });
+  const [tableParams, setTableParams] = useState({
+    page: 1,
+    pageSize: 10,
+    searchTerm: "",
+    sortBy: undefined as string | undefined,
+    sortDir: undefined as "asc" | "desc" | undefined,
+  });
   const [manufacturerFilter, setManufacturerFilter] = useState<string | "">("");
 
   const openCreate = () => {
@@ -56,14 +69,19 @@ const FeedTypesTab: React.FC = () => {
     }
   };
 
-  const handleSave = async (values: { name: string; protein: string; description?: string; manufacturer?: string }) => {
+  const handleSave = async (values: {
+    name: string;
+    protein: string;
+    description?: string;
+    manufacturer?: string;
+  }) => {
     try {
       if (editing) {
         await update(editing.id, values);
         toast.success("Cập nhật thức ăn thành công");
       } else {
         await create(values as Omit<FeedType, "id">);
-        toast.success("Tạo thức ăn thành công");
+        toast.success("Thêm thức ăn thành công");
       }
       setFormOpen(false);
       setEditing(null);
@@ -75,16 +93,29 @@ const FeedTypesTab: React.FC = () => {
   };
 
   React.useEffect(() => {
-    void load({ page: tableParams.page, pageSize: tableParams.pageSize, searchTerm: tableParams.searchTerm, sortBy: tableParams.sortBy, sortDir: tableParams.sortDir });
-  }, [tableParams.page, tableParams.pageSize, tableParams.searchTerm, tableParams.sortBy, tableParams.sortDir, load]);
+    void load({
+      page: tableParams.page,
+      pageSize: tableParams.pageSize,
+      searchTerm: tableParams.searchTerm,
+      sortBy: tableParams.sortBy,
+      sortDir: tableParams.sortDir,
+    });
+  }, [
+    tableParams.page,
+    tableParams.pageSize,
+    tableParams.searchTerm,
+    tableParams.sortBy,
+    tableParams.sortDir,
+    load,
+  ]);
 
-  // build client-side manufacturer options from currently loaded items
-  const manufacturerOptions = Array.from(new Set(feeds.map((f) => f.manufacturer).filter(Boolean))) as string[];
+  const manufacturerOptions = Array.from(
+    new Set(feeds.map((f) => f.manufacturer).filter(Boolean)),
+  ) as string[];
+  const filtered = manufacturerFilter
+    ? feeds.filter((f) => f.manufacturer === manufacturerFilter)
+    : feeds;
 
-  // apply client-side filtering by manufacturer
-  const filtered = manufacturerFilter ? feeds.filter((f) => f.manufacturer === manufacturerFilter) : feeds;
-
-  // apply client-side sorting for certain keys
   const sorted = React.useMemo(() => {
     const arr = [...filtered];
     const key = tableParams.sortBy;
@@ -92,14 +123,25 @@ const FeedTypesTab: React.FC = () => {
     if (!key) return arr;
     if (key === "proteinPercentage") {
       arr.sort((a, b) => {
-        const an = typeof a.proteinPercentage === "number" ? a.proteinPercentage : parseInt(String(a.protein || "0"), 10) || 0;
-        const bn = typeof b.proteinPercentage === "number" ? b.proteinPercentage : parseInt(String(b.protein || "0"), 10) || 0;
+        const an =
+          typeof a.proteinPercentage === "number"
+            ? a.proteinPercentage
+            : parseInt(String(a.protein || "0"), 10) || 0;
+        const bn =
+          typeof b.proteinPercentage === "number"
+            ? b.proteinPercentage
+            : parseInt(String(b.protein || "0"), 10) || 0;
         return (an - bn) * dir;
       });
       return arr;
     }
     if (key === "manufacturer") {
-      arr.sort((a, b) => (String(a.manufacturer || "").localeCompare(String(b.manufacturer || "")) as number) * dir);
+      arr.sort(
+        (a, b) =>
+          (String(a.manufacturer || "").localeCompare(
+            String(b.manufacturer || ""),
+          ) as number) * dir,
+      );
       return arr;
     }
     return arr;
@@ -108,63 +150,88 @@ const FeedTypesTab: React.FC = () => {
   const columns: Column<FeedType>[] = [
     {
       field: "name",
-      label: (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <LocalDiningIcon fontSize="small" />
-          Tên
-        </span>
-      ),
+      label: "Tên",
       sortable: true,
-      render: (r) => <strong>{r.name}</strong>,
+      render: (r) => (
+        <Typography
+          sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.95rem" }}
+        >
+          {r.name}
+        </Typography>
+      ),
     },
     {
       field: "description",
-      label: (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <DescriptionIcon fontSize="small" />
-          Mô tả
-        </span>
+      label: "Mô tả",
+      render: (r) => (
+        <Typography
+          sx={{
+            color: "#64748B",
+            fontSize: "0.875rem",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {r.description || ""}
+        </Typography>
       ),
-      render: (r) => <span>{r.description ? (r.description.length > 120 ? r.description.slice(0, 120) + "…" : r.description) : ""}</span>,
     },
     {
       field: "protein",
-      label: (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <MedicationIcon fontSize="small" />
-          Đạm
-        </span>
-      ),
+      label: "Đạm",
       sortable: true,
       sortKey: "proteinPercentage",
-      render: (r) => <span>{r.protein}</span>,
+      render: (r) => (
+        <Chip
+          label={r.protein}
+          size="small"
+          sx={{
+            bgcolor: "#E0F2FE",
+            color: "#0369A1",
+            fontWeight: 700,
+            borderRadius: "6px",
+            border: "none",
+          }}
+        />
+      ),
     },
     {
       field: "manufacturer",
-      label: (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <FactoryIcon fontSize="small" />
-          Nhà sản xuất
-        </span>
-      ),
+      label: "Nhà sản xuất",
       sortable: true,
-      render: (r) => (r.manufacturer ? <span>{r.manufacturer}</span> : null),
+      render: (r) => (
+        <Typography sx={{ color: "#334155", fontSize: "0.875rem" }}>
+          {r.manufacturer}
+        </Typography>
+      ),
     },
     {
       field: "actions",
-      label: (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <MoreHorizIcon fontSize="small" />
-          Hành động
-        </span>
-      ),
+      label: "Hành động",
       render: (r) => (
-        <Stack direction="row" spacing={1}>
-          <IconButton size="small" aria-label="edit" onClick={() => openEdit(r)}>
-            <EditIcon />
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          <IconButton
+            size="small"
+            onClick={() => openEdit(r)}
+            sx={{
+              color: "#64748B",
+              "&:hover": { color: "#2A85FF", bgcolor: "#EFF6FF" },
+            }}
+          >
+            <EditIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small" aria-label="delete" onClick={() => openConfirm(r.id)}>
-            <DeleteIcon />
+          <IconButton
+            size="small"
+            onClick={() => openConfirm(r.id)}
+            sx={{
+              color: "#64748B",
+              "&:hover": { color: "#EF4444", bgcolor: "#FEF2F2" },
+            }}
+          >
+            <DeleteIcon fontSize="small" />
           </IconButton>
         </Stack>
       ),
@@ -172,50 +239,152 @@ const FeedTypesTab: React.FC = () => {
   ];
 
   return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Thức ăn
-        </Typography>
-        <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openCreate}>
-          Thêm thức ăn
-        </Button>
+    // ĐÃ SỬA CHỖ NÀY: Loại bỏ minHeight, bgcolor và padding cứng. Để nó tự nhiên lấp đầy Component Cha.
+    <Box sx={{ width: "100%", flexGrow: 1 }}>
+      {/* HEADER */}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 4 }}
+      >
+        {/* Đã bọc Tiêu đề và Phụ đề vào Box */}
+        <Box>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
+          >
+            Quản lý thức ăn
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#64748B" }}>
+            Quản lý danh mục các loại thức ăn, hàm lượng dinh dưỡng và nhà sản
+            xuất.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={2}>
+          <Button
+            startIcon={<RefreshIcon />}
+            variant="outlined"
+            onClick={() =>
+              load({
+                page: tableParams.page,
+                pageSize: tableParams.pageSize,
+                searchTerm: tableParams.searchTerm,
+                sortBy: tableParams.sortBy,
+                sortDir: tableParams.sortDir,
+              })
+            }
+            sx={{
+              borderRadius: "8px",
+              color: "#475569",
+              borderColor: "#CBD5E1",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": { bgcolor: "#F1F5F9", borderColor: "#94A3B8" },
+            }}
+          >
+            Làm mới
+          </Button>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={openCreate}
+            sx={{
+              borderRadius: "8px",
+              bgcolor: "#2A85FF",
+              textTransform: "none",
+              fontWeight: 600,
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#1F6FDB" },
+            }}
+          >
+            Thêm thức ăn
+          </Button>
+        </Stack>
       </Stack>
 
-      <TableToolbar
-        searchTerm={tableParams.searchTerm}
-        onSearchTermChange={(v) => setTableParams((p) => ({ ...p, searchTerm: v, page: 1 }))}
-        pageSize={tableParams.pageSize}
-        onPageSizeChange={(n) => setTableParams((p) => ({ ...p, pageSize: n, page: 1 }))}
-        filters={
-          <TextField size="small" select value={manufacturerFilter} onChange={(e) => setManufacturerFilter(e.target.value as string)} sx={{ width: 220 }} SelectProps={{ displayEmpty: true }}>
-            <MenuItem value="">
-              <FactoryIcon fontSize="small" sx={{ mr: 1, opacity: 0.7 }} />
-              Tất cả nhà sản xuất
-            </MenuItem>
-            {manufacturerOptions.map((m) => (
-              <MenuItem key={m} value={m}>
-                <FactoryIcon fontSize="small" sx={{ mr: 1, opacity: 0.9 }} />
-                {m}
+      {/* PAPER BỌC CẢ TOOLBAR VÀ BẢNG */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: "12px",
+          border: "1px solid #E2E8F0",
+          overflow: "hidden",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+        }}
+      >
+        <TableToolbar
+          searchPlaceholder="Tìm kiếm tên thức ăn..."
+          searchTerm={tableParams.searchTerm}
+          onSearchTermChange={(v) =>
+            setTableParams((p) => ({ ...p, searchTerm: v, page: 1 }))
+          }
+          pageSize={tableParams.pageSize}
+          onPageSizeChange={(n) =>
+            setTableParams((p) => ({ ...p, pageSize: n, page: 1 }))
+          }
+          filters={
+            <TextField
+              size="small"
+              select
+              value={manufacturerFilter}
+              onChange={(e) => setManufacturerFilter(e.target.value as string)}
+              sx={{
+                width: 220,
+                "& .MuiOutlinedInput-root": { borderRadius: "8px" },
+              }}
+              SelectProps={{ displayEmpty: true }}
+            >
+              <MenuItem value="">
+                <FactoryIcon fontSize="small" sx={{ mr: 1, opacity: 0.7 }} />
+                Tất cả nhà sản xuất
               </MenuItem>
-            ))}
-          </TextField>
-        }
+              {manufacturerOptions.map((m) => (
+                <MenuItem key={m} value={m}>
+                  <FactoryIcon fontSize="small" sx={{ mr: 1, opacity: 0.9 }} />
+                  {m}
+                </MenuItem>
+              ))}
+            </TextField>
+          }
+        />
+
+        <DataTable
+          columns={columns}
+          rows={sorted}
+          sortBy={tableParams.sortBy}
+          sortDir={tableParams.sortDir}
+          onSort={(s, d) =>
+            setTableParams((p) => ({ ...p, sortBy: s, sortDir: d }))
+          }
+        />
+
+        <Box sx={{ p: 2, borderTop: "1px solid #E2E8F0" }}>
+          <PaginationControls
+            page={tableParams.page}
+            totalPages={
+              meta && typeof meta.totalPages === "number"
+                ? (meta.totalPages as number)
+                : 1
+            }
+            onPageChange={(p) => setTableParams((t) => ({ ...t, page: p }))}
+          />
+        </Box>
+      </Paper>
+
+      {/* DIALOGS */}
+      <FeedFormDialog
+        open={formOpen}
+        initial={editing}
+        onClose={() => setFormOpen(false)}
+        onSave={handleSave}
       />
-
-      <Box>
-        <DataTable columns={columns} rows={sorted} sortBy={tableParams.sortBy} sortDir={tableParams.sortDir} onSort={(s, d) => setTableParams((p) => ({ ...p, sortBy: s, sortDir: d }))} />
-      </Box>
-
-      <PaginationControls
-        page={tableParams.page}
-        totalPages={meta && typeof meta.totalPages === "number" ? (meta.totalPages as number) : 1}
-        onPageChange={(p) => setTableParams((t) => ({ ...t, page: p }))}
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleDeleteConfirmed}
       />
-
-      <FeedFormDialog open={formOpen} initial={editing} onClose={() => setFormOpen(false)} onSave={handleSave} />
-
-      <ConfirmDeleteDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDeleteConfirmed} />
     </Box>
   );
 };
