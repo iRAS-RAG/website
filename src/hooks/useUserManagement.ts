@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { createUser, deleteUser, disableUser, restoreUser, toUiUser, updateUser } from "../api/users";
+import {
+  createUser,
+  deleteUser,
+  disableUser,
+  restoreUser,
+  toUiUser,
+  updateUser,
+} from "../api/users";
 import type { TableParams } from "../types/table";
 import type { User } from "../types/user";
 import useTableData from "./useTableData";
@@ -34,7 +41,10 @@ export default function useUserManagement() {
 
   // Ensure URL contains an explicit isDeleted=false when none provided so the UI and actions are consistent
   useEffect(() => {
-    if (searchParams.get("isDeleted") === null || searchParams.get("page") === null) {
+    if (
+      searchParams.get("isDeleted") === null ||
+      searchParams.get("page") === null
+    ) {
       const sp = new URLSearchParams(searchParams);
       if (sp.get("isDeleted") === null) sp.set("isDeleted", "false");
       if (sp.get("page") === null) sp.set("page", "1");
@@ -44,9 +54,16 @@ export default function useUserManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [tableParams, setTableParamsLocal] = useState<TableParams>(initialParams);
+  const [tableParams, setTableParamsLocal] =
+    useState<TableParams>(initialParams);
 
-  const { rows, meta, loading: dataLoading, error: dataError, reload } = useTableData<Record<string, unknown>>("/users", tableParams);
+  const {
+    rows,
+    meta,
+    loading: dataLoading,
+    error: dataError,
+    reload,
+  } = useTableData<Record<string, unknown>>("/users", tableParams);
   const data = (rows ?? []).map((r) => {
     const ui = toUiUser(r as Record<string, unknown>);
     return {
@@ -66,8 +83,20 @@ export default function useUserManagement() {
   useEffect(() => {
     const fromUrl = parseSearchParams();
     const same =
-      JSON.stringify({ page: tableParams.page, pageSize: tableParams.pageSize, searchTerm: tableParams.searchTerm, sortBy: tableParams.sortBy, sortDir: tableParams.sortDir }) ===
-      JSON.stringify({ page: fromUrl.page, pageSize: fromUrl.pageSize, searchTerm: fromUrl.searchTerm, sortBy: fromUrl.sortBy, sortDir: fromUrl.sortDir });
+      JSON.stringify({
+        page: tableParams.page,
+        pageSize: tableParams.pageSize,
+        searchTerm: tableParams.searchTerm,
+        sortBy: tableParams.sortBy,
+        sortDir: tableParams.sortDir,
+      }) ===
+      JSON.stringify({
+        page: fromUrl.page,
+        pageSize: fromUrl.pageSize,
+        searchTerm: fromUrl.searchTerm,
+        sortBy: fromUrl.sortBy,
+        sortDir: fromUrl.sortDir,
+      });
     if (!same) {
       setTableParamsLocal(fromUrl);
     }
@@ -78,11 +107,14 @@ export default function useUserManagement() {
     const merged: TableParams = { ...(tableParams ?? {}), ...next };
     const sp = new URLSearchParams();
     if (merged.page !== undefined) sp.set("page", String(merged.page));
-    if (merged.pageSize !== undefined) sp.set("pageSize", String(merged.pageSize));
-    if (merged.searchTerm !== undefined && merged.searchTerm !== "") sp.set("searchTerm", String(merged.searchTerm));
+    if (merged.pageSize !== undefined)
+      sp.set("pageSize", String(merged.pageSize));
+    if (merged.searchTerm !== undefined && merged.searchTerm !== "")
+      sp.set("searchTerm", String(merged.searchTerm));
     if (merged.sortBy !== undefined) sp.set("sortBy", String(merged.sortBy));
     if (merged.sortDir !== undefined) sp.set("sortDir", String(merged.sortDir));
-    if (merged.isDeleted !== undefined && merged.isDeleted !== null) sp.set("isDeleted", String(merged.isDeleted));
+    if (merged.isDeleted !== undefined && merged.isDeleted !== null)
+      sp.set("isDeleted", String(merged.isDeleted));
     setSearchParams(sp, { replace: true });
   }
 
@@ -101,8 +133,16 @@ export default function useUserManagement() {
   const createOrUpdate = useCallback(
     async (
       editingId: string | null,
-      values: { firstName: string; lastName: string; email: string; role: string; password?: string },
-      original?: (User & { rawFirstName?: string; rawLastName?: string }) | null,
+      values: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        role: string;
+        password?: string;
+      },
+      original?:
+        | (User & { rawFirstName?: string; rawLastName?: string })
+        | null,
     ) => {
       setOpLoading(true);
       setError(null);
@@ -120,14 +160,20 @@ export default function useUserManagement() {
             if (!origFirst && !origLast && original.name) {
               const parts = original.name.trim().split(/\s+/);
               origFirst = parts.length ? parts[parts.length - 1] : "";
-              origLast = parts.length > 1 ? parts.slice(0, parts.length - 1).join(" ") : "";
+              origLast =
+                parts.length > 1
+                  ? parts.slice(0, parts.length - 1).join(" ")
+                  : "";
             }
           }
 
-          if (values.firstName !== origFirst) payload.firstName = values.firstName;
+          if (values.firstName !== origFirst)
+            payload.firstName = values.firstName;
           if (values.lastName !== origLast) payload.lastName = values.lastName;
-          if (values.email !== (original?.email ?? "")) payload.email = values.email;
-          if (values.role !== (original?.role ?? "")) payload.role = values.role;
+          if (values.email !== (original?.email ?? ""))
+            payload.email = values.email;
+          if (values.role !== (original?.role ?? ""))
+            payload.role = values.role;
           if (values.password) payload.password = values.password;
 
           // If nothing changed (and no password), skip PUT
@@ -141,9 +187,6 @@ export default function useUserManagement() {
           await createUser(values);
         }
         await reload();
-      } catch (e: unknown) {
-        if (e instanceof Error) setError(e.message);
-        throw e;
       } finally {
         setOpLoading(false);
       }
