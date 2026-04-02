@@ -71,6 +71,15 @@ const OperatorManagement: React.FC = () => {
     disable,
     restore,
   } = useUserManagement();
+
+  const operatorsOnly = useMemo(() => {
+    return data.filter(
+      (user) =>
+        user.role.toLowerCase() === "operator" ||
+        user.role.toLowerCase() === "kỹ thuật viên",
+    );
+  }, [data]);
+
   const toast = useToast();
 
   React.useEffect(() => {
@@ -314,8 +323,9 @@ const OperatorManagement: React.FC = () => {
               >
                 Quản lý nhân viên
               </Typography>
-              <Typography variant="body2" sx={{ color: "#64748B" }}>
-                Quản lý tài khoản vận hành và phân quyền hệ thống.
+              <Typography variant="body2" sx={{ color: "#64748B", mt: 0.5 }}>
+                Quản lý danh sách và quyền truy cập của các Kỹ thuật viên
+                (Operator) vận hành hệ thống.
               </Typography>
             </Box>
 
@@ -421,7 +431,7 @@ const OperatorManagement: React.FC = () => {
 
             <DataTable
               columns={columns}
-              rows={data}
+              rows={operatorsOnly}
               sortBy={tableParams.sortBy as string | undefined}
               sortDir={tableParams.sortDir as "asc" | "desc" | undefined}
               onSort={(s, d) => {

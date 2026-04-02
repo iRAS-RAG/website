@@ -64,6 +64,7 @@ const UserManagement: React.FC = () => {
   const [disablingId, setDisablingId] = useState<string | null>(null);
   const [openRestore, setOpenRestore] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
   const {
     tableParams,
@@ -83,11 +84,13 @@ const UserManagement: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<string | "">("");
 
   const openCreate = useCallback(() => {
+    setGeneralError(null); // Reset lỗi
     setEditing(null);
     setOpenForm(true);
   }, []);
 
   const openEdit = useCallback((user: User) => {
+    setGeneralError(null); // Reset lỗi
     setEditing(user);
     setOpenForm(true);
   }, []);
@@ -267,20 +270,25 @@ const UserManagement: React.FC = () => {
     role: string;
     password?: string;
   }) {
+    setGeneralError(null);
     try {
       await createOrUpdate(editing?.id ?? null, values, editing as User | null);
       setOpenForm(false);
       if (editing) toast.success("Cập nhật người dùng thành công");
       else toast.success("Tạo người dùng thành công");
     } catch (e: unknown) {
-      if (
-        isApiError(e) &&
-        e.data &&
-        (e.data as Record<string, unknown>).errors
-      ) {
-        throw e;
+      // Nếu là lỗi nhập liệu từ người dùng (400, 409, 422) -> Ném lại vào Form
+      if (isApiError(e)) {
+        const status = e.status;
+        const hasErrors = e.data && (e.data as Record<string, unknown>).errors;
+        if (status === 400 || status === 409 || status === 422 || hasErrors) {
+          throw e; // Ném lại để UserFormDialog hứng và dịch lỗi
+        }
       }
-      toast.error("Lưu người dùng thất bại");
+
+      // Nếu là lỗi hệ thống (500) hoặc rớt mạng -> Đóng form và báo ở Table
+      setOpenForm(false);
+      setGeneralError("Yêu cầu thất bại (Request failed)");
     }
   }
 
@@ -405,9 +413,9 @@ const UserManagement: React.FC = () => {
             </Stack>
           </Stack>
 
-          {error && (
-            <Typography color="error" sx={{ mt: 1, mb: 2 }}>
-              {error}
+          {(error || generalError) && (
+            <Typography color="error" sx={{ mt: 1, mb: 2, fontWeight: 500 }}>
+              {generalError || error}
             </Typography>
           )}
 
