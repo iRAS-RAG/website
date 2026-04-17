@@ -224,7 +224,7 @@ const RealTimeSensors = () => {
                     <SensorCard
                       key={idx}
                       label={sensor.sensorName}
-                      value={sensor.latestData?.latestValue?.toString() || "--"}
+                      value={sensor.latestData?.latestAvg?.toString() || "--"} // Đã đổi thành latestAvg
                       unit={sensor.unitOfMeasure}
                       trend="Cập nhật real-time"
                       status={
@@ -234,7 +234,6 @@ const RealTimeSensors = () => {
                         sensor.latestData?.isWarning ? "error" : "success"
                       }
                       icon={getSensorIcon(sensor.sensorTypeName)}
-                      // Đã xóa prop optimalRange
                     />
                   );
                 })}

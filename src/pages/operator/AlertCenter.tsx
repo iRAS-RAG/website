@@ -98,7 +98,7 @@ const AlertCenter = () => {
       time: dayjs(alert.raisedAt).format("DD/MM/YYYY HH:mm:ss"),
       sensorCode: alert.sensorTypeName,
       sensorName: alert.sensorTypeName, // Truyền Tên cảm biến thật vào thay vì ID
-      value: `${alert.value}`,
+      value: `${alert.triggerValue} ${alert.unitOfMeasure}`,
       limit: `${alert.minThreshold} - ${alert.maxThreshold} ${alert.unitOfMeasure}`,
       tank: alert.fishTankName,
       staff: "Chưa phân công",
@@ -284,7 +284,7 @@ const AlertCenter = () => {
                           fontSize: "0.85rem",
                         }}
                       >
-                        {row.value}
+                        {row.triggerValue}
                       </TableCell>
 
                       {/* Ngưỡng */}
