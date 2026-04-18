@@ -20,9 +20,11 @@ export interface ILatestSensorData {
   maxValue?: number;
 
   latestData?: {
-    latestValue: number;
+    latestAvg: number; // Đổi từ latestValue -> latestAvg
+    latestMin?: number; // Thêm mới
+    latestMax?: number; // Thêm mới
     isWarning: boolean;
-    recordedAt: string;
+    periodStart: string; // Đổi từ recordedAt -> periodStart
   };
 }
 

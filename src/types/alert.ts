@@ -9,7 +9,7 @@ export type AlertStatus =
 
 export interface IAlert {
   id: string;
-  sensorLogId: string;
+  sensorId: string; // SỬA Ở ĐÂY: Đổi từ sensorLogId -> sensorId
   speciesThresholdId: string;
   farmingBatchId?: string;
   farmingBatchName?: string;
@@ -17,14 +17,13 @@ export interface IAlert {
   fishTankName: string;
   sensorTypeId: string;
   sensorTypeName: string;
-  value: number;
+  triggerValue: number; // SỬA Ở ĐÂY: Đổi từ value -> triggerValue
   raisedAt: string;
   resolvedAt?: string;
   status: AlertStatus;
   createdAt?: string;
   modifiedAt?: string;
 
-  // THÊM 3 TRƯỜNG NÀY ĐỂ HIỂN THỊ NGƯỠNG
   unitOfMeasure: string;
   minThreshold: number;
   maxThreshold: number;
