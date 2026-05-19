@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
-import { createControlDeviceType, deleteControlDeviceType, getControlDeviceTypes, updateControlDeviceType } from "../api/control-device-types";
-import type { ControlDeviceType, ControlDeviceTypeCreate } from "../types/control-device-type";
+import {
+  createControlDeviceType,
+  deleteControlDeviceType,
+  getControlDeviceTypes,
+  updateControlDeviceType,
+} from "../api/control-device-types";
+import type {
+  ControlDeviceType,
+  ControlDeviceTypeCreate,
+} from "../types/control-device-type";
 
 export default function useControlDeviceTypes() {
   const [items, setItems] = useState<ControlDeviceType[]>([]);
@@ -26,11 +34,20 @@ export default function useControlDeviceTypes() {
     return created;
   }
 
-  async function updateItem(id: string, payload: Partial<ControlDeviceTypeCreate>) {
-    const updated = await updateControlDeviceType(id, payload);
-    if (!updated) return null;
-    setItems((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    return updated;
+  async function updateItem(
+    id: string,
+    payload: Partial<ControlDeviceTypeCreate>,
+  ) {
+    // 1. Gọi API để update dưới DB (bỏ qua giá trị trả về vì nó không có Data)
+    await updateControlDeviceType(id, payload);
+
+    // 2. Tự động merge dữ liệu vừa sửa (payload) đè lên item cũ trong State
+    setItems((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...payload } : p)),
+    );
+
+    // 3. Trả về true hoặc object để Dialog biết là lưu thành công
+    return { id, ...payload } as unknown as ControlDeviceType;
   }
 
   async function deleteItem(id: string) {

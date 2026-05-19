@@ -1,10 +1,24 @@
+import AddIcon from "@mui/icons-material/Add";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import CodeIcon from "@mui/icons-material/Code";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import HeightIcon from "@mui/icons-material/Height";
+import MemoryIcon from "@mui/icons-material/Memory";
+import OpacityIcon from "@mui/icons-material/Opacity";
+import ScienceIcon from "@mui/icons-material/Science";
 import StraightenIcon from "@mui/icons-material/Straighten";
-import { Box, Button, Divider, Paper, Typography } from "@mui/material";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Paper,
+  Typography,
+  alpha,
+  useTheme,
+} from "@mui/material";
 import type { MasterBoard } from "../../../types/masterboard";
 import type { Sensor } from "../../../types/sensor";
 import type { Tank } from "../../../types/tank";
@@ -18,93 +32,324 @@ type Props = {
   onDelete: (t: Tank) => void;
 };
 
-export default function TankDetail({ tank, boards, sensors, onEdit, onAddBoard, onDelete }: Props) {
+// Hàm helper tự động chọn Icon phù hợp dựa trên Tên loại cảm biến
+const getSensorIcon = (typeName?: string) => {
+  const t = typeName?.toLowerCase() || "";
+  if (t.includes("nhiệt độ")) return <ThermostatIcon color="error" />;
+  if (t.includes("ph")) return <ScienceIcon color="success" />;
+  if (t.includes("oxy") || t.includes("tds"))
+    return <OpacityIcon color="primary" />;
+  return <ThermostatIcon color="action" />;
+};
+
+export default function TankDetail({
+  tank,
+  boards,
+  sensors,
+  onEdit,
+  onAddBoard,
+  onDelete,
+}: Props) {
+  const theme = useTheme();
+
+  // Lọc ra danh sách các cảm biến thuộc về bể cá này
+  const tankSensors = sensors.filter((s) =>
+    boards.some((b) => b.id === s.masterBoardId),
+  );
+
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Typography variant="h6">{tank.name}</Typography>
-        <Button variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(tank)}>
-          Chỉnh sửa
-        </Button>
+      {/* Header & Actions */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+            {tank.name}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={onAddBoard}
+            sx={{ boxShadow: "none" }}
+          >
+            Thêm bảng mạch
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(tank)}
+          >
+            Sửa
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => onDelete(tank)}
+          >
+            Xóa
+          </Button>
+        </Box>
       </Box>
-      <Divider sx={{ my: 2 }} />
 
-      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(2,1fr)", lg: "repeat(4,1fr)" } }}>
-        <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.paper" }}>
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <CameraAltIcon fontSize="small" />
-                CAMERA URL
-              </span>
-            </Typography>
-            {tank.cameraUrl ? (
-              <Typography component="a" href={tank.cameraUrl} target="_blank" rel="noreferrer" color="primary" sx={{ mt: 1, display: "block", wordBreak: "break-all" }}>
-                {tank.cameraUrl}
+      <Divider sx={{ mb: 3 }} />
+
+      {/* Grid Thông tin Bể: Phân lớp Identity và Tech Specs */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2,
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+          mb: 3,
+        }}
+      >
+        {/* Nhóm 1: Thông tin định danh & Kết nối */}
+        <Paper elevation={0} variant="outlined" sx={{ p: 2 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              letterSpacing: 0.5,
+              mb: 2,
+              display: "block",
+            }}
+          >
+            ĐỊNH DANH & KẾT NỐI
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
+                <CodeIcon fontSize="small" /> MÃ CHỦ ĐỀ (TOPIC)
               </Typography>
-            ) : (
-              <Typography sx={{ mt: 1, display: "block" }}>—</Typography>
-            )}
+              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>
+                {tank.topicCode ?? "—"}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
+                <CameraAltIcon fontSize="small" /> CAMERA URL
+              </Typography>
+              {tank.cameraUrl ? (
+                <Typography
+                  component="a"
+                  href={tank.cameraUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  color="primary"
+                  sx={{
+                    mt: 0.5,
+                    display: "block",
+                    wordBreak: "break-all",
+                    fontWeight: 500,
+                    textDecoration: "none",
+                  }}
+                >
+                  {tank.cameraUrl}
+                </Typography>
+              ) : (
+                <Typography sx={{ mt: 0.5, display: "block" }}>—</Typography>
+              )}
+            </Box>
           </Box>
         </Paper>
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="caption" color="text.secondary">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <CodeIcon fontSize="small" />
-              MÃ CHỦ ĐỀ
-            </span>
+
+        {/* Nhóm 2: Thông số kỹ thuật */}
+        <Paper elevation={0} variant="outlined" sx={{ p: 2 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              letterSpacing: 0.5,
+              mb: 2,
+              display: "block",
+            }}
+          >
+            THÔNG SỐ KỸ THUẬT
           </Typography>
-          <Typography sx={{ mt: 1 }}>{tank.topicCode ?? "—"}</Typography>
-        </Paper>
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="caption" color="text.secondary">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <HeightIcon fontSize="small" />
-              CHIỀU CAO (cm)
-            </span>
-          </Typography>
-          <Typography sx={{ mt: 1 }}>{typeof tank.height === "number" ? tank.height : "—"}</Typography>
-        </Paper>
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="caption" color="text.secondary">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <StraightenIcon fontSize="small" />
-              BÁN KÍNH (cm)
-            </span>
-          </Typography>
-          <Typography sx={{ mt: 1 }}>{typeof tank.radius === "number" ? tank.radius : "—"}</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
+                <HeightIcon fontSize="small" /> CHIỀU CAO (cm)
+              </Typography>
+              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>
+                {typeof tank.height === "number" ? tank.height : "—"}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
+                <StraightenIcon fontSize="small" /> BÁN KÍNH (cm)
+              </Typography>
+              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>
+                {typeof tank.radius === "number" ? tank.radius : "—"}
+              </Typography>
+            </Box>
+          </Box>
         </Paper>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="subtitle1">Cảm biến liên kết ({sensors.filter((x) => boards.map((b) => b.id).includes(x.masterBoardId ?? "")).length})</Typography>
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            {sensors
-              .filter((x) => boards.map((b) => b.id).includes(x.masterBoardId ?? ""))
-              .map((s) => (
-                <Paper key={s.id} sx={{ p: 1, mb: 1 }}>
-                  <Typography variant="subtitle2">{s.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {s.sensorTypeName} · {s.pinCode} · {s.masterBoardName}
+      {/* Layering: Danh sách cảm biến nhóm theo Bảng mạch */}
+      <Paper elevation={0} variant="outlined" sx={{ overflow: "hidden" }}>
+        <Box
+          sx={{
+            p: 2,
+            bgcolor: alpha(theme.palette.primary.main, 0.03),
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: 600,
+              textTransform: "uppercase",
+              color: "text.secondary",
+            }}
+          >
+            Cảm biến liên kết ({tankSensors.length})
+          </Typography>
+        </Box>
+        <Box sx={{ p: 0 }}>
+          {boards.length === 0 ? (
+            <Typography sx={{ p: 2 }} color="text.secondary">
+              Bể này chưa có bảng mạch nào.
+            </Typography>
+          ) : (
+            boards.map((board, index) => {
+              const bSensors = tankSensors.filter(
+                (s) => s.masterBoardId === board.id,
+              );
+              return (
+                <Box
+                  key={board.id}
+                  sx={{
+                    borderBottom: index < boards.length - 1 ? 1 : 0,
+                    borderColor: "divider",
+                    p: 2,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    color="primary.main"
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1.5,
+                    }}
+                  >
+                    <MemoryIcon fontSize="small" /> {board.name}
                   </Typography>
-                </Paper>
-              ))}
-            {sensors.filter((x) => boards.map((b) => b.id).includes(x.masterBoardId ?? "")).length === 0 && <Typography color="text.secondary">Không có cảm biến liên kết</Typography>}
-          </Box>
-        </Paper>
-      </Box>
 
-      <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
-        <Button variant="contained" color="primary" onClick={onAddBoard}>
-          Thêm bảng mạch
-        </Button>
-        <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(tank)}>
-          Xóa bể
-        </Button>
-      </Box>
+                  {bSensors.length === 0 ? (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ pl: 3.5 }}
+                    >
+                      Chưa có cảm biến kết nối.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: "grid", gap: 1, pl: { xs: 1, sm: 3 } }}>
+                      {bSensors.map((s) => (
+                        <Box
+                          key={s.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            p: 1.5,
+                            border: 1,
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            bgcolor: "background.paper",
+                          }}
+                        >
+                          {/* Left: Icon + Text */}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1.5,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                p: 1,
+                                borderRadius: 1,
+                                bgcolor: "action.hover",
+                              }}
+                            >
+                              {getSensorIcon(s.sensorTypeName)}
+                            </Box>
+                            <Box>
+                              <Typography
+                                sx={{ fontWeight: 600, fontSize: "0.88rem" }}
+                              >
+                                {s.name}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  color: "text.secondary",
+                                }}
+                              >
+                                {s.sensorTypeName || "Không xác định"}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          {/* Right: Badge cho Pin */}
+                          <Chip
+                            label={`Pin: ${s.pinCode ?? "-"}`}
+                            size="small"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontWeight: 600,
+                              bgcolor: "action.hover",
+                            }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              );
+            })
+          )}
+        </Box>
+      </Paper>
     </Box>
   );
 }

@@ -2,11 +2,25 @@ import { Add as AddIcon, List as ListIcon } from "@mui/icons-material";
 import CategoryIcon from "@mui/icons-material/Category";
 import LabelIcon from "@mui/icons-material/Label";
 import PinDropIcon from "@mui/icons-material/PinDrop";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  MenuItem,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
 import useSensorTypes from "../../../hooks/useSensorTypes";
 import type { Sensor } from "../../../types/sensor";
+import type { SensorType, SensorTypeCreate } from "../../../types/sensor-type";
 import { useToast } from "../../common/toastContext";
 import ManageTypesDialog from "./ManageTypesDialog";
 import { SensorTypeDialog } from "./TypeDialogs";
@@ -14,14 +28,26 @@ import { SensorTypeDialog } from "./TypeDialogs";
 const SensorFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: { name: string; pinCode?: number; sensorTypeId?: string | null; masterBoardId?: string | null }) => Promise<void>;
+  onSave: (v: {
+    name: string;
+    pinCode?: number;
+    sensorTypeId?: string | null;
+    masterBoardId?: string | null;
+  }) => Promise<void>;
   initial: Sensor | null;
   defaultMasterBoardId?: string | null;
 }> = ({ open, onClose, onSave, initial, defaultMasterBoardId }) => {
   const [name, setName] = useState(initial?.name ?? "");
-  const [pinCode, setPinCode] = useState(initial?.pinCode != null ? String(initial.pinCode) : "");
+  const [pinCode, setPinCode] = useState(
+    initial?.pinCode != null ? String(initial.pinCode) : "",
+  );
   const [sensorTypeId, setSensorTypeId] = useState<string | null>(null);
-  const { items: sensorTypes, createItem: createSensorType, updateItem: updateSensorType, deleteItem: deleteSensorType } = useSensorTypes();
+  const {
+    items: sensorTypes,
+    createItem: createSensorType,
+    updateItem: updateSensorType,
+    deleteItem: deleteSensorType,
+  } = useSensorTypes();
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -34,7 +60,9 @@ const SensorFormDialog: React.FC<{
     setPinCode(initial?.pinCode != null ? String(initial.pinCode) : "");
     if (initial) {
       const byId = initial.sensorTypeId ?? null;
-      const byName = sensorTypes.find((st) => st.name === initial.sensorTypeName)?.id ?? null;
+      const byName =
+        sensorTypes.find((st) => st.name === initial.sensorTypeName)?.id ??
+        null;
       setSensorTypeId(byId ?? byName);
     } else {
       setSensorTypeId(null);
@@ -46,7 +74,9 @@ const SensorFormDialog: React.FC<{
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth>
-        <DialogTitle>{initial ? "Chỉnh sửa cảm biến" : "Thêm cảm biến"}</DialogTitle>
+        <DialogTitle>
+          {initial ? "Chỉnh sửa cảm biến" : "Thêm cảm biến"}
+        </DialogTitle>
         <DialogContent>
           {formError && (
             <Typography color="error" sx={{ mb: 1 }}>
@@ -56,7 +86,13 @@ const SensorFormDialog: React.FC<{
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               label={
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
                   <LabelIcon fontSize="small" />
                   Tên
                 </span>
@@ -69,7 +105,13 @@ const SensorFormDialog: React.FC<{
             />
             <TextField
               label={
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
                   <PinDropIcon fontSize="small" />
                   Pin
                 </span>
@@ -84,7 +126,13 @@ const SensorFormDialog: React.FC<{
               <TextField
                 select
                 label={
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
                     <CategoryIcon fontSize="small" />
                     Loại cảm biến
                   </span>
@@ -101,12 +149,20 @@ const SensorFormDialog: React.FC<{
                 ))}
               </TextField>
               <Tooltip title="Thêm loại cảm biến mới">
-                <IconButton onClick={() => setCreateTypeDialogOpen(true)} size="small" sx={{ mt: 1, color: "primary.main" }}>
+                <IconButton
+                  onClick={() => setCreateTypeDialogOpen(true)}
+                  size="small"
+                  sx={{ mt: 1, color: "primary.main" }}
+                >
                   <AddIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Quản lý loại">
-                <IconButton onClick={() => setManageDialogOpen(true)} size="small" sx={{ mt: 1, color: "text.primary" }}>
+                <IconButton
+                  onClick={() => setManageDialogOpen(true)}
+                  size="small"
+                  sx={{ mt: 1, color: "text.primary" }}
+                >
                   <ListIcon />
                 </IconButton>
               </Tooltip>
@@ -123,11 +179,21 @@ const SensorFormDialog: React.FC<{
               setFormError(null);
               setFieldErrors({});
               try {
-                await onSave({ name, pinCode: pinCode ? parseInt(pinCode, 10) : undefined, sensorTypeId: sensorTypeId ?? undefined, masterBoardId: defaultMasterBoardId ?? undefined });
+                await onSave({
+                  name,
+                  pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
+                  sensorTypeId: sensorTypeId ?? undefined,
+                  masterBoardId: defaultMasterBoardId ?? undefined,
+                });
               } catch (e) {
                 const err = e as ApiError;
-                if (err && err.data && (err.data as Record<string, unknown>).errors) {
-                  const errs = (err.data as Record<string, unknown>).errors as Record<string, string[]>;
+                if (
+                  err &&
+                  err.data &&
+                  (err.data as Record<string, unknown>).errors
+                ) {
+                  const errs = (err.data as Record<string, unknown>)
+                    .errors as Record<string, string[]>;
                   const mapped: Record<string, string> = {};
                   for (const k of Object.keys(errs)) {
                     const key = k.toLowerCase();
@@ -138,7 +204,9 @@ const SensorFormDialog: React.FC<{
                   }
                   setFieldErrors(mapped);
                 } else {
-                  setFormError((err && err.message) || String(e) || "Save failed");
+                  setFormError(
+                    (err && err.message) || String(e) || "Save failed",
+                  );
                 }
               } finally {
                 setSaving(false);
@@ -160,9 +228,10 @@ const SensorFormDialog: React.FC<{
           setSensorTypeId(created.id);
           toast.success("Loại cảm biến đã được tạo");
         }}
+        existingNames={sensorTypes.map((st) => st.name)}
       />
 
-      <ManageTypesDialog
+      <ManageTypesDialog<SensorType, Partial<SensorTypeCreate>>
         open={manageDialogOpen}
         onClose={() => setManageDialogOpen(false)}
         title="Quản lý loại cảm biến"
@@ -170,11 +239,15 @@ const SensorFormDialog: React.FC<{
         updateItem={updateSensorType}
         deleteItem={deleteSensorType}
         DialogComponent={SensorTypeDialog}
-        renderSecondary={(it) => `${it.measureType ?? ""} ${(it.unitOfMeasure && `· ${it.unitOfMeasure}`) || ""}`.trim()}
+        renderSecondary={(it) =>
+          `${it.measureType ?? ""} ${(it.unitOfMeasure && `· ${it.unitOfMeasure}`) || ""}`.trim()
+        }
         onDeleted={(id) => {
           if (sensorTypeId === id) {
             setSensorTypeId(null);
-            toast.info("Loại vừa xóa đã được bỏ chọn. Vui lòng chọn loại khác.");
+            toast.info(
+              "Loại vừa xóa đã được bỏ chọn. Vui lòng chọn loại khác.",
+            );
           }
         }}
       />

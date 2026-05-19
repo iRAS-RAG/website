@@ -1,20 +1,35 @@
 import { useEffect, useState } from "react";
-import { createSensorType, deleteSensorType, getSensorTypes, updateSensorType } from "../api/sensor-types";
+import {
+  createSensorType,
+  deleteSensorType,
+  getSensorTypes,
+  updateSensorType,
+} from "../api/sensor-types";
 import type { SensorType, SensorTypeCreate } from "../types/sensor-type";
 
 export default function useSensorTypes() {
   const [items, setItems] = useState<SensorType[]>([]);
-  const [loading, setLoading] = useState(false);
+  // SỬA: Khởi tạo loading là true mặc định
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
+
+    // Đã xóa setLoading(true) ở đây
+
     getSensorTypes()
       .then((d) => {
         if (!mounted) return;
         setItems(d);
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        console.error("Failed to fetch sensor types:", error);
+      })
+      .finally(() => {
+        // SỬA: Thêm điều kiện if (mounted)
+        if (mounted) setLoading(false);
+      });
+
     return () => {
       mounted = false;
     };
@@ -27,10 +42,16 @@ export default function useSensorTypes() {
   }
 
   async function updateItem(id: string, payload: Partial<SensorTypeCreate>) {
-    const updated = await updateSensorType(id, payload);
-    if (!updated) return null;
-    setItems((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    return updated;
+    // 1. Gọi API để update dưới DB
+    await updateSensorType(id, payload);
+
+    // 2. Tự động merge dữ liệu vừa sửa
+    setItems((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...payload } : p)),
+    );
+
+    // THÊM "as unknown as SensorType" VÀO ĐÂY
+    return { id, ...payload } as unknown as SensorType;
   }
 
   async function deleteItem(id: string) {
