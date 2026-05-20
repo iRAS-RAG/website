@@ -180,6 +180,7 @@ const HardwareManagement: React.FC = () => {
                 expandedBoards={expandedBoards}
                 setExpandedBoards={setExpandedBoards}
                 setSelected={setSelected}
+                selected={selected} /* <--- CHỈ CẦN THÊM DÒNG NÀY VÀO ĐÂY */
               />
 
               <Box sx={{ flex: 1 }}>
@@ -381,6 +382,29 @@ const HardwareManagement: React.FC = () => {
                             }
                             toast.success("Xóa thiết bị điều khiển thành công");
                           }}
+                          onToggleState={async (cc, newState) => {
+                            try {
+                              await handleSaveControl(
+                                {
+                                  name: cc.name,
+                                  pinCode: cc.pinCode,
+                                  masterBoardId: cc.masterBoardId,
+                                  controlDeviceTypeId: cc.controlDeviceTypeId,
+                                  commandOn: cc.commandOn,
+                                  commandOff: cc.commandOff,
+                                  state: newState,
+                                },
+                                cc.id,
+                              );
+                              toast.success(
+                                `Đã ${newState ? "Bật" : "Tắt"} ${cc.name}`,
+                              );
+                            } catch {
+                              toast.error(
+                                `Lỗi khi thay đổi trạng thái ${cc.name}`,
+                              );
+                            }
+                          }}
                         />
                       );
                     })()
@@ -535,7 +559,9 @@ const HardwareManagement: React.FC = () => {
         }}
         initial={editingSensor}
         defaultMasterBoardId={selectedBoardForSensor}
+        existingSensors={sensors} /* <--- THÊM DÒNG NÀY */
       />
+
       <ControlDeviceFormDialog
         open={controlDialogOpen}
         onClose={() => {
@@ -556,6 +582,7 @@ const HardwareManagement: React.FC = () => {
         }}
         initial={editingControl}
         defaultMasterBoardId={selectedBoardForControl}
+        existingControls={controlDevices} /* <--- THÊM DÒNG NÀY */
       />
     </Box>
   );

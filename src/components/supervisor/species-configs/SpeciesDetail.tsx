@@ -22,7 +22,6 @@ import {
   DialogTitle,
   Divider,
   FormControl,
-  Grid,
   IconButton,
   InputLabel,
   List,
@@ -48,6 +47,29 @@ import useSpeciesStageConfigs from "../../../hooks/useSpeciesStageConfigs";
 import useSpeciesThresholds from "../../../hooks/useSpeciesThresholds";
 import { useToast } from "../../common/toastContext";
 import ThresholdEditor from "./ThresholdEditor";
+
+// COMPONENT DÙNG CHUNG
+import ConfirmDialog from "../../common/ConfirmDialog";
+import { autoSuggestIcon } from "../../../utils/iconMapper";
+
+// --- HÀM TIỆN ÍCH TRÁNH DÙNG ANY ĐỂ BẮT LỖI TỪ BACKEND ---
+function extractErrorMessage(e: unknown, defaultMsg: string): string {
+  try {
+    const err = e as {
+      response?: { data?: { message?: string } };
+      message?: string;
+    };
+    if (err?.response?.data?.message) {
+      return err.response.data.message;
+    }
+    if (err?.message) {
+      return err.message;
+    }
+  } catch {
+    // Ignore error in parsing
+  }
+  return defaultMsg;
+}
 
 const SpeciesDetail: React.FC<{
   species: SpeciesConfig;
@@ -94,10 +116,17 @@ const SpeciesDetail: React.FC<{
   const [newStageName, setNewStageName] = React.useState("");
   const [newStageDesc, setNewStageDesc] = React.useState("");
   const [creatingStage, setCreatingStage] = React.useState(false);
-  const [deletingSpecies, setDeletingSpecies] = React.useState(false);
   const [renameOpen, setRenameOpen] = React.useState(false);
   const [renameValue, setRenameValue] = React.useState(species.name);
   const [renamingSpecies, setRenamingSpecies] = React.useState(false);
+
+  // MODAL XÓA LOÀI
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [deletingSpecies, setDeletingSpecies] = React.useState(false);
+
+  // MODAL XÓA CẤU HÌNH GIAI ĐOẠN
+  const [stageToDelete, setStageToDelete] = React.useState<Stage | null>(null);
+  const [deletingStage, setDeletingStage] = React.useState(false);
 
   React.useEffect(() => {
     setRenameValue(species.name);
@@ -133,9 +162,9 @@ const SpeciesDetail: React.FC<{
         setNewStageDesc("");
         toast.success("Tạo giai đoạn thành công");
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to create stage", e);
-      toast.error("Tạo giai đoạn thất bại");
+      toast.error(extractErrorMessage(e, "Tạo giai đoạn thất bại"));
     } finally {
       setCreatingStage(false);
     }
@@ -150,31 +179,31 @@ const SpeciesDetail: React.FC<{
       await deleteGrowthStage(id);
       setGrowthStages((s) => s.filter((g) => g.id !== id));
       toast.success("Xóa giai đoạn thành công");
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to delete stage", e);
-      toast.error("Xóa giai đoạn thất bại");
+      toast.error(extractErrorMessage(e, "Xóa giai đoạn thất bại"));
     }
   }
 
-  async function handleDeleteStageConfig(st: Stage) {
-    if (!st.configId) return;
-    if (
-      !window.confirm(`Bạn có chắc muốn xóa cấu hình giai đoạn "${st.name}"?`)
-    )
-      return;
+  // --- HÀM XÓA CẤU HÌNH GIAI ĐOẠN (Đã cập nhật) ---
+  async function handleExecuteDeleteStageConfig(st: Stage) {
+    if (!st.configId || deletingStage) return;
 
+    setDeletingStage(true);
     try {
       await removeConfig(st.configId);
       if (typeof removeStage === "function") {
         removeStage(species.id, st.id);
-        toast.success("Xóa cấu hình giai đoạn thành công");
-        return;
+      } else {
+        updateStage(species.id, st.id, { configId: undefined, thresholds: [] });
       }
-      updateStage(species.id, st.id, { configId: undefined, thresholds: [] });
       toast.success("Xóa cấu hình giai đoạn thành công");
-    } catch (e) {
+      setStageToDelete(null);
+    } catch (e: unknown) {
       console.error("Failed to delete stage config", e);
-      toast.error("Xóa cấu hình giai đoạn thất bại");
+      toast.error(extractErrorMessage(e, "Xóa cấu hình giai đoạn thất bại"));
+    } finally {
+      setDeletingStage(false);
     }
   }
 
@@ -182,15 +211,16 @@ const SpeciesDetail: React.FC<{
     if (!species.id) return;
     setSaving((s) => ({ ...s, [st.id]: true }));
     try {
+      // Ép kiểu an toàn không dùng any
       const payload = {
         speciesId: species.id,
         growthStageId: st.growthStageId ?? "",
-        feedTypeId: st.feedType,
+        feedTypeIds: st.feedType ? [st.feedType] : [], // Bọc thành List<Guid> cho API C#
         amountPer100Fish: st.feedPer100,
         frequencyPerDay: st.frequencyPerDay,
         maxStockingDensity: st.maxStockingDensity,
         expectedDurationDays: st.expectedDurationDays,
-      } as const;
+      } as unknown as Parameters<typeof createConfig>[0];
 
       if (st.configId) {
         await updateConfig(st.configId, payload);
@@ -225,28 +255,23 @@ const SpeciesDetail: React.FC<{
         }
       }
       toast.success("Lưu giai đoạn thành công");
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to save stage", e);
-      toast.error("Lưu giai đoạn thất bại");
+      toast.error(extractErrorMessage(e, "Lưu giai đoạn thất bại"));
     } finally {
       setSaving((s) => ({ ...s, [st.id]: false }));
     }
   }
 
-  async function handleDeleteSpecies() {
+  async function handleExecuteDelete() {
     if (!onDeleteSpecies || deletingSpecies) return;
-    if (
-      !window.confirm(
-        `Bạn có chắc muốn xóa loài "${species.name}"? Tác vụ này không thể hoàn tác.`,
-      )
-    )
-      return;
-
     setDeletingSpecies(true);
     try {
       await onDeleteSpecies(species.id);
-    } catch (e) {
+      setDeleteModalOpen(false);
+    } catch (e: unknown) {
       console.error("Failed to delete species", e);
+      toast.error(extractErrorMessage(e, "Xóa loài thất bại"));
     } finally {
       setDeletingSpecies(false);
     }
@@ -260,8 +285,9 @@ const SpeciesDetail: React.FC<{
     try {
       await onRenameSpecies(species.id, nextName);
       setRenameOpen(false);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to rename species", e);
+      toast.error(extractErrorMessage(e, "Đổi tên thất bại"));
     } finally {
       setRenamingSpecies(false);
     }
@@ -269,7 +295,6 @@ const SpeciesDetail: React.FC<{
 
   return (
     <Box>
-      {/* HEADER CỦA LOÀI */}
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -283,9 +308,12 @@ const SpeciesDetail: React.FC<{
             color: "#0F172A",
             display: "flex",
             alignItems: "center",
-            gap: 1,
+            gap: 1.5,
           }}
         >
+          <span style={{ fontSize: "2rem" }}>
+            {autoSuggestIcon(species.name)}
+          </span>
           {species.name}
         </Typography>
         <Stack direction="row" spacing={1}>
@@ -303,7 +331,7 @@ const SpeciesDetail: React.FC<{
           </IconButton>
           <IconButton
             size="small"
-            onClick={handleDeleteSpecies}
+            onClick={() => setDeleteModalOpen(true)}
             disabled={!onDeleteSpecies || deletingSpecies}
             sx={{
               color: "#EF4444",
@@ -311,11 +339,7 @@ const SpeciesDetail: React.FC<{
               "&:hover": { bgcolor: "#FEE2E2", color: "#DC2626" },
             }}
           >
-            {deletingSpecies ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : (
-              <DeleteIcon fontSize="small" />
-            )}
+            <DeleteIcon fontSize="small" />
           </IconButton>
         </Stack>
       </Stack>
@@ -335,7 +359,6 @@ const SpeciesDetail: React.FC<{
               expandIcon={<ExpandMoreIcon />}
               sx={{ bgcolor: "#F8FAFC" }}
             >
-              {/* Bọc Flexbox để giữ Title và Icon thẳng hàng */}
               <Box
                 sx={{
                   display: "flex",
@@ -350,14 +373,14 @@ const SpeciesDetail: React.FC<{
                 </Typography>
                 {st.configId && (
                   <IconButton
-                    component="span" // FIX LỖI NESTED BUTTON
+                    component="span"
                     size="small"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
-                      handleDeleteStageConfig(st);
+                      setStageToDelete(st); // MỞ MODAL THAY VÌ CONFIRM CŨ
                     }}
-                    onFocus={(e) => e.stopPropagation()} // Chống bubble khi dùng phím tab
+                    onFocus={(e) => e.stopPropagation()}
                     sx={{ ml: 1, color: "#94A3B8" }}
                   >
                     <DeleteIcon fontSize="small" />
@@ -367,8 +390,9 @@ const SpeciesDetail: React.FC<{
             </AccordionSummary>
 
             <AccordionDetails sx={{ pt: 3 }}>
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 6 }}>
+              {/* THAY THẾ GRID BẰNG BOX FLEX */}
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
                   <FormControl fullWidth>
                     <InputLabel id={`feedtype-label-${st.id}`}>
                       {labelWithIcon(
@@ -395,7 +419,6 @@ const SpeciesDetail: React.FC<{
                         </MenuItem>
                       ) : (
                         [
-                          // FIX LỖI VÀNG CỦA SELECT OUT-OF-RANGE
                           <MenuItem
                             key="empty"
                             value=""
@@ -411,7 +434,6 @@ const SpeciesDetail: React.FC<{
                               {st.feedType}
                             </MenuItem>
                           ) : null,
-                          // Render mảng data thực tế
                           ...feedTypes.map((f) => (
                             <MenuItem key={f.id} value={f.id}>
                               {f.name}
@@ -421,9 +443,9 @@ const SpeciesDetail: React.FC<{
                       )}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
                   <TextField
                     label={labelWithIcon(
                       <LocalDiningIcon fontSize="small" />,
@@ -438,8 +460,8 @@ const SpeciesDetail: React.FC<{
                       })
                     }
                   />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
+                </Box>
+                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
                   <TextField
                     label={labelWithIcon(
                       <TimelineIcon fontSize="small" />,
@@ -454,8 +476,8 @@ const SpeciesDetail: React.FC<{
                       })
                     }
                   />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
+                </Box>
+                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
                   <TextField
                     label={labelWithIcon(
                       <ScaleIcon fontSize="small" />,
@@ -470,8 +492,8 @@ const SpeciesDetail: React.FC<{
                       })
                     }
                   />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
+                </Box>
+                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
                   <TextField
                     label={labelWithIcon(
                       <ScheduleIcon fontSize="small" />,
@@ -486,9 +508,9 @@ const SpeciesDetail: React.FC<{
                       })
                     }
                   />
-                </Grid>
+                </Box>
 
-                <Grid size={12}>
+                <Box sx={{ width: "100%" }}>
                   <Typography
                     variant="subtitle2"
                     sx={{
@@ -542,13 +564,12 @@ const SpeciesDetail: React.FC<{
                       )}
                     </Button>
                   </Box>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </AccordionDetails>
           </Accordion>
         ))}
 
-        {/* NÚT THÊM GIAI ĐOẠN Ở ĐÁY */}
         <Box sx={{ mt: 2 }}>
           <Button
             variant="outlined"
@@ -560,7 +581,6 @@ const SpeciesDetail: React.FC<{
           </Button>
         </Box>
 
-        {/* CÁC DIALOGS GIỮ NGUYÊN... */}
         <Dialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -624,8 +644,12 @@ const SpeciesDetail: React.FC<{
                   >
                     <AddIcon fontSize="small" /> Tạo giai đoạn mới
                   </Typography>
-                  <Grid container spacing={1} sx={{ mt: 1 }}>
-                    <Grid size={{ xs: 12, md: 6 }}>
+
+                  {/* THAY THẾ GRID BẰNG BOX FLEX TRONG DIALOG */}
+                  <Box
+                    sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}
+                  >
+                    <Box sx={{ width: { xs: "100%", md: "calc(50% - 4px)" } }}>
                       <TextField
                         label={labelWithIcon(
                           <TimelineIcon fontSize="small" />,
@@ -635,8 +659,8 @@ const SpeciesDetail: React.FC<{
                         onChange={(e) => setNewStageName(e.target.value)}
                         fullWidth
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    </Box>
+                    <Box sx={{ width: { xs: "100%", md: "calc(50% - 4px)" } }}>
                       <TextField
                         label={labelWithIcon(
                           <DescriptionIcon fontSize="small" />,
@@ -646,9 +670,16 @@ const SpeciesDetail: React.FC<{
                         onChange={(e) => setNewStageDesc(e.target.value)}
                         fullWidth
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 4 }}>
+                    </Box>
+                    <Box
+                      sx={{
+                        width: { xs: "100%", md: "calc(33.333% - 5.33px)" },
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
                       <Button
+                        fullWidth
                         variant="contained"
                         startIcon={
                           !creatingStage ? (
@@ -657,6 +688,7 @@ const SpeciesDetail: React.FC<{
                         }
                         onClick={handleCreateStage}
                         disabled={creatingStage || !newStageName}
+                        sx={{ height: 56 }} // Cho bằng chiều cao của TextField
                       >
                         {creatingStage ? (
                           <CircularProgress size={16} />
@@ -664,8 +696,8 @@ const SpeciesDetail: React.FC<{
                           "Tạo và thêm"
                         )}
                       </Button>
-                    </Grid>
-                  </Grid>
+                    </Box>
+                  </Box>
                 </Box>
               </>
             )}
@@ -717,6 +749,43 @@ const SpeciesDetail: React.FC<{
           </DialogActions>
         </Dialog>
       </Stack>
+
+      <ConfirmDialog
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleExecuteDelete}
+        loading={deletingSpecies}
+        title="Xóa loài thủy sản"
+        confirmText="Xóa vĩnh viễn"
+        color="error"
+        content={
+          <>
+            Bạn có chắc chắn muốn xóa loài <b>"{species.name}"</b> không? Hành
+            động này sẽ gỡ bỏ toàn bộ cấu hình thuộc loài này và{" "}
+            <b>không thể hoàn tác</b>.
+          </>
+        }
+      />
+
+      {/* MODAL MỚI CHO GIAI ĐOẠN CON */}
+      <ConfirmDialog
+        open={Boolean(stageToDelete)}
+        onClose={() => setStageToDelete(null)}
+        onConfirm={() => {
+          if (stageToDelete) handleExecuteDeleteStageConfig(stageToDelete);
+        }}
+        loading={deletingStage}
+        title="Xóa cấu hình giai đoạn"
+        confirmText="Xóa cấu hình"
+        color="error"
+        content={
+          <>
+            Bạn có chắc chắn muốn xóa cấu hình của giai đoạn{" "}
+            <b>"{stageToDelete?.name}"</b> không? Hành động này không thể hoàn
+            tác.
+          </>
+        }
+      />
     </Box>
   );
 };

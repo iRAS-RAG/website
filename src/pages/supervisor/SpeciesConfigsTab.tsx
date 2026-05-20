@@ -11,6 +11,9 @@ import {
   Stack,
   TextField,
   Typography,
+  InputAdornment,
+  IconButton,
+  Popover,
 } from "@mui/material";
 import React, { useState } from "react";
 import { createSpecies, deleteSpecies, updateSpecies } from "../../api/species";
@@ -20,6 +23,10 @@ import { useToast } from "../../components/common/toastContext";
 import SpeciesDetail from "../../components/supervisor/species-configs/SpeciesDetail";
 import SpeciesList from "../../components/supervisor/species-configs/SpeciesList";
 import useSpeciesConfigs from "../../hooks/useSpeciesConfigs";
+
+// IMPORT LOGIC ICON MAPPER VỪA TẠO
+// (Bạn hãy chỉnh lại đường dẫn cho khớp với vị trí file utils/iconMapper.ts của dự án nhé)
+import { autoSuggestIcon, SPECIES_ICONS } from "../../utils/iconMapper";
 
 const SpeciesConfigsTab: React.FC = () => {
   const {
@@ -31,10 +38,19 @@ const SpeciesConfigsTab: React.FC = () => {
     removeStage,
   } = useSpeciesConfigs();
   const toast = useToast();
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newSpeciesName, setNewSpeciesName] = useState("");
   const [creatingSpecies, setCreatingSpecies] = useState(false);
+
+  // --- THÊM STATE CHO ICON PICKER ---
+  const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+
+  // Logic xác định Icon hiển thị
+  const displayIcon =
+    selectedIcon !== null ? selectedIcon : autoSuggestIcon(newSpeciesName);
 
   function generateId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -84,6 +100,15 @@ const SpeciesConfigsTab: React.FC = () => {
     const name = newSpeciesName.trim();
     if (!name) return;
 
+    // Kiểm tra trùng tên ở Frontend
+    const isDuplicate = speciesConfigs.some(
+      (s) => s.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (isDuplicate) {
+      toast.warning(`Loài "${name}" đã tồn tại trong hệ thống!`);
+      return;
+    }
+
     setCreatingSpecies(true);
     try {
       const created = await createSpecies({ name });
@@ -102,12 +127,38 @@ const SpeciesConfigsTab: React.FC = () => {
       ];
       setSpeciesConfigs(next);
       setSelectedId(created.id);
+
       setCreateOpen(false);
       setNewSpeciesName("");
+      setSelectedIcon(null);
+
       toast.success("Tạo loài thành công");
-    } catch (e) {
+    } catch (e: unknown) {
+      // SỬA LỖI Ở ĐÂY: Thay 'any' bằng 'unknown'
       console.error("Failed to create species", e);
-      toast.error("Tạo loài thất bại");
+
+      let errMsg = "Tạo loài thất bại (Có thể do trùng lặp)";
+
+      // Kiểm tra an toàn xem e có phải là object chứa message lỗi hay không
+      if (
+        e !== null &&
+        typeof e === "object" &&
+        "response" in e &&
+        e.response !== null &&
+        typeof e.response === "object" &&
+        "data" in e.response &&
+        e.response.data !== null &&
+        typeof e.response.data === "object" &&
+        "message" in e.response.data &&
+        typeof e.response.data.message === "string"
+      ) {
+        errMsg = e.response.data.message;
+      } else if (e instanceof Error) {
+        // Fallback sử dụng message từ Error chuẩn
+        errMsg = e.message;
+      }
+
+      toast.error(errMsg);
     } finally {
       setCreatingSpecies(false);
     }
@@ -170,8 +221,22 @@ const SpeciesConfigsTab: React.FC = () => {
     }
   }
 
+  // Handle thay đổi text trong Input
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewSpeciesName(e.target.value);
+    // Nếu xóa hết chữ, trả icon về tự động
+    if (e.target.value === "") {
+      setSelectedIcon(null);
+    }
+  };
+
+  // Handle chọn Icon thủ công
+  const handleIconSelect = (icon: string) => {
+    setSelectedIcon(icon);
+    setAnchorEl(null);
+  };
+
   return (
-    // ĐÃ SỬA CHỖ NÀY: Loại bỏ bgcolor, minHeight và padding cứng. Để flexGrow tự nhiên lấp đầy Container cha
     <Box sx={{ width: "100%", flexGrow: 1 }}>
       {/* HEADER PAGE */}
       <Stack
@@ -291,7 +356,13 @@ const SpeciesConfigsTab: React.FC = () => {
       {/* DIALOG THÊM LOÀI */}
       <Dialog
         open={createOpen}
-        onClose={() => !creatingSpecies && setCreateOpen(false)}
+        onClose={() => {
+          if (!creatingSpecies) {
+            setCreateOpen(false);
+            setNewSpeciesName("");
+            setSelectedIcon(null);
+          }
+        }}
         fullWidth
         maxWidth="xs"
       >
@@ -301,20 +372,108 @@ const SpeciesConfigsTab: React.FC = () => {
           <AddIcon fontSize="small" />
           Thêm loài mới
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ overflow: "visible" }}>
           <Box sx={{ pt: 1 }}>
             <TextField
               label="Tên loài (VD: Cá chép, Tôm sú...)"
               value={newSpeciesName}
-              onChange={(e) => setNewSpeciesName(e.target.value)}
+              onChange={handleNameChange}
               autoFocus
               fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconButton
+                      onClick={(e) => setAnchorEl(e.currentTarget)}
+                      sx={{
+                        bgcolor: "#F1F5F9",
+                        borderRadius: 2,
+                        width: 40,
+                        height: 40,
+                        transition: "transform 0.2s",
+                        "&:hover": {
+                          bgcolor: "#E2E8F0",
+                          transform: "scale(1.05)",
+                        },
+                      }}
+                    >
+                      <span style={{ fontSize: "1.2rem" }}>{displayIcon}</span>
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
+
+          {/* POPOVER CHỌN ICON */}
+          <Popover
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+            slotProps={{ paper: { elevation: 3, sx: { borderRadius: 2 } } }}
+          >
+            <Box sx={{ p: 2, width: 250 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 1.5, color: "#475569" }}
+              >
+                Chọn biểu tượng
+              </Typography>
+
+              {/* SỬ DỤNG BOX THAY CHO GRID */}
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {Object.values(SPECIES_ICONS).map((icon) => (
+                  <Box
+                    key={icon}
+                    sx={{
+                      flex: "1 0 21%",
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <IconButton
+                      onClick={() => handleIconSelect(icon)}
+                      sx={{
+                        border:
+                          displayIcon === icon
+                            ? "2px solid #2A85FF"
+                            : "2px solid transparent",
+                        bgcolor:
+                          displayIcon === icon ? "#EFF6FF" : "transparent",
+                      }}
+                    >
+                      {icon}
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Nút reset về chế độ tự động */}
+              {selectedIcon !== null && (
+                <Button
+                  fullWidth
+                  size="small"
+                  sx={{ mt: 2, textTransform: "none" }}
+                  onClick={() => {
+                    setSelectedIcon(null);
+                    setAnchorEl(null);
+                  }}
+                >
+                  Reset về tự động gán
+                </Button>
+              )}
+            </Box>
+          </Popover>
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setCreateOpen(false)}
+            onClick={() => {
+              setCreateOpen(false);
+              setNewSpeciesName("");
+              setSelectedIcon(null);
+            }}
             disabled={creatingSpecies}
           >
             Hủy

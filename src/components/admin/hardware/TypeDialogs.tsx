@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import type { ControlDeviceType } from "../../../types/control-device-type";
 import type { SensorType, SensorTypeCreate } from "../../../types/sensor-type";
 
-// Cấu hình UI chung cho ô nhập liệu (Chuẩn SaaS)
+// Cấu hình UI chung cho ô nhập liệu
 const textFieldProps = {
   fullWidth: true,
   InputProps: { sx: { borderRadius: "8px" } },
@@ -27,6 +27,7 @@ export function SensorTypeDialog(props: {
     payload: Partial<SensorTypeCreate>,
   ) => Promise<SensorType | null>;
   onCreated?: (created: SensorType) => void;
+  existingNames?: string[]; // <--- BỔ SUNG DÒNG NÀY
 }) {
   const { open, onClose, initial, onCreate, onUpdate, onCreated } = props;
   const [name, setName] = useState("");
@@ -39,7 +40,6 @@ export function SensorTypeDialog(props: {
     if (!open) return;
     setName(initial?.name ?? "");
     setMeasureType(initial?.measureType ?? "");
-    // FIX LỖI "ANY": Ép kiểu an toàn thay vì dùng any
     setUnitOfMeasure(
       (initial as unknown as Record<string, string>)?.unitOfMeasure ?? "",
     );
@@ -107,17 +107,19 @@ export function SensorTypeDialog(props: {
             setSaving(true);
             try {
               if (isEdit && initial && onUpdate) {
+                // FIX: Xóa || undefined
                 await onUpdate(initial.id, {
                   name,
-                  measureType: measureType || undefined,
-                  unitOfMeasure: unitOfMeasure || undefined,
+                  measureType,
+                  unitOfMeasure,
                 });
                 onClose();
               } else if (onCreate) {
+                // FIX: Xóa || undefined
                 const created = await onCreate({
                   name,
-                  measureType: measureType || undefined,
-                  unitOfMeasure: unitOfMeasure || undefined,
+                  measureType,
+                  unitOfMeasure,
                 });
                 if (onCreated) onCreated(created);
                 onClose();
@@ -147,6 +149,7 @@ export function ControlDeviceTypeDialog(props: {
     payload: Partial<{ name: string; description?: string }>,
   ) => Promise<ControlDeviceType | null>;
   onCreated?: (created: ControlDeviceType) => void;
+  existingNames?: string[]; // <--- BỔ SUNG DÒNG NÀY
 }) {
   const { open, onClose, initial, onCreate, onUpdate, onCreated } = props;
   const [name, setName] = useState("");
@@ -218,16 +221,12 @@ export function ControlDeviceTypeDialog(props: {
             setSaving(true);
             try {
               if (isEdit && initial && onUpdate) {
-                await onUpdate(initial.id, {
-                  name,
-                  description: description || undefined,
-                });
+                // FIX: Gửi thẳng description thay vì || undefined
+                await onUpdate(initial.id, { name, description });
                 onClose();
               } else if (onCreate) {
-                const created = await onCreate({
-                  name,
-                  description: description || undefined,
-                });
+                // FIX: Gửi thẳng description thay vì || undefined
+                const created = await onCreate({ name, description });
                 if (onCreated) onCreated(created);
                 onClose();
               }
@@ -243,5 +242,4 @@ export function ControlDeviceTypeDialog(props: {
   );
 }
 
-// FIX LỖI "ANY": Đổi "export default null as any;" thành Object rỗng an toàn
 export default {};

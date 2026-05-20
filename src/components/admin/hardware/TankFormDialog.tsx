@@ -39,109 +39,123 @@ const TankFormDialog: React.FC<{
   );
   const [topicCode, setTopicCode] = useState(initial?.topicCode ?? "");
   const [cameraUrl, setCameraUrl] = useState(initial?.cameraUrl ?? "");
+
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    setName(initial?.name ?? "");
-    setHeight(initial?.height != null ? String(initial.height) : "");
-    setRadius(initial?.radius != null ? String(initial.radius) : "");
-    setTopicCode(initial?.topicCode ?? "");
-    setCameraUrl(initial?.cameraUrl ?? "");
-    setFieldErrors({});
-    setFormError(null);
-  }, [initial, open]);
+    if (open) {
+      setName(initial?.name ?? "");
+      setHeight(initial?.height != null ? String(initial.height) : "");
+      setRadius(initial?.radius != null ? String(initial.radius) : "");
+      setTopicCode(initial?.topicCode ?? "");
+      setCameraUrl(initial?.cameraUrl ?? "");
+      setFieldErrors({});
+      setFormError(null);
+    }
+  }, [open, initial]);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa bể" : "Thêm bể"}</DialogTitle>
-      <DialogContent>
-        {formError && (
-          <Typography color="error" sx={{ mb: 1 }}>
-            {formError}
-          </Typography>
-        )}
-        <Stack spacing={2} sx={{ mt: 1 }}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        {initial ? "Chỉnh sửa bể cá" : "Thêm bể cá mới"}
+      </DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2.5} sx={{ mt: 1 }}>
+          {formError && (
+            <Typography color="error" variant="body2" sx={{ fontWeight: 600 }}>
+              {formError}
+            </Typography>
+          )}
+
+          {/* Tên bể */}
           <TextField
-            label={
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <PoolIcon fontSize="small" />
-                Tên
-              </span>
-            }
+            fullWidth
+            label="Tên bể *"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            fullWidth
             error={Boolean(fieldErrors.name)}
             helperText={fieldErrors.name}
+            InputProps={{
+              startAdornment: (
+                <PoolIcon sx={{ color: "action.active", mr: 1 }} />
+              ),
+              sx: { borderRadius: "8px" },
+            }}
           />
+
+          {/* Chiều cao */}
           <TextField
-            label={
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <HeightIcon fontSize="small" />
-                Chiều cao (cm)
-              </span>
-            }
+            fullWidth
+            label="Chiều cao (m)"
+            type="number"
+            inputProps={{ step: "0.1", min: "0" }}
             value={height}
             onChange={(e) => setHeight(e.target.value)}
-            fullWidth
             error={Boolean(fieldErrors.height)}
             helperText={fieldErrors.height}
+            InputProps={{
+              startAdornment: (
+                <HeightIcon sx={{ color: "action.active", mr: 1 }} />
+              ),
+              sx: { borderRadius: "8px" },
+            }}
           />
+
+          {/* Bán kính */}
           <TextField
-            label={
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <StraightenIcon fontSize="small" />
-                Bán kính (cm)
-              </span>
-            }
+            fullWidth
+            label="Bán kính (m)"
+            type="number"
+            inputProps={{ step: "0.1", min: "0" }}
             value={radius}
             onChange={(e) => setRadius(e.target.value)}
-            fullWidth
             error={Boolean(fieldErrors.radius)}
             helperText={fieldErrors.radius}
+            InputProps={{
+              startAdornment: (
+                <StraightenIcon sx={{ color: "action.active", mr: 1 }} />
+              ),
+              sx: { borderRadius: "8px" },
+            }}
           />
+
+          {/* Mã Topic MQTT */}
           <TextField
-            label={
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <CodeIcon fontSize="small" />
-                Mã chủ đề
-              </span>
-            }
+            fullWidth
+            label="Mã Topic MQTT"
             value={topicCode}
             onChange={(e) => setTopicCode(e.target.value)}
-            fullWidth
             error={Boolean(fieldErrors.topicCode)}
             helperText={fieldErrors.topicCode}
+            InputProps={{
+              startAdornment: (
+                <CodeIcon sx={{ color: "action.active", mr: 1 }} />
+              ),
+              sx: { borderRadius: "8px" },
+            }}
           />
+
+          {/* URL Camera Stream */}
           <TextField
-            label={
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <CameraAltIcon fontSize="small" />
-                Camera URL
-              </span>
-            }
+            fullWidth
+            label="Luồng Camera (URL RTSP/HTTP)"
             value={cameraUrl}
             onChange={(e) => setCameraUrl(e.target.value)}
-            fullWidth
             error={Boolean(fieldErrors.cameraUrl)}
             helperText={fieldErrors.cameraUrl}
+            InputProps={{
+              startAdornment: (
+                <CameraAltIcon sx={{ color: "action.active", mr: 1 }} />
+              ),
+              sx: { borderRadius: "8px" },
+            }}
           />
         </Stack>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={saving}>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600 }}>
           Hủy
         </Button>
         <Button
@@ -150,22 +164,24 @@ const TankFormDialog: React.FC<{
             setFormError(null);
             setFieldErrors({});
             try {
-              const payload: {
-                name: string;
-                height?: number;
-                radius?: number;
-                farmId?: string;
-                topicCode?: string;
-                cameraUrl?: string;
-              } = {
-                name: name,
-                height: height ? parseFloat(height) : undefined,
-                radius: radius ? parseFloat(radius) : undefined,
-                farmId: initial?.farmId ?? undefined,
+              // ÉP KIỂU SANG NUMBER TRƯỚC KHI GỬI ĐỂ BACKEND NHẬN ĐƯỢC ĐÚNG ĐỊNH DẠNG double/float
+              const parsedHeight =
+                height && !isNaN(parseFloat(height))
+                  ? parseFloat(height)
+                  : undefined;
+              const parsedRadius =
+                radius && !isNaN(parseFloat(radius))
+                  ? parseFloat(radius)
+                  : undefined;
+
+              await onSave({
+                name,
+                height: parsedHeight,
+                radius: parsedRadius,
                 topicCode: topicCode || undefined,
                 cameraUrl: cameraUrl || undefined,
-              };
-              await onSave(payload);
+              });
+              onClose();
             } catch (e) {
               const err = e as ApiError;
               if (
@@ -190,7 +206,7 @@ const TankFormDialog: React.FC<{
                 setFieldErrors(mapped);
               } else {
                 setFormError(
-                  (err && err.message) || String(e) || "Save failed",
+                  (err && err.message) || String(e) || "Lưu thất bại",
                 );
               }
             } finally {
@@ -199,8 +215,9 @@ const TankFormDialog: React.FC<{
           }}
           variant="contained"
           disabled={!name || saving}
+          sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none" }}
         >
-          Lưu
+          {saving ? "Đang lưu..." : "Lưu"}
         </Button>
       </DialogActions>
     </Dialog>

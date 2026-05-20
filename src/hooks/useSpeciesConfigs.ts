@@ -5,7 +5,13 @@ function generateId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export type SensorThreshold = { id?: string; sensor: string; sensorTypeId?: string; min: number | null; max: number | null };
+export type SensorThreshold = {
+  id?: string;
+  sensor: string;
+  sensorTypeId?: string;
+  min: number | null;
+  max: number | null;
+};
 export type Stage = {
   id: string;
   name: string;
@@ -37,43 +43,77 @@ function defaultStage(name = "Stage 1"): Stage {
 }
 
 export default function useSpeciesConfigs() {
-  const [speciesConfigs, setSpeciesConfigs] = useState<SpeciesConfig[]>([]);
-
-  useEffect(() => {
+  // SỬA LỖI 1: Sử dụng lazy initialization để đọc localStorage, tránh gọi setState trong useEffect
+  const [speciesConfigs, setSpeciesConfigs] = useState<SpeciesConfig[]>(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
-        setSpeciesConfigs(JSON.parse(raw));
-      } catch (e) {
-        // ignore parse error
+        return JSON.parse(raw);
+      } catch {
+        // SỬA LỖI 2: Bỏ biến 'e' (no-unused-vars)
+        /* ignore parse error */
       }
     }
+    return [];
+  });
+
+  useEffect(() => {
+    let isMounted = true; // Tránh memory leak khi component unmount
 
     // Always attempt to refresh from API (update cache & UI)
     (async () => {
       try {
         console.debug("useSpeciesConfigs: fetching species from API...");
         const items = await getSpecies();
-        const configs = items.map((s) => ({ id: s.id, name: s.name, stages: [] }));
-        setSpeciesConfigs(configs);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
-        } catch {}
-      } catch (e) {
+        const configs = items.map((s) => ({
+          id: s.id,
+          name: s.name,
+          stages: [],
+        }));
+
+        if (isMounted) {
+          setSpeciesConfigs(configs);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+          } catch {
+            // SỬA LỖI 3: Thêm comment cho khối catch trống (no-empty)
+            /* ignore storage quota error */
+          }
+        }
+      } catch (error) {
+        // Ghi log lỗi thay vì bỏ không
+        console.error("Failed to fetch species API", error);
+
         // If API fails and we had no cache, ensure empty list
-        if (!raw) setSpeciesConfigs([]);
+        if (!localStorage.getItem(STORAGE_KEY) && isMounted) {
+          setSpeciesConfigs([]);
+        }
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   function persist(next: SpeciesConfig[]) {
     setSpeciesConfigs(next);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
+    } catch {
+      // SỬA LỖI 3: Thêm comment
+      /* ignore */
+    }
   }
 
-  function updateStageThreshold(speciesId: string, stageId: string, sensor: string, min: number | null, max: number | null, id?: string) {
+  function updateStageThreshold(
+    speciesId: string,
+    stageId: string,
+    sensor: string,
+    min: number | null,
+    max: number | null,
+    id?: string,
+  ) {
     const next = speciesConfigs.map((sp) => {
       if (sp.id !== speciesId) return sp;
       return {
@@ -93,7 +133,11 @@ export default function useSpeciesConfigs() {
     const next = speciesConfigs.map((sp) => {
       if (sp.id !== speciesId) return sp;
       // prevent duplicate growthStageId
-      if (growthStageId && sp.stages.some((s) => s.growthStageId === growthStageId)) return sp;
+      if (
+        growthStageId &&
+        sp.stages.some((s) => s.growthStageId === growthStageId)
+      )
+        return sp;
       const st = defaultStage(name);
       if (growthStageId) st.growthStageId = growthStageId;
       if (name) st.name = name;
@@ -102,21 +146,38 @@ export default function useSpeciesConfigs() {
     persist(next);
   }
 
-  function updateStage(speciesId: string, stageId: string, patch: Partial<Stage>) {
+  function updateStage(
+    speciesId: string,
+    stageId: string,
+    patch: Partial<Stage>,
+  ) {
     const next = speciesConfigs.map((sp) => {
       if (sp.id !== speciesId) return sp;
       return {
         ...sp,
-        stages: sp.stages.map((st) => (st.id === stageId ? { ...st, ...patch } : st)),
+        stages: sp.stages.map((st) =>
+          st.id === stageId ? { ...st, ...patch } : st,
+        ),
       };
     });
     persist(next);
   }
 
   function removeStage(speciesId: string, stageId: string) {
-    const next = speciesConfigs.map((sp) => (sp.id === speciesId ? { ...sp, stages: sp.stages.filter((s) => s.id !== stageId) } : sp));
+    const next = speciesConfigs.map((sp) =>
+      sp.id === speciesId
+        ? { ...sp, stages: sp.stages.filter((s) => s.id !== stageId) }
+        : sp,
+    );
     persist(next);
   }
 
-  return { speciesConfigs, setSpeciesConfigs: persist, updateStageThreshold, addStage, updateStage, removeStage } as const;
+  return {
+    speciesConfigs,
+    setSpeciesConfigs: persist,
+    updateStageThreshold,
+    addStage,
+    updateStage,
+    removeStage,
+  } as const;
 }

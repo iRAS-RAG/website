@@ -170,8 +170,14 @@ export default function useUserManagement() {
           if (values.firstName !== origFirst)
             payload.firstName = values.firstName;
           if (values.lastName !== origLast) payload.lastName = values.lastName;
-          if (values.email !== (original?.email ?? ""))
+
+          // LOẠI BỎ EMAIL KHỎI PAYLOAD NẾU KHÔNG ĐỔI (Xử lý chữ hoa/thường và khoảng trắng)
+          const origEmail = (original?.email || "").trim().toLowerCase();
+          const newEmail = (values.email || "").trim().toLowerCase();
+          if (newEmail !== origEmail) {
             payload.email = values.email;
+          }
+
           if (values.role !== (original?.role ?? ""))
             payload.role = values.role;
           if (values.password) payload.password = values.password;
@@ -187,6 +193,10 @@ export default function useUserManagement() {
           await createUser(values);
         }
         await reload();
+      } catch (e: unknown) {
+        // Bắt lỗi và đẩy ra state để UI có thể hiển thị
+        if (e instanceof Error) setError(e.message);
+        throw e;
       } finally {
         setOpLoading(false);
       }
