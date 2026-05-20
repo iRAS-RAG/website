@@ -44,16 +44,34 @@ export default function ControlDeviceDetail({
         }}
       >
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {control.name}
+          {/* Đưa Loại thiết bị lên làm Tiêu đề chính */}
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}
+          >
+            {control.controlDeviceTypeName || "Thiết bị chưa phân loại"}
           </Typography>
-          <Chip
-            label={control.controlDeviceTypeName ?? "Loại không xác định"}
-            size="small"
-            color="default"
-            variant="outlined"
-            sx={{ fontWeight: 500 }}
-          />
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {/* Nhãn Pin */}
+            <Chip
+              label={`Pin: ${control.pinCode ?? "-"}`}
+              size="small"
+              sx={{
+                fontWeight: 600,
+                fontFamily: "monospace",
+                bgcolor: "action.hover",
+              }}
+            />
+            {/* Tên định danh bị hạ cấp xuống thành Text phụ */}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontWeight: 500 }}
+            >
+              {control.name}
+            </Typography>
+          </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button

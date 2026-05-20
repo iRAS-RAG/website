@@ -21,6 +21,7 @@ import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useBatches from "../../hooks/useBatches";
 import type { Batch, BatchStatus } from "../../types/batch";
+import CreateBatchDialog from "../../components/supervisor/batches/CreateBatchDialog";
 
 const statusLabels: Record<BatchStatus, string> = {
   ACTIVE: "Đang nuôi",
@@ -39,6 +40,7 @@ const chipStyles: Record<BatchStatus, { bgcolor: string; color: string }> = {
 
 const BatchListPage: React.FC = () => {
   const navigate = useNavigate();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<BatchStatus | "all">("all");
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
 
@@ -47,7 +49,7 @@ const BatchListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const { loading, batches } = useBatches({
+  const { loading, batches, loadBatches } = useBatches({
     autoLoad: true,
     statusFilter: statusFilter === "all" ? undefined : statusFilter,
   });
@@ -220,7 +222,7 @@ const BatchListPage: React.FC = () => {
     <Box
       sx={{
         display: "flex",
-        bgcolor: "#F8FAFC", // Nền nền tổng thể
+        bgcolor: "#F8FAFC",
         minHeight: "100vh",
         width: "100%",
       }}
@@ -283,7 +285,7 @@ const BatchListPage: React.FC = () => {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => navigate("/supervisor/batches/create")}
+                onClick={() => setIsCreateDialogOpen(true)} // Mở Dialog
                 sx={{
                   borderRadius: "8px",
                   bgcolor: "#2A85FF",
@@ -393,6 +395,15 @@ const BatchListPage: React.FC = () => {
           </Paper>
         </Box>
       </Box>
+      {/* Dialog tạo lô nuôi mới */}
+      <CreateBatchDialog
+        open={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSuccess={() => {
+          // Refresh dữ liệu theo filter hiện tại mà không reload trang
+          loadBatches(statusFilter === "all" ? undefined : statusFilter);
+        }}
+      />
     </Box>
   );
 };

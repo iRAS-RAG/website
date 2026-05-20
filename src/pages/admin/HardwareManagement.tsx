@@ -559,7 +559,9 @@ const HardwareManagement: React.FC = () => {
         }}
         initial={editingSensor}
         defaultMasterBoardId={selectedBoardForSensor}
+        existingSensors={sensors} /* <--- THÊM DÒNG NÀY */
       />
+
       <ControlDeviceFormDialog
         open={controlDialogOpen}
         onClose={() => {
@@ -580,6 +582,7 @@ const HardwareManagement: React.FC = () => {
         }}
         initial={editingControl}
         defaultMasterBoardId={selectedBoardForControl}
+        existingControls={controlDevices} /* <--- THÊM DÒNG NÀY */
       />
     </Box>
   );

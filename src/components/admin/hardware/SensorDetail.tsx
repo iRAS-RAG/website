@@ -1,7 +1,6 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import PinDropIcon from "@mui/icons-material/PinDrop";
-import ThermostatIcon from "@mui/icons-material/Thermostat";
 import { Box, Button, Chip, Divider, Paper, Typography } from "@mui/material";
 import type { Sensor } from "../../../types/sensor";
 
@@ -15,6 +14,7 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
   return (
     <Box>
       {/* Header & Actions */}
+      {/* Header & Actions */}
       <Box
         sx={{
           display: "flex",
@@ -24,17 +24,34 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
         }}
       >
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {sensor.name}
+          {/* Đưa Loại cảm biến lên làm Tiêu đề chính */}
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}
+          >
+            {sensor.sensorTypeName || "Cảm biến chưa phân loại"}
           </Typography>
-          <Chip
-            icon={<ThermostatIcon fontSize="small" />}
-            label={sensor.sensorTypeName ?? "Loại không xác định"}
-            size="small"
-            color="warning"
-            variant="outlined"
-            sx={{ fontWeight: 500 }}
-          />
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {/* Nhãn Pin */}
+            <Chip
+              label={`Pin: ${sensor.pinCode ?? "-"}`}
+              size="small"
+              sx={{
+                fontWeight: 600,
+                fontFamily: "monospace",
+                bgcolor: "action.hover",
+              }}
+            />
+            {/* Tên định danh bị hạ cấp xuống thành Text phụ */}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontWeight: 500 }}
+            >
+              {sensor.name}
+            </Typography>
+          </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button

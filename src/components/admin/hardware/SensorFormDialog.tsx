@@ -36,7 +36,15 @@ const SensorFormDialog: React.FC<{
   }) => Promise<void>;
   initial: Sensor | null;
   defaultMasterBoardId?: string | null;
-}> = ({ open, onClose, onSave, initial, defaultMasterBoardId }) => {
+  existingSensors?: Sensor[]; // ĐÃ THÊM PROP NÀY
+}> = ({
+  open,
+  onClose,
+  onSave,
+  initial,
+  defaultMasterBoardId,
+  existingSensors,
+}) => {
   const [name, setName] = useState(initial?.name ?? "");
   const [pinCode, setPinCode] = useState(
     initial?.pinCode != null ? String(initial.pinCode) : "",
@@ -139,6 +147,8 @@ const SensorFormDialog: React.FC<{
                 }
                 value={sensorTypeId ?? ""}
                 onChange={(e) => setSensorTypeId(e.target.value || null)}
+                error={Boolean(fieldErrors.sensorTypeId)} // ĐÃ THÊM ĐỂ HIỂN THỊ LỖI
+                helperText={fieldErrors.sensorTypeId} // ĐÃ THÊM ĐỂ HIỂN THỊ LỖI
                 sx={{ flex: 1 }}
               >
                 <MenuItem value="">(Chọn loại)</MenuItem>
@@ -175,6 +185,39 @@ const SensorFormDialog: React.FC<{
           </Button>
           <Button
             onClick={async () => {
+              // --- VALIDATE FRONTEND CHỐNG TRÙNG LẶP ---
+              const currentBoardId =
+                defaultMasterBoardId || initial?.masterBoardId;
+              if (existingSensors && currentBoardId) {
+                const isDuplicateName = existingSensors.some(
+                  (s) =>
+                    s.masterBoardId === currentBoardId &&
+                    s.id !== initial?.id &&
+                    s.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                );
+
+                const isDuplicateType =
+                  sensorTypeId &&
+                  existingSensors.some(
+                    (s) =>
+                      s.masterBoardId === currentBoardId &&
+                      s.id !== initial?.id &&
+                      s.sensorTypeId === sensorTypeId,
+                  );
+
+                if (isDuplicateName || isDuplicateType) {
+                  const newErrs: Record<string, string> = {};
+                  if (isDuplicateName)
+                    newErrs.name =
+                      "Tên cảm biến đã tồn tại trên bảng mạch này.";
+                  if (isDuplicateType)
+                    newErrs.sensorTypeId =
+                      "Loại cảm biến này đã tồn tại trên bảng mạch này.";
+                  setFieldErrors(newErrs);
+                  return; // Chặn gọi API
+                }
+              }
+
               setSaving(true);
               setFormError(null);
               setFieldErrors({});
@@ -187,25 +230,46 @@ const SensorFormDialog: React.FC<{
                 });
               } catch (e) {
                 const err = e as ApiError;
-                if (
-                  err &&
-                  err.data &&
-                  (err.data as Record<string, unknown>).errors
-                ) {
-                  const errs = (err.data as Record<string, unknown>)
-                    .errors as Record<string, string[]>;
+                const errorData = err?.data as
+                  | Record<string, unknown>
+                  | undefined;
+
+                if (errorData?.errors) {
+                  const errs = errorData.errors as Record<string, string[]>;
                   const mapped: Record<string, string> = {};
                   for (const k of Object.keys(errs)) {
                     const key = k.toLowerCase();
                     const msg = errs[k].join(" ");
                     if (key.includes("pin")) mapped.pinCode = msg;
                     else if (key.includes("name")) mapped.name = msg;
+                    else if (key.includes("type"))
+                      mapped.sensorTypeId = msg; // Đã thêm bắt trường type
                     else mapped[k] = msg;
                   }
                   setFieldErrors(mapped);
+                } else if (
+                  errorData?.message &&
+                  typeof errorData.message === "string"
+                ) {
+                  const apiMessage = errorData.message;
+                  const lowerMsg = apiMessage.toLowerCase();
+
+                  if (
+                    lowerMsg.includes("mã chân") ||
+                    lowerMsg.includes("pin")
+                  ) {
+                    setFieldErrors({ pinCode: apiMessage });
+                  } else if (
+                    lowerMsg.includes("tên") ||
+                    lowerMsg.includes("name")
+                  ) {
+                    setFieldErrors({ name: apiMessage });
+                  } else {
+                    setFormError(apiMessage);
+                  }
                 } else {
                   setFormError(
-                    (err && err.message) || String(e) || "Save failed",
+                    (err && err.message) || String(e) || "Lưu thất bại",
                   );
                 }
               } finally {

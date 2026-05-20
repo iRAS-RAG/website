@@ -40,7 +40,15 @@ const ControlDeviceFormDialog: React.FC<{
   }) => Promise<void>;
   initial: ControlDevice | null;
   defaultMasterBoardId?: string | null;
-}> = ({ open, onClose, onSave, initial, defaultMasterBoardId }) => {
+  existingControls?: ControlDevice[]; // ĐÃ THÊM PROP NÀY
+}> = ({
+  open,
+  onClose,
+  onSave,
+  initial,
+  defaultMasterBoardId,
+  existingControls,
+}) => {
   const [name, setName] = useState(initial?.name ?? "");
   const [pinCode, setPinCode] = useState(
     initial?.pinCode != null ? String(initial.pinCode) : "",
@@ -227,8 +235,42 @@ const ControlDeviceFormDialog: React.FC<{
           <Button onClick={onClose} disabled={saving}>
             Hủy
           </Button>
+
           <Button
             onClick={async () => {
+              // --- VALIDATE FRONTEND CHỐNG TRÙNG LẶP ---
+              const currentBoardId =
+                defaultMasterBoardId || initial?.masterBoardId;
+              if (existingControls && currentBoardId) {
+                const isDuplicateName = existingControls.some(
+                  (c) =>
+                    c.masterBoardId === currentBoardId &&
+                    c.id !== initial?.id &&
+                    c.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                );
+
+                const isDuplicateType =
+                  controlDeviceTypeId &&
+                  existingControls.some(
+                    (c) =>
+                      c.masterBoardId === currentBoardId &&
+                      c.id !== initial?.id &&
+                      c.controlDeviceTypeId === controlDeviceTypeId,
+                  );
+
+                if (isDuplicateName || isDuplicateType) {
+                  const newErrs: Record<string, string> = {};
+                  if (isDuplicateName)
+                    newErrs.name =
+                      "Tên thiết bị đã tồn tại trên bảng mạch này.";
+                  if (isDuplicateType)
+                    newErrs.controlDeviceTypeId =
+                      "Loại thiết bị này đã tồn tại trên bảng mạch này.";
+                  setFieldErrors(newErrs);
+                  return; // Chặn gọi API
+                }
+              }
+
               setSaving(true);
               setFormError(null);
               setFieldErrors({});
@@ -238,19 +280,18 @@ const ControlDeviceFormDialog: React.FC<{
                   pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
                   masterBoardId: defaultMasterBoardId ?? undefined,
                   controlDeviceTypeId: controlDeviceTypeId ?? undefined,
-                  state: initial?.state ?? false, // Giữ lại state cũ
+                  state: initial?.state ?? false,
                   commandOn: commandOn || undefined,
                   commandOff: commandOff || undefined,
                 });
               } catch (e) {
                 const err = e as ApiError;
-                if (
-                  err &&
-                  err.data &&
-                  (err.data as Record<string, unknown>).errors
-                ) {
-                  const errs = (err.data as Record<string, unknown>)
-                    .errors as Record<string, string[]>;
+                const errorData = err?.data as
+                  | Record<string, unknown>
+                  | undefined;
+
+                if (errorData?.errors) {
+                  const errs = errorData.errors as Record<string, string[]>;
                   const mapped: Record<string, string> = {};
                   for (const k of Object.keys(errs)) {
                     const key = k.toLowerCase();
@@ -262,9 +303,29 @@ const ControlDeviceFormDialog: React.FC<{
                     else mapped[k] = msg;
                   }
                   setFieldErrors(mapped);
+                } else if (
+                  errorData?.message &&
+                  typeof errorData.message === "string"
+                ) {
+                  const apiMessage = errorData.message;
+                  const lowerMsg = apiMessage.toLowerCase();
+
+                  if (
+                    lowerMsg.includes("mã chân") ||
+                    lowerMsg.includes("pin")
+                  ) {
+                    setFieldErrors({ pinCode: apiMessage });
+                  } else if (
+                    lowerMsg.includes("tên") ||
+                    lowerMsg.includes("name")
+                  ) {
+                    setFieldErrors({ name: apiMessage });
+                  } else {
+                    setFormError(apiMessage);
+                  }
                 } else {
                   setFormError(
-                    (err && err.message) || String(e) || "Save failed",
+                    (err && err.message) || String(e) || "Lưu thất bại",
                   );
                 }
               } finally {

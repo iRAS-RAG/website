@@ -10,6 +10,9 @@ import {
 import React, { useState } from "react";
 import type { SpeciesConfig } from "../../../hooks/useSpeciesConfigs";
 
+// IMPORT HÀM MAPPER VÀO ĐÂY (nhớ chỉnh lại đường dẫn cho đúng)
+import { autoSuggestIcon } from "../../../utils/iconMapper";
+
 const SpeciesList: React.FC<{
   items: SpeciesConfig[];
   onSelect: (id: string) => void;
@@ -22,7 +25,6 @@ const SpeciesList: React.FC<{
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* THANH TÌM KIẾM NHỎ */}
       <Box sx={{ mb: 2 }}>
         <TextField
           fullWidth
@@ -46,13 +48,16 @@ const SpeciesList: React.FC<{
         />
       </Box>
 
-      {/* DANH SÁCH LOÀI */}
       <Stack
         spacing={1}
         sx={{ overflowY: "auto", flexGrow: 1, pr: 0.5, pb: 1 }}
       >
         {filtered.map((s) => {
           const isActive = selectedId === s.id;
+
+          // GỌI HÀM LẤY ICON THEO TÊN LOÀI
+          const displayIcon = autoSuggestIcon(s.name);
+
           return (
             <Box
               key={s.id}
@@ -71,17 +76,18 @@ const SpeciesList: React.FC<{
                 "&:hover": { bgcolor: isActive ? "#EFF6FF" : "#F8FAFC" },
               }}
             >
-              {/* Đã thay đổi: Avatar hiển thị icon mặc định là con cá */}
               <Avatar
                 sx={{
-                  bgcolor: "#E2E8F0",
+                  bgcolor: isActive ? "#DBEAFE" : "#E2E8F0",
                   color: "#475569",
                   width: 36,
                   height: 36,
                   fontWeight: 600,
+                  fontSize: "1.2rem",
                 }}
               >
-                🐟
+                {/* ĐƯA ICON VÀO ĐÂY TRƯỚC ĐÓ LÀ CHỮ 🐟 CỐ ĐỊNH */}
+                {displayIcon}
               </Avatar>
               <Typography
                 sx={{

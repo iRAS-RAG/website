@@ -296,7 +296,7 @@ export default function TankDetail({
                             bgcolor: "background.paper",
                           }}
                         >
-                          {/* Left: Icon + Text */}
+                          {/* Left: Icon + Text (ĐÃ ĐƯỢC CẬP NHẬT ƯU TIÊN LOẠI THIẾT BỊ) */}
                           <Box
                             sx={{
                               display: "flex",
@@ -315,22 +315,30 @@ export default function TankDetail({
                               {getSensorIcon(s.sensorTypeName)}
                             </Box>
                             <Box>
+                              {/* Loại cảm biến được đẩy lên làm Text chính, in đậm */}
                               <Typography
-                                sx={{ fontWeight: 600, fontSize: "0.88rem" }}
+                                sx={{
+                                  fontWeight: 600,
+                                  fontSize: "0.88rem",
+                                  color: "text.primary",
+                                }}
                               >
-                                {s.name}
+                                {s.sensorTypeName || "Cảm biến chưa phân loại"}
                               </Typography>
+                              {/* Tên định danh bị hạ cấp xuống Text phụ */}
                               <Typography
                                 sx={{
                                   fontSize: "0.75rem",
                                   color: "text.secondary",
+                                  fontWeight: 500,
                                 }}
                               >
-                                {s.sensorTypeName || "Không xác định"}
+                                {s.name}
                               </Typography>
                             </Box>
                           </Box>
-                          {/* Right: Badge cho Pin */}
+
+                          {/* Right: Badge cho Pin (Giữ nguyên) */}
                           <Chip
                             label={`Pin: ${s.pinCode ?? "-"}`}
                             size="small"

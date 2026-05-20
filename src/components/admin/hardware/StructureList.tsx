@@ -292,10 +292,13 @@ export default function StructureList({
                                         <Typography
                                           sx={{
                                             fontSize: "0.85rem",
-                                            fontWeight: 500,
+                                            fontWeight: 600,
+                                            color: "text.primary",
                                           }}
                                         >
-                                          {s.name}
+                                          {/* Ưu tiên hiển thị Loại cảm biến, xử lý an toàn nếu null */}
+                                          {s.sensorTypeName ||
+                                            "Cảm biến chưa phân loại"}
                                         </Typography>
                                       }
                                       secondary={
@@ -304,13 +307,22 @@ export default function StructureList({
                                             fontSize: "11px",
                                             color: "text.secondary",
                                             mt: 0.2,
+                                            fontWeight: 500,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.5,
                                           }}
                                         >
-                                          {" "}
-                                          {/* UX 3: Caption siêu nhỏ */}
-                                          {s.sensorTypeName
-                                            ? `pin ${s.pinCode ?? "-"} · ${s.sensorTypeName}`
-                                            : `pin ${s.pinCode ?? "-"}`}
+                                          Pin:{" "}
+                                          <span
+                                            style={{
+                                              fontFamily: "monospace",
+                                              fontSize: "12px",
+                                              color: "inherit",
+                                            }}
+                                          >
+                                            {s.pinCode ?? "-"}
+                                          </span>
                                         </Typography>
                                       }
                                     />
@@ -366,10 +378,13 @@ export default function StructureList({
                                         <Typography
                                           sx={{
                                             fontSize: "0.85rem",
-                                            fontWeight: 500,
+                                            fontWeight: 600,
+                                            color: "text.primary",
                                           }}
                                         >
-                                          {c.name}
+                                          {/* Ưu tiên hiển thị Loại thiết bị, xử lý an toàn nếu null */}
+                                          {c.controlDeviceTypeName ||
+                                            "Thiết bị chưa phân loại"}
                                         </Typography>
                                       }
                                       secondary={
@@ -378,10 +393,22 @@ export default function StructureList({
                                             fontSize: "11px",
                                             color: "text.secondary",
                                             mt: 0.2,
+                                            fontWeight: 500,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.5,
                                           }}
                                         >
-                                          {c.controlDeviceTypeName ??
-                                            `pin ${c.pinCode ?? "-"}`}
+                                          Pin:{" "}
+                                          <span
+                                            style={{
+                                              fontFamily: "monospace",
+                                              fontSize: "12px",
+                                              color: "inherit",
+                                            }}
+                                          >
+                                            {c.pinCode ?? "-"}
+                                          </span>
                                         </Typography>
                                       }
                                     />

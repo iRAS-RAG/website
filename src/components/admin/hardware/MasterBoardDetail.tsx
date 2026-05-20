@@ -152,13 +152,45 @@ export default function MasterBoardDetail({
               </Typography>
             </Box>
             {sensors.length > 0 ? (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
                 {sensors.map((s) => (
                   <Chip
                     key={s.id}
-                    label={`${s.name} (Pin ${s.pinCode ?? "-"})`}
                     variant="outlined"
-                    size="small"
+                    sx={{
+                      py: 2,
+                      px: 0.5,
+                      bgcolor: "background.paper",
+                      borderColor: "divider",
+                    }}
+                    label={
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: 0.5,
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.85rem",
+                            color: "text.primary",
+                          }}
+                        >
+                          {s.sensorTypeName || "Cảm biến"}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                          }}
+                        >
+                          (Pin {s.pinCode ?? "-"})
+                        </Typography>
+                      </Box>
+                    }
                   />
                 ))}
               </Box>
@@ -180,13 +212,45 @@ export default function MasterBoardDetail({
               </Typography>
             </Box>
             {controls.length > 0 ? (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
                 {controls.map((c) => (
                   <Chip
                     key={c.id}
-                    label={`${c.name} (Pin ${c.pinCode ?? "-"})`}
                     variant="outlined"
-                    size="small"
+                    sx={{
+                      py: 2,
+                      px: 0.5,
+                      bgcolor: "background.paper",
+                      borderColor: "divider",
+                    }}
+                    label={
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: 0.5,
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.85rem",
+                            color: "text.primary",
+                          }}
+                        >
+                          {c.controlDeviceTypeName || "Thiết bị điều khiển"}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                          }}
+                        >
+                          (Pin {c.pinCode ?? "-"})
+                        </Typography>
+                      </Box>
+                    }
                   />
                 ))}
               </Box>
