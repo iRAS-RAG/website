@@ -2,6 +2,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Stack,
   Typography,
@@ -29,6 +33,7 @@ import { SensorCard } from "../../components/operator/SensorCard";
 // Hooks & API
 import { useRealTimeTanks } from "../../hooks/useRealTimeTanks";
 import { realtimeApi } from "../../api/realtimeApi";
+import { useToast } from "../../components/common/toastContext";
 
 // Icons
 import AirIcon from "@mui/icons-material/Air";
@@ -75,6 +80,7 @@ const renderCustomDot = (props: CustomDotProps) => {
 // --- MAIN COMPONENT ---
 const RealTimeSensors = () => {
   const theme = useTheme();
+  const toast = useToast();
 
   const {
     tanks,
@@ -93,6 +99,12 @@ const RealTimeSensors = () => {
 
   // State quản lý Sensor đang được chọn (Master-Detail)
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
+
+  // State xác nhận bật/tắt thiết bị điều khiển
+  const [deviceToToggle, setDeviceToToggle] = useState<
+    (typeof devices)[number] | null
+  >(null);
+  const [isToggling, setIsToggling] = useState(false);
 
   const currentSensorId = latestData.some(
     (s) => s.sensorId === selectedSensorId,
@@ -121,13 +133,21 @@ const RealTimeSensors = () => {
     setModalOpen(false);
   };
 
-  const handleToggleDevice = async (id: string, currentState: boolean) => {
+  const handleConfirmToggle = async () => {
+    if (!deviceToToggle) return;
+    setIsToggling(true);
     try {
-      await realtimeApi.toggleDevice(id, !currentState);
+      await realtimeApi.toggleDevice(deviceToToggle.id, !deviceToToggle.state);
       refetch();
+      toast.success(
+        deviceToToggle.state ? "Đã tắt thiết bị" : "Đã bật thiết bị",
+      );
     } catch (err) {
       console.error(err);
-      alert("Không thể chuyển trạng thái thiết bị");
+      toast.error("Không thể chuyển trạng thái thiết bị");
+    } finally {
+      setIsToggling(false);
+      setDeviceToToggle(null);
     }
   };
 
@@ -623,9 +643,7 @@ const RealTimeSensors = () => {
                         size="small"
                         variant={device.state ? "outlined" : "contained"}
                         color={device.state ? "error" : "primary"}
-                        onClick={() =>
-                          handleToggleDevice(device.id, device.state)
-                        }
+                        onClick={() => setDeviceToToggle(device)}
                       >
                         {device.state ? "Tắt" : "Bật"}
                       </Button>
@@ -711,6 +729,102 @@ const RealTimeSensors = () => {
         onConfirm={handleConfirmAction}
         actionTitle={selectedAction}
       />
+
+      {/* DIALOG XÁC NHẬN BẬT/TẮT THIẾT BỊ ĐIỀU KHIỂN */}
+      <Dialog
+        open={Boolean(deviceToToggle)}
+        onClose={() => {
+          if (!isToggling) setDeviceToToggle(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle
+          sx={{ fontWeight: 700, color: theme.palette.text.primary, pb: 1 }}
+        >
+          Xác nhận {deviceToToggle?.state ? "tắt" : "bật"} thiết bị
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: theme.palette.text.secondary, mb: 2 }}>
+            Bạn sắp{" "}
+            <Box
+              component="span"
+              sx={{
+                fontWeight: 700,
+                color: deviceToToggle?.state
+                  ? theme.palette.error.main
+                  : theme.palette.success.main,
+              }}
+            >
+              {deviceToToggle?.state ? "TẮT" : "BẬT"}
+            </Box>{" "}
+            thiết bị{" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 700, color: theme.palette.text.primary }}
+            >
+              {deviceToToggle?.controlDeviceTypeName}
+            </Box>
+            {selectedTank ? ` tại ${selectedTank.name}` : ""}.
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1.5,
+              bgcolor: "#FFF7ED",
+              border: "1px solid #FFEDD5",
+              borderRadius: "12px",
+              p: 2,
+            }}
+          >
+            <ErrorOutlineIcon
+              sx={{ color: "#EA580C", fontSize: 22, mt: "2px" }}
+            />
+            <Typography
+              variant="body2"
+              sx={{ color: "#9A3412", lineHeight: 1.6 }}
+            >
+              Đây là thiết bị đang vận hành trực tiếp trong môi trường bể nuôi.
+              Bật/tắt sai thời điểm có thể làm thay đổi đột ngột điều kiện nước
+              (oxy, nhiệt độ, dòng chảy...) và gây nguy hiểm cho vật nuôi. Vui
+              lòng kiểm tra kỹ tình trạng bể và các chỉ số cảm biến trước khi
+              xác nhận.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setDeviceToToggle(null)}
+            disabled={isToggling}
+            sx={{
+              color: theme.palette.text.secondary,
+              fontWeight: 600,
+              textTransform: "none",
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleConfirmToggle}
+            variant="contained"
+            color={deviceToToggle?.state ? "error" : "primary"}
+            disabled={isToggling}
+            sx={{
+              borderRadius: "8px",
+              fontWeight: 600,
+              boxShadow: "none",
+              textTransform: "none",
+            }}
+          >
+            {isToggling
+              ? "Đang xử lý..."
+              : deviceToToggle?.state
+                ? "Xác nhận tắt"
+                : "Xác nhận bật"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

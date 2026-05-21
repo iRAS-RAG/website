@@ -42,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ menu, activeStyle = "simple", userNam
         zIndex,
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.5} component={Link} to="/" sx={{ p: "24px 20px", textDecoration: "none", color: "inherit" }}>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: "24px 20px", color: "inherit" }}>
         <Box component="img" src={logo} sx={{ height: 32 }} />
         <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.primary.main }}>
           iRAS-RAG

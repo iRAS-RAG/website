@@ -26,8 +26,6 @@ import {
   Typography,
   useTheme,
   CircularProgress,
-  Snackbar,
-  Alert,
 } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import dayjs from "dayjs";
@@ -44,6 +42,7 @@ import CakeIcon from "@mui/icons-material/Cake";
 import WaterIcon from "@mui/icons-material/Water";
 
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { useToast } from "../../components/common/toastContext";
 
 // API & HOOK
 import { useOperatorBatches } from "../../hooks/useOperatorBatches";
@@ -57,6 +56,7 @@ const isBatchActive = (status: unknown) => {
 
 const BatchManagement = () => {
   const theme = useTheme();
+  const toast = useToast();
 
   const {
     batches,
@@ -83,33 +83,9 @@ const BatchManagement = () => {
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
 
-  // =========================================================================
-  // STATE QUẢN LÝ THÔNG BÁO (SNACKBAR)
-  // =========================================================================
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  const showMessage = (
-    message: string,
-    severity: "success" | "error" = "success",
-  ) => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
-      showMessage("Vui lòng nhập khối lượng và chọn loại thức ăn!", "error");
+      toast.error("Vui lòng nhập khối lượng và chọn loại thức ăn!");
       return;
     }
     if (!selectedBatch) return;
@@ -124,26 +100,25 @@ const BatchManagement = () => {
       setFeedInput("");
       setFeedTypeIdInput("");
       refetchDetails();
-      showMessage("Ghi nhận cho ăn thành công!");
+      toast.success("Ghi nhận cho ăn thành công!");
     } catch (err: unknown) {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        showMessage(
+        toast.error(
           errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.",
-          "error",
         );
       } else if (err instanceof Error) {
-        showMessage(err.message, "error");
+        toast.error(err.message);
       } else {
-        showMessage("Có lỗi không xác định xảy ra.", "error");
+        toast.error("Có lỗi không xác định xảy ra.");
       }
     }
   };
 
   const handleSaveMortality = async () => {
     if (!deathInput) {
-      showMessage("Vui lòng nhập số lượng cá chết!", "error");
+      toast.error("Vui lòng nhập số lượng cá chết!");
       return;
     }
     if (!selectedBatch) return;
@@ -167,19 +142,18 @@ const BatchManagement = () => {
       // 3. Tải lại danh sách lô (để lấy currentQuantity mới nhất do Server trừ)
       await refetch();
 
-      showMessage("Báo cáo hao hụt thành công!");
+      toast.success("Báo cáo hao hụt thành công!");
     } catch (err: unknown) {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        showMessage(
+        toast.error(
           errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.",
-          "error",
         );
       } else if (err instanceof Error) {
-        showMessage(err.message, "error");
+        toast.error(err.message);
       } else {
-        showMessage("Có lỗi không xác định xảy ra.", "error");
+        toast.error("Có lỗi không xác định xảy ra.");
       }
     }
   };
@@ -733,27 +707,6 @@ const BatchManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* HIỂN THỊ SNACKBAR */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            boxShadow: theme.shadows[3],
-            borderRadius: "8px",
-          }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

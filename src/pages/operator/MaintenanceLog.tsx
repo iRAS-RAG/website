@@ -41,6 +41,7 @@ import dayjs from "dayjs";
 
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { useToast } from "../../components/common/toastContext";
 import { useCorrectiveActions } from "../../hooks/useCorrectiveActions";
 import { correctiveActionApi } from "../../api/correctiveActions";
 import { apiFetch, isApiError } from "../../api/client";
@@ -56,6 +57,7 @@ interface IAlertOption {
 
 const MaintenanceLog: React.FC = () => {
   const theme = useTheme();
+  const toast = useToast();
 
   // 1. Lấy danh sách Nhật ký
   const { data: logs, loading, error, refetch } = useCorrectiveActions();
@@ -161,7 +163,7 @@ const MaintenanceLog: React.FC = () => {
   // Submit Form (Dùng chung cho cả Thêm và Sửa)
   const handleSubmit = async () => {
     if (!formData.alertId || !formData.actionTaken) {
-      alert("Vui lòng điền đầy đủ Mã cảnh báo và Hành động khắc phục!");
+      toast.error("Vui lòng điền đầy đủ Mã cảnh báo và Hành động khắc phục!");
       return;
     }
 
@@ -174,7 +176,7 @@ const MaintenanceLog: React.FC = () => {
       const currentUserId = userProfileRes?.id || userProfileRes?.data?.id;
 
       if (!currentUserId) {
-        alert(
+        toast.error(
           "Không thể xác định thông tin người dùng. Vui lòng đăng nhập lại.",
         );
         return;
@@ -200,15 +202,18 @@ const MaintenanceLog: React.FC = () => {
 
       handleCloseModal();
       refetch();
+      toast.success(
+        isEditMode ? "Cập nhật nhật ký thành công" : "Thêm nhật ký thành công",
+      );
     } catch (err: unknown) {
       console.error("Lỗi khi gửi form:", err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        alert(errorData?.message || "Có lỗi xảy ra khi lưu nhật ký.");
+        toast.error(errorData?.message || "Có lỗi xảy ra khi lưu nhật ký.");
       } else if (err instanceof Error) {
-        alert(err.message);
+        toast.error(err.message);
       } else {
-        alert("Có lỗi xảy ra khi lưu nhật ký.");
+        toast.error("Có lỗi xảy ra khi lưu nhật ký.");
       }
     } finally {
       setIsSubmitting(false);
@@ -233,9 +238,10 @@ const MaintenanceLog: React.FC = () => {
       await correctiveActionApi.delete(deleteId);
       handleCloseDeleteConfirm();
       refetch();
+      toast.success("Xóa nhật ký thành công");
     } catch (err: unknown) {
       console.error("Lỗi khi xóa:", err);
-      alert("Có lỗi xảy ra khi xóa nhật ký.");
+      toast.error("Có lỗi xảy ra khi xóa nhật ký.");
     } finally {
       setIsDeleting(false);
     }

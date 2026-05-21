@@ -6,7 +6,6 @@ import {
   ArrowBack,
 } from "@mui/icons-material";
 import {
-  Alert,
   Box,
   Button,
   IconButton,
@@ -28,6 +27,7 @@ import {
 } from "../../api/auth";
 import * as jwt from "../../api/jwt";
 import bg from "../../assets/backgrounds.png";
+import { useToast } from "../../components/common/toastContext";
 
 const LoginPage = () => {
   // ==========================================
@@ -36,14 +36,13 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const toast = useToast();
 
   const isLoggedIn = Boolean(currentUser.id);
 
   const handleLogin = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    setError("");
     try {
       type LoginResp = {
         token?: {
@@ -79,7 +78,7 @@ const LoginPage = () => {
       );
 
       if (!accessToken) {
-        setError("Sai địa chỉ email hoặc mật khẩu!");
+        toast.error("Sai địa chỉ email hoặc mật khẩu!");
         return;
       }
 
@@ -106,7 +105,7 @@ const LoginPage = () => {
         const e = err as { data?: { message?: string }; message?: string };
         msg = e?.data?.message || e?.message || msg;
       }
-      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -212,12 +211,6 @@ const LoginPage = () => {
               Vui lòng đăng nhập để tiếp tục
             </Typography>
           </Box>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-              {error}
-            </Alert>
-          )}
 
           <Stack spacing={3}>
             {/* 4. INPUT FIELDS (Chuyển sang dùng Label thay vì Placeholder) */}
