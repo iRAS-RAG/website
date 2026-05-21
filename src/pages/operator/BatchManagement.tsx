@@ -26,6 +26,8 @@ import {
   Typography,
   useTheme,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { useState, type ReactNode } from "react";
 import dayjs from "dayjs";
@@ -41,12 +43,12 @@ import WarningIcon from "@mui/icons-material/Warning";
 import CakeIcon from "@mui/icons-material/Cake";
 import WaterIcon from "@mui/icons-material/Water";
 
-import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // API & HOOK
 import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import { operatorBatchesApi } from "../../api/operatorBatchesApi";
+import { isApiError } from "../../api/client";
 import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
 const isBatchActive = (status: unknown) => {
@@ -62,7 +64,7 @@ const BatchManagement = () => {
     setSelectedBatch,
     feedingLogs,
     mortalityLogs,
-    feedTypes, // Lấy từ Hook
+    feedTypes,
     totalFeed,
     totalDead,
     ageDays,
@@ -76,14 +78,38 @@ const BatchManagement = () => {
 
   const [openFeedDialog, setOpenFeedDialog] = useState(false);
   const [feedInput, setFeedInput] = useState("");
-  const [feedTypeIdInput, setFeedTypeIdInput] = useState(""); // Lưu ID của cám được chọn
+  const [feedTypeIdInput, setFeedTypeIdInput] = useState("");
 
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
 
+  // =========================================================================
+  // STATE QUẢN LÝ THÔNG BÁO (SNACKBAR)
+  // =========================================================================
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showMessage = (
+    message: string,
+    severity: "success" | "error" = "success",
+  ) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
-      alert("Vui lòng nhập khối lượng và chọn loại thức ăn!");
+      showMessage("Vui lòng nhập khối lượng và chọn loại thức ăn!", "error");
       return;
     }
     if (!selectedBatch) return;
@@ -98,32 +124,63 @@ const BatchManagement = () => {
       setFeedInput("");
       setFeedTypeIdInput("");
       refetchDetails();
-    } catch (err) {
+      showMessage("Ghi nhận cho ăn thành công!");
+    } catch (err: unknown) {
       console.error(err);
-      alert("Lỗi khi ghi nhận cho ăn. Vui lòng kiểm tra Console (F12).");
+      if (isApiError(err)) {
+        const errorData = err.data as { message?: string };
+        showMessage(
+          errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.",
+          "error",
+        );
+      } else if (err instanceof Error) {
+        showMessage(err.message, "error");
+      } else {
+        showMessage("Có lỗi không xác định xảy ra.", "error");
+      }
     }
   };
 
   const handleSaveMortality = async () => {
     if (!deathInput) {
-      alert("Vui lòng nhập số lượng cá chết!");
+      showMessage("Vui lòng nhập số lượng cá chết!", "error");
       return;
     }
     if (!selectedBatch) return;
 
+    const deathCount = parseFloat(deathInput);
+
     try {
+      // 1. Gọi API ghi nhận dòng lịch sử hao hụt
       await operatorBatchesApi.logMortality(
         selectedBatch.id,
-        parseFloat(deathInput),
+        deathCount,
         new Date().toISOString(),
       );
+
       setOpenDeathDialog(false);
       setDeathInput("");
-      refetchDetails();
-      refetch();
-    } catch (err) {
+
+      // 2. Tải lại chi tiết lô (để có dòng log cá chết mới)
+      await refetchDetails();
+
+      // 3. Tải lại danh sách lô (để lấy currentQuantity mới nhất do Server trừ)
+      await refetch();
+
+      showMessage("Báo cáo hao hụt thành công!");
+    } catch (err: unknown) {
       console.error(err);
-      alert("Lỗi khi ghi nhận hao hụt. Vui lòng kiểm tra Console (F12).");
+      if (isApiError(err)) {
+        const errorData = err.data as { message?: string };
+        showMessage(
+          errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.",
+          "error",
+        );
+      } else if (err instanceof Error) {
+        showMessage(err.message, "error");
+      } else {
+        showMessage("Có lỗi không xác định xảy ra.", "error");
+      }
     }
   };
 
@@ -152,8 +209,6 @@ const BatchManagement = () => {
           minWidth: 0,
         }}
       >
-        <OperatorHeader />
-
         <Box
           sx={{
             display: "flex",
@@ -161,7 +216,7 @@ const BatchManagement = () => {
             flexGrow: 1,
             p: 3,
             gap: 3,
-            height: "calc(100vh - 80px)",
+            height: "100vh",
           }}
         >
           <Stack
@@ -678,6 +733,27 @@ const BatchManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* HIỂN THỊ SNACKBAR */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            boxShadow: theme.shadows[3],
+            borderRadius: "8px",
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -8,13 +8,11 @@ import {
   Stack,
   IconButton,
   Chip,
-  Avatar,
   Button,
   Divider,
   useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import SendIcon from "@mui/icons-material/Send";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -24,7 +22,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
 
@@ -180,10 +178,9 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               {data.sensorCode}
             </Typography>
           </Box>
-          {/* Đã xóa Chip Mức độ */}
         </Stack>
 
-        {/* 2. CẬP NHẬT CÂU THÔNG BÁO: Dùng sensorName (Ví dụ: Độ pH, Nhiệt độ) thay vì ID */}
+        {/* CÂU THÔNG BÁO: Dùng sensorName */}
         <Typography
           variant="body2"
           sx={{
@@ -290,7 +287,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                 axisLine={false}
                 domain={[0, "auto"]}
               />
-              <Tooltip
+              <RechartsTooltip
                 contentStyle={{
                   borderRadius: "8px",
                   border: "none",
@@ -308,54 +305,14 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </ResponsiveContainer>
         </Box>
 
-        {/* AI Suggestion */}
-        <Box
-          sx={{
-            p: 2,
-            bgcolor: theme.palette.primary.light,
-            borderRadius: "16px",
-            display: "flex",
-            gap: 2,
-            mb: 3,
-            border: `1px solid ${theme.palette.primary.main}33`,
-          }}
-        >
-          <Avatar
-            sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}
-          >
-            <SmartToyIcon />
-          </Avatar>
-          <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, color: theme.palette.primary.main }}
-            >
-              Hướng dẫn từ AI Advisor
-            </Typography>
-            <Typography variant="body2" sx={{ my: 0.5, lineHeight: 1.5 }}>
-              Dựa trên dữ liệu cảm biến {data.sensorCode}, hệ thống đề xuất kiểm
-              tra thiết bị và thực hiện quy trình SOP tương ứng.
-            </Typography>
-            <Button
-              size="small"
-              variant="text"
-              sx={{ p: 0, minWidth: 0, fontWeight: 700 }}
-            >
-              Xem chi tiết SOP &rarr;
-            </Button>
-          </Box>
-        </Box>
-
         <Divider sx={{ mb: 3 }} />
 
-        {/* 3. CẬP NHẬT NÚT HÀNH ĐỘNG: Ẩn nút nếu trạng thái là Đóng sự cố */}
+        {/* NÚT HÀNH ĐỘNG CẬP NHẬT */}
         <Stack
           direction="row"
-          justifyContent="space-between"
+          justifyContent="flex-end" // Đẩy toàn bộ cụm nút sang phải
           alignItems="center"
         >
-          <Stack direction="row" spacing={1.5} alignItems="center"></Stack>
-
           <Stack direction="row" spacing={1.5}>
             {data.status !== "Đóng sự cố" ? (
               <>

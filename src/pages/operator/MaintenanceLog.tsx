@@ -3,7 +3,8 @@ import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-// import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Avatar,
   Box,
@@ -12,6 +13,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   FormControl,
   InputLabel,
@@ -31,6 +33,8 @@ import {
   type PaletteColor,
   alpha,
   Chip,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import React, { useState, useEffect, useMemo } from "react";
 import dayjs from "dayjs";
@@ -40,6 +44,8 @@ import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useCorrectiveActions } from "../../hooks/useCorrectiveActions";
 import { correctiveActionApi } from "../../api/correctiveActions";
 import { apiFetch, isApiError } from "../../api/client";
+// Bạn cần import interface này từ file types của bạn để tránh dùng 'any'
+import type { ICorrectiveAction } from "../../types/corrective-action";
 
 interface IAlertOption {
   id: string;
@@ -51,14 +57,13 @@ interface IAlertOption {
 const MaintenanceLog: React.FC = () => {
   const theme = useTheme();
 
-  // 1. Lấy danh sách Nhật ký (từ hook)
+  // 1. Lấy danh sách Nhật ký
   const { data: logs, loading, error, refetch } = useCorrectiveActions();
 
-  // 2. State quản lý danh sách Cảnh báo (Alerts) dùng chung cho cả Bảng và Modal
+  // 2. State quản lý danh sách Cảnh báo
   const [alertsList, setAlertsList] = useState<IAlertOption[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
 
-  // Gọi API lấy danh sách Alerts ngay khi load trang
   useEffect(() => {
     const fetchAllAlerts = async () => {
       setLoadingAlerts(true);
@@ -68,10 +73,6 @@ const MaintenanceLog: React.FC = () => {
         });
         const resObj = res as { data?: IAlertOption[] };
         const alertsData = Array.isArray(res) ? res : resObj?.data || [];
-
-        // Console log để kiểm tra xem danh sách cảnh báo tải về có bị rỗng không
-        console.log("Danh sách Alerts lấy về để map:", alertsData);
-
         setAlertsList(alertsData as IAlertOption[]);
       } catch (err) {
         console.error("Lỗi khi tải danh sách cảnh báo:", err);
@@ -82,8 +83,7 @@ const MaintenanceLog: React.FC = () => {
     fetchAllAlerts();
   }, []);
 
-  // 3. Tạo "Từ điển" (Map) để tra cứu nhanh tên Cảnh báo từ ID
-  // Xử lý luôn trường hợp ID khác biệt chữ hoa/thường (toLowerCase)
+  // 3. Map để tra cứu tên cảnh báo
   const alertMap = useMemo(() => {
     const map: Record<string, string> = {};
     alertsList.forEach((alert) => {
@@ -95,16 +95,57 @@ const MaintenanceLog: React.FC = () => {
     return map;
   }, [alertsList]);
 
-  // --- State cho Modal Thêm Nhật Ký ---
+  // --- State cho Modal Thêm/Sửa Nhật Ký ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     alertId: "",
     actionTaken: "",
     notes: "",
   });
 
-  const handleOpenModal = () => {
+  // --- State cho Modal Xác nhận Xóa ---
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // LOGIC LỌC DROPDOWN: Chỉ hiện những Alert chưa được tạo nhật ký (hoặc alert đang được edit)
+  const availableAlerts = useMemo(() => {
+    return alertsList.filter((alert) => {
+      // Nếu đang ở chế độ sửa, cho phép giữ lại Alert của bản ghi đang sửa
+      if (
+        isEditMode &&
+        formData.alertId.toLowerCase() === alert.id.toLowerCase()
+      ) {
+        return true;
+      }
+      // Kiểm tra xem alert.id đã tồn tại trong danh sách logs chưa
+      const isAlreadyLogged = logs.some(
+        (log) => log.alertId.toLowerCase() === alert.id.toLowerCase(),
+      );
+      return !isAlreadyLogged;
+    });
+  }, [alertsList, logs, isEditMode, formData.alertId]);
+
+  // Handlers mở modal Thêm/Sửa
+  const handleOpenAddModal = () => {
+    setIsEditMode(false);
+    setEditingId(null);
+    setFormData({ alertId: "", actionTaken: "", notes: "" });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (log: ICorrectiveAction) => {
+    setIsEditMode(true);
+    setEditingId(log.id);
+    setFormData({
+      alertId: log.alertId,
+      actionTaken: log.actionTaken,
+      notes: log.notes || "",
+    });
     setIsModalOpen(true);
   };
 
@@ -117,6 +158,7 @@ const MaintenanceLog: React.FC = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Submit Form (Dùng chung cho cả Thêm và Sửa)
   const handleSubmit = async () => {
     if (!formData.alertId || !formData.actionTaken) {
       alert("Vui lòng điền đầy đủ Mã cảnh báo và Hành động khắc phục!");
@@ -125,22 +167,10 @@ const MaintenanceLog: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // 1. Định nghĩa kiểu dữ liệu mong đợi (không dùng any nữa)
-      type UserProfileResponse = {
-        id?: string;
-        data?: {
-          id?: string;
-        };
-      };
-
-      // 2. Truyền kiểu dữ liệu vào apiFetch
+      type UserProfileResponse = { id?: string; data?: { id?: string } };
       const userProfileRes = await apiFetch<UserProfileResponse>("/users/me", {
         method: "GET",
       });
-
-      console.log("Dữ liệu User Profile tải về:", userProfileRes);
-
-      // 3. Lấy ID an toàn, TypeScript sẽ không báo lỗi vì đã biết trước cấu trúc
       const currentUserId = userProfileRes?.id || userProfileRes?.data?.id;
 
       if (!currentUserId) {
@@ -150,15 +180,24 @@ const MaintenanceLog: React.FC = () => {
         return;
       }
 
-      // 2. Gửi API lưu nhật ký
-      await correctiveActionApi.create({
-        alertId: formData.alertId,
-        userId: currentUserId,
-        actionTaken: formData.actionTaken,
-        notes: formData.notes,
-      });
+      if (isEditMode && editingId) {
+        // Cập nhật
+        await correctiveActionApi.update(editingId, {
+          alertId: formData.alertId,
+          userId: currentUserId,
+          actionTaken: formData.actionTaken,
+          notes: formData.notes,
+        });
+      } else {
+        // Thêm mới
+        await correctiveActionApi.create({
+          alertId: formData.alertId,
+          userId: currentUserId,
+          actionTaken: formData.actionTaken,
+          notes: formData.notes,
+        });
+      }
 
-      // 3. Đóng Modal và làm mới bảng
       handleCloseModal();
       refetch();
     } catch (err: unknown) {
@@ -173,6 +212,32 @@ const MaintenanceLog: React.FC = () => {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handlers mở modal Xóa
+  const handleOpenDeleteConfirm = (id: string) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setIsDeleteDialogOpen(false);
+    setDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await correctiveActionApi.delete(deleteId);
+      handleCloseDeleteConfirm();
+      refetch();
+    } catch (err: unknown) {
+      console.error("Lỗi khi xóa:", err);
+      alert("Có lỗi xảy ra khi xóa nhật ký.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -221,24 +286,10 @@ const MaintenanceLog: React.FC = () => {
               </Typography>
             </Box>
             <Stack direction="row" spacing={2}>
-              {/* <Button
-                variant="outlined"
-                startIcon={<FileDownloadIcon />}
-                sx={{
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  borderColor: theme.palette.divider,
-                  color: theme.palette.text.primary,
-                  bgcolor: theme.palette.background.paper,
-                }}
-              >
-                Xuất báo cáo
-              </Button> */}
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={handleOpenModal}
+                onClick={handleOpenAddModal}
                 sx={{
                   borderRadius: "8px",
                   fontWeight: 600,
@@ -252,13 +303,14 @@ const MaintenanceLog: React.FC = () => {
             </Stack>
           </Stack>
 
+          {/* ... Summary Cards giữ nguyên ... */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)", // đúng số card
+              gridTemplateColumns: "repeat(3, 1fr)",
               gap: 3,
               mb: 4,
-              justifyItems: "center", // căn giữa từng card
+              justifyItems: "center",
             }}
           >
             <SummaryCard
@@ -308,9 +360,11 @@ const MaintenanceLog: React.FC = () => {
                       "Người thực hiện",
                       "Hành động khắc phục",
                       "Ghi chú",
+                      "Thao tác",
                     ].map((head) => (
                       <TableCell
                         key={head}
+                        align={head === "Thao tác" ? "center" : "left"}
                         sx={{
                           fontWeight: 600,
                           color: theme.palette.text.secondary,
@@ -326,7 +380,6 @@ const MaintenanceLog: React.FC = () => {
                 <TableBody>
                   {logs.map((row) => (
                     <TableRow key={row.id} hover>
-                      {/* 1. Cảnh báo xử lý */}
                       <TableCell>
                         {alertMap[(row.alertId || "").toLowerCase()] ? (
                           <Chip
@@ -348,8 +401,6 @@ const MaintenanceLog: React.FC = () => {
                           </Typography>
                         )}
                       </TableCell>
-
-                      {/* 2. Thời gian */}
                       <TableCell
                         sx={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}
                       >
@@ -363,8 +414,6 @@ const MaintenanceLog: React.FC = () => {
                           </Typography>
                         </Stack>
                       </TableCell>
-
-                      {/* 3. Người thực hiện */}
                       <TableCell>
                         <Stack
                           direction="row"
@@ -398,8 +447,6 @@ const MaintenanceLog: React.FC = () => {
                           </Box>
                         </Stack>
                       </TableCell>
-
-                      {/* 4. Hành động khắc phục */}
                       <TableCell
                         sx={{
                           fontSize: "0.85rem",
@@ -409,8 +456,6 @@ const MaintenanceLog: React.FC = () => {
                       >
                         {row.actionTaken}
                       </TableCell>
-
-                      {/* 5. Ghi chú */}
                       <TableCell
                         sx={{
                           fontSize: "0.85rem",
@@ -419,6 +464,34 @@ const MaintenanceLog: React.FC = () => {
                         }}
                       >
                         {row.notes || "Không có ghi chú"}
+                      </TableCell>
+
+                      {/* CỘT THAO TÁC MỚI THÊM */}
+                      <TableCell align="center">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="center"
+                        >
+                          <Tooltip title="Chỉnh sửa">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleOpenEditModal(row)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Xóa">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleOpenDeleteConfirm(row.id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -429,7 +502,7 @@ const MaintenanceLog: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Modal Thêm Nhật Ký */}
+      {/* Modal Thêm/Sửa Nhật Ký */}
       <Dialog
         open={isModalOpen}
         onClose={handleCloseModal}
@@ -437,7 +510,7 @@ const MaintenanceLog: React.FC = () => {
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 600 }}>
-          Thêm nhật ký khắc phục
+          {isEditMode ? "Cập nhật nhật ký khắc phục" : "Thêm nhật ký khắc phục"}
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={3} sx={{ mt: 1 }}>
@@ -447,16 +520,17 @@ const MaintenanceLog: React.FC = () => {
                 value={formData.alertId}
                 label="Chọn cảnh báo (Alert) *"
                 onChange={(e) => handleFormChange("alertId", e.target.value)}
-                disabled={loadingAlerts}
+                disabled={loadingAlerts || isEditMode} // Không cho đổi Alert khi đang Edit
               >
                 {loadingAlerts ? (
                   <MenuItem disabled>
                     <CircularProgress size={20} sx={{ mr: 1 }} /> Đang tải...
                   </MenuItem>
-                ) : alertsList.length === 0 ? (
-                  <MenuItem disabled>Không có cảnh báo nào</MenuItem>
+                ) : availableAlerts.length === 0 ? (
+                  <MenuItem disabled>Không có cảnh báo nào chờ xử lý</MenuItem>
                 ) : (
-                  alertsList.map((alert) => (
+                  // Dùng mảng availableAlerts đã được lọc
+                  availableAlerts.map((alert) => (
                     <MenuItem key={alert.id} value={alert.id}>
                       {alert.fishTankName} - {alert.sensorTypeName} (
                       {dayjs(alert.raisedAt).format("DD/MM HH:mm")})
@@ -508,11 +582,43 @@ const MaintenanceLog: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal Xác nhận Xóa */}
+      <Dialog open={isDeleteDialogOpen} onClose={handleCloseDeleteConfirm}>
+        <DialogTitle sx={{ fontWeight: 600 }}>Xác nhận xóa</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Chị có chắc chắn muốn xóa nhật ký này không? Hành động này không thể
+            hoàn tác.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={handleCloseDeleteConfirm}
+            color="inherit"
+            disabled={isDeleting}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Xóa"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-// Component SummaryCard
+// Component SummaryCard (Giữ nguyên)
 interface SummaryCardProps {
   label: string;
   value: string;

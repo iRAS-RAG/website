@@ -1,4 +1,3 @@
-// src/hooks/useOperatorBatches.ts
 import { useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import { operatorBatchesApi } from "../api/operatorBatchesApi";
@@ -24,7 +23,6 @@ export const useOperatorBatches = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // Load đồng thời Lô nuôi và Danh sách Cám
   const fetchMasterData = useCallback(async () => {
     try {
       const [batchesRes, feedTypesRes] = await Promise.all([
@@ -34,8 +32,17 @@ export const useOperatorBatches = () => {
 
       const batchesData = extractArray(batchesRes) as IOperatorFarmingBatch[];
       setBatches(batchesData);
-      if (batchesData.length > 0 && !selectedBatch)
-        setSelectedBatch(batchesData[0]);
+
+      // FIX BUG REDIRECT: Dùng callback của setState để luôn lấy được selectedBatch mới nhất
+      setSelectedBatch((prevSelected) => {
+        if (!prevSelected && batchesData.length > 0) return batchesData[0];
+        if (prevSelected) {
+          // Cập nhật lại data mới nhất cho batch đang chọn (bao gồm currentQuantity mới từ Server)
+          const updated = batchesData.find((b) => b.id === prevSelected.id);
+          return updated || batchesData[0];
+        }
+        return null;
+      });
 
       setFeedTypes(extractArray(feedTypesRes) as IFeedType[]);
     } catch (error) {
@@ -43,7 +50,6 @@ export const useOperatorBatches = () => {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -85,11 +91,12 @@ export const useOperatorBatches = () => {
 
   return {
     batches,
+    setBatches,
     selectedBatch,
-    setSelectedBatch,
+    setSelectedBatch, // Chắc chắn export hàm này
     feedingLogs,
     mortalityLogs,
-    feedTypes, // Bổ sung FeedTypes
+    feedTypes,
     totalFeed,
     totalDead,
     ageDays,

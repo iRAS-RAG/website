@@ -210,10 +210,20 @@ export default function useUserManagement() {
       setError(null);
       try {
         await deleteUser(id);
-        reload();
-      } catch (e) {
-        setError("Delete failed");
-        throw e;
+        await reload();
+      } catch (e: unknown) {
+        // Ép kiểu an toàn không sử dụng any
+        const err = e as { data?: Record<string, unknown>; message?: string };
+        const errorData = err?.data as Record<string, unknown> | undefined;
+
+        // Lấy thông điệp lỗi cụ thể từ server (ví dụ: lỗi ràng buộc khóa ngoại)
+        const serverMessage =
+          (errorData?.message as string) ||
+          err?.message ||
+          "Xóa người dùng thất bại";
+
+        setError(serverMessage);
+        throw new Error(serverMessage); // Quăng tiếp lỗi kèm thông điệp rõ ràng lên Component UI
       } finally {
         setOpLoading(false);
       }

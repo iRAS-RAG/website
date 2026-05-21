@@ -51,17 +51,12 @@ const AIKnowledge: React.FC = () => {
   const [title, setTitle] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) {
-      try {
-        await remove(id);
-        toast.success("Đã xóa tài liệu");
-      } catch (error) {
-        console.error("Lỗi xóa file:", error); // Log ra để error không bị mắng là unused
-        toast.error("Xóa thất bại");
-      }
-    }
-  };
+  // State quản lý Modal Xóa
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<DocumentItem | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const columns = useMemo(
     (): Column<DocumentItem>[] => [
@@ -130,14 +125,13 @@ const AIKnowledge: React.FC = () => {
               <VisibilityIcon fontSize="small" />
             </IconButton>
             <IconButton
-              size="small"
-              onClick={() => handleDelete(r.id)}
-              sx={{
-                color: "#64748B",
-                "&:hover": { color: "#EF4444", bgcolor: "#FEF2F2" },
+              color="error"
+              onClick={() => {
+                setDocumentToDelete(r); // Đã fix: dùng 'r' thay vì 'row'
+                setDeleteDialogOpen(true);
               }}
             >
-              <DeleteIcon fontSize="small" />
+              <DeleteIcon />
             </IconButton>
           </Stack>
         ),
@@ -164,13 +158,13 @@ const AIKnowledge: React.FC = () => {
       setFile(null);
       setTitle("");
     } catch (error: unknown) {
-      console.error("Lỗi upload file:", error); // Log lỗi an toàn
+      console.error("Lỗi upload file:", error);
       const err = error as Record<string, unknown>;
       const msg =
         (err?.data as Record<string, string>)?.message ||
         (err?.message as string) ||
         "Tải lên thất bại";
-      toast.error(msg); // Gọi msg ra dùng
+      toast.error(msg);
     } finally {
       setIsUploading(false);
     }
@@ -345,6 +339,59 @@ const AIKnowledge: React.FC = () => {
             disabled={isUploading || !file || !title}
           >
             {isUploading ? "Đang tải lên..." : "Xác nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL XÁC NHẬN XÓA TÀI LIỆU */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !isDeleting && setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: "#0F172A", pb: 1 }}>
+          Xác nhận xóa tài liệu?
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography sx={{ color: "#475569" }}>
+            Bạn có chắc chắn muốn xóa tài liệu{" "}
+            <strong>{documentToDelete?.title}</strong>? Hành động này không thể
+            hoàn tác và dữ liệu sẽ bị xóa vĩnh viễn khỏi hệ thống tri thức.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{ color: "#64748B", fontWeight: 600 }}
+            disabled={isDeleting}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={isDeleting}
+            sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none" }}
+            onClick={async () => {
+              if (!documentToDelete) return;
+              setIsDeleting(true);
+              try {
+                await remove(documentToDelete.id);
+                toast.success("Xóa tài liệu thành công");
+              } catch {
+                toast.error("Xóa tài liệu thất bại");
+              } finally {
+                setIsDeleting(false);
+                setDeleteDialogOpen(false);
+                setDocumentToDelete(null);
+              }
+            }}
+          >
+            {isDeleting ? "Đang xử lý..." : "Xóa"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -55,16 +55,15 @@ function ManageTypesDialog<T extends BaseTypeItem, P>({
   renderSecondary,
 }: ManageTypesDialogProps<T, P>) {
   const [editing, setEditing] = useState<T | null>(null);
+  const toast = useToast();
 
-  // State quản lý việc hiển thị modal xác nhận xóa
+  // --- STATE QUẢN LÝ MODAL XÓA ---
   const [itemToDelete, setItemToDelete] = useState<T | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const toast = useToast();
-
   return (
     <>
-      {/* Dialog Quản lý danh sách */}
+      {/* DIALOG DANH SÁCH LOẠI THIẾT BỊ */}
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>{title ?? "Quản lý"}</DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
@@ -73,7 +72,7 @@ function ManageTypesDialog<T extends BaseTypeItem, P>({
               <ListItem key={it.id} divider sx={{ px: 3, py: 1.5 }}>
                 <ListItemText
                   primary={
-                    <Typography sx={{ fontWeight: 500 }}>{it.name}</Typography>
+                    <Typography sx={{ fontWeight: 600 }}>{it.name}</Typography>
                   }
                   secondary={renderSecondary ? renderSecondary(it) : ""}
                 />
@@ -88,7 +87,7 @@ function ManageTypesDialog<T extends BaseTypeItem, P>({
                   <IconButton
                     edge="end"
                     color="error"
-                    onClick={() => setItemToDelete(it)} // Mở modal xác nhận
+                    onClick={() => setItemToDelete(it)} // Mở modal xóa
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -112,40 +111,42 @@ function ManageTypesDialog<T extends BaseTypeItem, P>({
         </DialogActions>
       </Dialog>
 
-      {/* Dialog Form Chỉnh sửa */}
+      {/* DIALOG CHỈNH SỬA LOẠI THIẾT BỊ */}
       <DialogComponent
         open={Boolean(editing)}
         initial={editing}
         onClose={() => setEditing(null)}
         onUpdate={async (id, payload) => {
-          const res = await updateItem(id, payload as unknown as P); // Đã kèm fix type lỗi kỳ trước
+          const res = await updateItem(id, payload as unknown as P);
           if (res) toast.success("Cập nhật thành công");
           return res;
         }}
         existingNames={items.map((it) => it.name)}
       />
 
-      {/* Dialog Xác nhận Xóa (Custom Confirm Modal) */}
+      {/* --- MODAL XÁC NHẬN XÓA CHUYÊN NGHIỆP --- */}
       <Dialog
         open={Boolean(itemToDelete)}
         onClose={() => !isDeleting && setItemToDelete(null)}
         maxWidth="xs"
         fullWidth
+        PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Xác nhận xóa?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: "#0F172A", pb: 1 }}>
+          Xác nhận xóa?
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="body1">
-            Bạn có chắc chắn muốn xóa <strong>{itemToDelete?.name}</strong>?
-            Hành động này không thể hoàn tác và sẽ xóa vĩnh viễn cấu hình này
-            khỏi hệ thống.
+          <Typography sx={{ color: "#475569" }}>
+            Bạn có chắc chắn muốn xóa cấu hình{" "}
+            <strong>{itemToDelete?.name}</strong>? Hành động này không thể hoàn
+            tác và sẽ xóa vĩnh viễn khỏi hệ thống.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button
             onClick={() => setItemToDelete(null)}
-            color="inherit"
             disabled={isDeleting}
-            sx={{ fontWeight: 600 }}
+            sx={{ color: "#64748B", fontWeight: 600 }}
           >
             Hủy
           </Button>
