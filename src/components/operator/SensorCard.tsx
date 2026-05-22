@@ -10,7 +10,8 @@ interface SensorCardProps {
   status: string;
   statusColor: "success" | "warning" | "error";
   icon: React.ElementType;
-  // Đã xóa optimalRange
+  isSelected?: boolean;
+  onClick?: () => void;
 }
 
 export const SensorCard: React.FC<SensorCardProps> = ({
@@ -21,7 +22,8 @@ export const SensorCard: React.FC<SensorCardProps> = ({
   status,
   statusColor,
   icon: Icon,
-  // Đã xóa optimalRange
+  isSelected = false,
+  onClick,
 }) => {
   const theme = useTheme();
 
@@ -39,16 +41,33 @@ export const SensorCard: React.FC<SensorCardProps> = ({
 
   return (
     <Paper
+      onClick={onClick}
       variant="outlined"
       sx={{
-        p: 2.5,
+        p: 2,
+        minHeight: 140,
         borderRadius: "16px",
-        border: `1px solid ${theme.palette.divider}`,
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        // Đã bỏ justifyContent: "space-between" để nội dung tự đẩy lên trên cho đẹp
         height: "100%",
+        cursor: onClick ? "pointer" : "default",
+        // Chuyển đổi màu viền và background khi được chọn
+        borderColor: isSelected
+          ? theme.palette.primary.main
+          : theme.palette.divider,
+        borderWidth: isSelected ? 2 : 1,
+        bgcolor: isSelected
+          ? `${theme.palette.primary.light}15`
+          : "background.paper",
+        boxShadow: isSelected
+          ? `0 0 0 4px ${theme.palette.primary.light}40`
+          : "none",
+        transition: "all 0.2s ease-in-out",
+        "&:hover": {
+          borderColor:
+            !isSelected && onClick ? theme.palette.primary.light : undefined,
+        },
       }}
     >
       {/* Header: Icon & Status Chip */}
@@ -60,8 +79,8 @@ export const SensorCard: React.FC<SensorCardProps> = ({
       >
         <Box
           sx={{
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             borderRadius: "12px",
             bgcolor: colors.iconBg,
             display: "flex",
@@ -70,7 +89,7 @@ export const SensorCard: React.FC<SensorCardProps> = ({
             color: colors.text,
           }}
         >
-          <Icon sx={{ fontSize: 28 }} />
+          <Icon sx={{ fontSize: 24 }} />
         </Box>
         <Chip
           label={status}
@@ -87,20 +106,41 @@ export const SensorCard: React.FC<SensorCardProps> = ({
       </Stack>
 
       {/* Content: Label & Value */}
-      <Box>
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+        }}
+      >
         <Typography
           variant="body2"
-          sx={{ fontWeight: 600, color: theme.palette.text.secondary, mb: 0.5 }}
+          sx={{
+            fontWeight: 600,
+            color: theme.palette.text.secondary,
+            mb: 0.5,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+          title={label}
         >
           {label}
         </Typography>
-        <Stack direction="row" alignItems="baseline" spacing={0.5}>
+        <Stack
+          direction="row"
+          alignItems="baseline"
+          spacing={0.5}
+          sx={{ flexWrap: "wrap" }}
+        >
           <Typography
             variant="h3"
             sx={{
               fontWeight: 700,
-              fontSize: "2rem",
+              fontSize: "1.75rem",
               color: theme.palette.text.primary,
+              lineHeight: 1.2,
             }}
           >
             {value}
@@ -119,7 +159,6 @@ export const SensorCard: React.FC<SensorCardProps> = ({
           {trend}
         </Typography>
       </Box>
-      {/* Đã xóa hoàn toàn Footer chứa Ngưỡng */}
     </Paper>
   );
 };

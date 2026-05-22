@@ -16,37 +16,72 @@ export function toUiUser(item: Record<string, unknown>): User {
 export async function getUsers(): Promise<User[]> {
   const items = await apiFetch<unknown[]>("/users");
   if (!Array.isArray(items)) return [];
-  return (items as unknown[]).map((i) => toUiUser(i as Record<string, unknown>));
+  return (items as unknown[]).map((i) =>
+    toUiUser(i as Record<string, unknown>),
+  );
 }
 
-export async function createUser(payload: { firstName: string; lastName: string; email: string; role: string; password?: string }): Promise<User> {
-  const body: Record<string, unknown> = { email: payload.email, firstName: payload.firstName, lastName: payload.lastName, roleName: payload.role };
+export async function createUser(payload: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  password?: string;
+}): Promise<User> {
+  const body: Record<string, unknown> = {
+    email: payload.email,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    roleName: payload.role,
+  };
   if (payload.password) body.password = payload.password;
-  const created = await apiFetch<Record<string, unknown>>("/users", { method: "POST", body });
+  const created = await apiFetch<Record<string, unknown>>("/users", {
+    method: "POST",
+    body,
+  });
   return toUiUser(created);
 }
 
 export async function createOperator(payload: Create): Promise<User> {
-  const body: Record<string, unknown> = { email: payload.email, firstName: payload.firstName, lastName: payload.lastName };
+  const body: Record<string, unknown> = {
+    email: payload.email,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+  };
   if (payload.password) body.password = payload.password;
-  const created = await apiFetch<Record<string, unknown>>("/users/operator", { method: "POST", body });
+  const created = await apiFetch<Record<string, unknown>>("/users/operator", {
+    method: "POST",
+    body,
+  });
   return toUiUser(created);
 }
 
-export async function updateUser(id: string, payload: Partial<{ firstName: string; lastName: string; email: string; role: string; password?: string }>): Promise<User | null> {
+export async function updateUser(
+  id: string,
+  payload: Partial<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    password?: string;
+  }>,
+): Promise<User | null> {
   const body: Record<string, unknown> = {};
   if (payload.email) body.email = payload.email;
   if (payload.firstName !== undefined) body.firstName = payload.firstName;
   if (payload.lastName !== undefined) body.lastName = payload.lastName;
   if (payload.role) body.roleName = payload.role;
   if (payload.password) body.password = payload.password;
-  const updated = await apiFetch<Record<string, unknown>>(`/users/${id}`, { method: "PUT", body });
+  const updated = await apiFetch<Record<string, unknown>>(`/users/${id}`, {
+    method: "PUT",
+    body,
+  });
   if (!updated) return null;
   return toUiUser(updated);
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
-  await apiFetch(`/users/${id}/hard`, { method: "DELETE" });
+  await apiFetch(`/users/${id}`, { method: "DELETE" });
   return true;
 }
 

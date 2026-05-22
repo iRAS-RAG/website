@@ -41,12 +41,13 @@ import WarningIcon from "@mui/icons-material/Warning";
 import CakeIcon from "@mui/icons-material/Cake";
 import WaterIcon from "@mui/icons-material/Water";
 
-import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { useToast } from "../../components/common/toastContext";
 
 // API & HOOK
 import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import { operatorBatchesApi } from "../../api/operatorBatchesApi";
+import { isApiError } from "../../api/client";
 import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
 const isBatchActive = (status: unknown) => {
@@ -55,6 +56,7 @@ const isBatchActive = (status: unknown) => {
 
 const BatchManagement = () => {
   const theme = useTheme();
+  const toast = useToast();
 
   const {
     batches,
@@ -62,7 +64,7 @@ const BatchManagement = () => {
     setSelectedBatch,
     feedingLogs,
     mortalityLogs,
-    feedTypes, // Lấy từ Hook
+    feedTypes,
     totalFeed,
     totalDead,
     ageDays,
@@ -76,14 +78,14 @@ const BatchManagement = () => {
 
   const [openFeedDialog, setOpenFeedDialog] = useState(false);
   const [feedInput, setFeedInput] = useState("");
-  const [feedTypeIdInput, setFeedTypeIdInput] = useState(""); // Lưu ID của cám được chọn
+  const [feedTypeIdInput, setFeedTypeIdInput] = useState("");
 
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
-      alert("Vui lòng nhập khối lượng và chọn loại thức ăn!");
+      toast.error("Vui lòng nhập khối lượng và chọn loại thức ăn!");
       return;
     }
     if (!selectedBatch) return;
@@ -98,32 +100,61 @@ const BatchManagement = () => {
       setFeedInput("");
       setFeedTypeIdInput("");
       refetchDetails();
-    } catch (err) {
+      toast.success("Ghi nhận cho ăn thành công!");
+    } catch (err: unknown) {
       console.error(err);
-      alert("Lỗi khi ghi nhận cho ăn. Vui lòng kiểm tra Console (F12).");
+      if (isApiError(err)) {
+        const errorData = err.data as { message?: string };
+        toast.error(
+          errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.",
+        );
+      } else if (err instanceof Error) {
+        toast.error(err.message);
+      } else {
+        toast.error("Có lỗi không xác định xảy ra.");
+      }
     }
   };
 
   const handleSaveMortality = async () => {
     if (!deathInput) {
-      alert("Vui lòng nhập số lượng cá chết!");
+      toast.error("Vui lòng nhập số lượng cá chết!");
       return;
     }
     if (!selectedBatch) return;
 
+    const deathCount = parseFloat(deathInput);
+
     try {
+      // 1. Gọi API ghi nhận dòng lịch sử hao hụt
       await operatorBatchesApi.logMortality(
         selectedBatch.id,
-        parseFloat(deathInput),
+        deathCount,
         new Date().toISOString(),
       );
+
       setOpenDeathDialog(false);
       setDeathInput("");
-      refetchDetails();
-      refetch();
-    } catch (err) {
+
+      // 2. Tải lại chi tiết lô (để có dòng log cá chết mới)
+      await refetchDetails();
+
+      // 3. Tải lại danh sách lô (để lấy currentQuantity mới nhất do Server trừ)
+      await refetch();
+
+      toast.success("Báo cáo hao hụt thành công!");
+    } catch (err: unknown) {
       console.error(err);
-      alert("Lỗi khi ghi nhận hao hụt. Vui lòng kiểm tra Console (F12).");
+      if (isApiError(err)) {
+        const errorData = err.data as { message?: string };
+        toast.error(
+          errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.",
+        );
+      } else if (err instanceof Error) {
+        toast.error(err.message);
+      } else {
+        toast.error("Có lỗi không xác định xảy ra.");
+      }
     }
   };
 
@@ -152,8 +183,6 @@ const BatchManagement = () => {
           minWidth: 0,
         }}
       >
-        <OperatorHeader />
-
         <Box
           sx={{
             display: "flex",
@@ -161,7 +190,7 @@ const BatchManagement = () => {
             flexGrow: 1,
             p: 3,
             gap: 3,
-            height: "calc(100vh - 80px)",
+            height: "100vh",
           }}
         >
           <Stack

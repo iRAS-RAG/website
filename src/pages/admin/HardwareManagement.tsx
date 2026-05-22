@@ -7,6 +7,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Paper,
   Typography,
@@ -102,6 +106,35 @@ const HardwareManagement: React.FC = () => {
     null,
   );
 
+  // === STATE QUẢN LÝ POPUP XÁC NHẬN XÓA CHUNG ===
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: React.ReactNode;
+    onConfirm: () => Promise<void>;
+    isProcessing: boolean;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: async () => {},
+    isProcessing: false,
+  });
+
+  const openConfirmDelete = (
+    title: string,
+    message: React.ReactNode,
+    onConfirm: () => Promise<void>,
+  ) => {
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      onConfirm,
+      isProcessing: false,
+    });
+  };
+
   useEffect(() => {
     if (!loading && tanks && tanks.length > 0 && selected.id == null) {
       const t = setTimeout(
@@ -180,7 +213,7 @@ const HardwareManagement: React.FC = () => {
                 expandedBoards={expandedBoards}
                 setExpandedBoards={setExpandedBoards}
                 setSelected={setSelected}
-                selected={selected} /* <--- CHỈ CẦN THÊM DÒNG NÀY VÀO ĐÂY */
+                selected={selected}
               />
 
               <Box sx={{ flex: 1 }}>
@@ -209,29 +242,35 @@ const HardwareManagement: React.FC = () => {
                             setSelectedTankForBoard(t.id);
                             setMbDialogOpen(true);
                           }}
-                          onDelete={async (tn) => {
-                            const ok = window.confirm(
-                              `Bạn có chắc muốn xóa bể "${tn.name}" không?`,
+                          onDelete={(tn) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa bể?",
+                              <>
+                                Bạn có chắc chắn muốn xóa bể{" "}
+                                <strong>{tn.name}</strong>? Hành động này không
+                                thể hoàn tác.
+                              </>,
+                              async () => {
+                                const remaining = tanks.filter(
+                                  (x) => x.id !== tn.id,
+                                );
+                                await handleDeleteTank(tn.id);
+                                if (
+                                  selected.type === "tank" &&
+                                  selected.id === tn.id
+                                ) {
+                                  setSelected(
+                                    remaining.length > 0
+                                      ? {
+                                          type: "tank",
+                                          id: String(remaining[0].id),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success("Xóa bể thành công");
+                              },
                             );
-                            if (!ok) return;
-                            const remaining = tanks.filter(
-                              (x) => x.id !== tn.id,
-                            );
-                            await handleDeleteTank(tn.id);
-                            if (
-                              selected.type === "tank" &&
-                              selected.id === tn.id
-                            ) {
-                              setSelected(
-                                remaining.length > 0
-                                  ? {
-                                      type: "tank",
-                                      id: String(remaining[0].id),
-                                    }
-                                  : { type: "tank", id: null },
-                              );
-                            }
-                            toast.success("Xóa bể thành công");
                           }}
                         />
                       );
@@ -265,26 +304,35 @@ const HardwareManagement: React.FC = () => {
                             setSelectedTankForBoard(parentTank?.id ?? null);
                             setMbDialogOpen(true);
                           }}
-                          onDelete={async (bb) => {
-                            const ok = window.confirm(
-                              `Bạn có chắc muốn xóa bảng mạch "${bb.name}" không?`,
+                          onDelete={(bb) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa bảng mạch?",
+                              <>
+                                Bạn có chắc chắn muốn xóa bảng mạch{" "}
+                                <strong>{bb.name}</strong>? Các thiết bị liên
+                                kết cũng có thể bị ảnh hưởng.
+                              </>,
+                              async () => {
+                                await handleDeleteMasterBoard(bb.id);
+                                const parentTank = tanks.find(
+                                  (t) => t.name === bb.fishTankName,
+                                );
+                                if (
+                                  selected.type === "board" &&
+                                  selected.id === bb.id
+                                ) {
+                                  setSelected(
+                                    parentTank
+                                      ? {
+                                          type: "tank",
+                                          id: String(parentTank.id),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success("Xóa bảng mạch thành công");
+                              },
                             );
-                            if (!ok) return;
-                            await handleDeleteMasterBoard(bb.id);
-                            const parentTank = tanks.find(
-                              (t) => t.name === bb.fishTankName,
-                            );
-                            if (
-                              selected.type === "board" &&
-                              selected.id === bb.id
-                            ) {
-                              setSelected(
-                                parentTank
-                                  ? { type: "tank", id: String(parentTank.id) }
-                                  : { type: "tank", id: null },
-                              );
-                            }
-                            toast.success("Xóa bảng mạch thành công");
                           }}
                           onAddSensor={() => {
                             setEditingSensor(null);
@@ -316,26 +364,31 @@ const HardwareManagement: React.FC = () => {
                             setSelectedBoardForSensor(ss.masterBoardId ?? null);
                             setSensorDialogOpen(true);
                           }}
-                          onDelete={async (ss) => {
-                            const ok = window.confirm(
-                              `Bạn có chắc muốn xóa cảm biến "${ss.name}" không?`,
+                          onDelete={(ss) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa cảm biến?",
+                              <>
+                                Bạn có chắc chắn muốn xóa cảm biến{" "}
+                                <strong>{ss.name}</strong>?
+                              </>,
+                              async () => {
+                                await handleDeleteSensor(ss.id);
+                                if (
+                                  selected.type === "sensor" &&
+                                  selected.id === ss.id
+                                ) {
+                                  setSelected(
+                                    ss.masterBoardId
+                                      ? {
+                                          type: "board",
+                                          id: String(ss.masterBoardId),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success("Xóa cảm biến thành công");
+                              },
                             );
-                            if (!ok) return;
-                            await handleDeleteSensor(ss.id);
-                            if (
-                              selected.type === "sensor" &&
-                              selected.id === ss.id
-                            ) {
-                              setSelected(
-                                ss.masterBoardId
-                                  ? {
-                                      type: "board",
-                                      id: String(ss.masterBoardId),
-                                    }
-                                  : { type: "tank", id: null },
-                              );
-                            }
-                            toast.success("Xóa cảm biến thành công");
                           }}
                         />
                       );
@@ -361,26 +414,33 @@ const HardwareManagement: React.FC = () => {
                             );
                             setControlDialogOpen(true);
                           }}
-                          onDelete={async (cc) => {
-                            const ok = window.confirm(
-                              `Bạn có chắc muốn xóa thiết bị điều khiển "${cc.name}" không?`,
+                          onDelete={(cc) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa thiết bị?",
+                              <>
+                                Bạn có chắc chắn muốn xóa thiết bị điều khiển{" "}
+                                <strong>{cc.name}</strong>?
+                              </>,
+                              async () => {
+                                await handleDeleteControl(cc.id);
+                                if (
+                                  selected.type === "control" &&
+                                  selected.id === cc.id
+                                ) {
+                                  setSelected(
+                                    cc.masterBoardId
+                                      ? {
+                                          type: "board",
+                                          id: String(cc.masterBoardId),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success(
+                                  "Xóa thiết bị điều khiển thành công",
+                                );
+                              },
                             );
-                            if (!ok) return;
-                            await handleDeleteControl(cc.id);
-                            if (
-                              selected.type === "control" &&
-                              selected.id === cc.id
-                            ) {
-                              setSelected(
-                                cc.masterBoardId
-                                  ? {
-                                      type: "board",
-                                      id: String(cc.masterBoardId),
-                                    }
-                                  : { type: "tank", id: null },
-                              );
-                            }
-                            toast.success("Xóa thiết bị điều khiển thành công");
                           }}
                           onToggleState={async (cc, newState) => {
                             try {
@@ -498,6 +558,8 @@ const HardwareManagement: React.FC = () => {
           )}
         </Box>
       </Box>
+
+      {/* CÁC DIALOG FORM TẠO/SỬA */}
       <MasterBoardFormDialog
         open={mbDialogOpen}
         onClose={() => {
@@ -559,9 +621,8 @@ const HardwareManagement: React.FC = () => {
         }}
         initial={editingSensor}
         defaultMasterBoardId={selectedBoardForSensor}
-        existingSensors={sensors} /* <--- THÊM DÒNG NÀY */
+        existingSensors={sensors}
       />
-
       <ControlDeviceFormDialog
         open={controlDialogOpen}
         onClose={() => {
@@ -582,8 +643,68 @@ const HardwareManagement: React.FC = () => {
         }}
         initial={editingControl}
         defaultMasterBoardId={selectedBoardForControl}
-        existingControls={controlDevices} /* <--- THÊM DÒNG NÀY */
+        existingControls={controlDevices}
       />
+
+      {/* DIALOG XÁC NHẬN XÓA CHUNG */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => {
+          if (!confirmDialog.isProcessing) {
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          }
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: "#0F172A", pb: 1 }}>
+          {confirmDialog.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#475569" }}>
+            {confirmDialog.message}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() =>
+              setConfirmDialog((prev) => ({ ...prev, open: false }))
+            }
+            disabled={confirmDialog.isProcessing}
+            sx={{ color: "#64748B", fontWeight: 600, textTransform: "none" }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={async () => {
+              setConfirmDialog((prev) => ({ ...prev, isProcessing: true }));
+              try {
+                await confirmDialog.onConfirm();
+              } catch {
+                toast.error("Có lỗi xảy ra khi xóa.");
+              } finally {
+                setConfirmDialog((prev) => ({
+                  ...prev,
+                  open: false,
+                  isProcessing: false,
+                }));
+              }
+            }}
+            variant="contained"
+            color="error"
+            disabled={confirmDialog.isProcessing}
+            sx={{
+              borderRadius: "8px",
+              fontWeight: 600,
+              boxShadow: "none",
+              textTransform: "none",
+            }}
+          >
+            {confirmDialog.isProcessing ? "Đang xử lý..." : "Xóa"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -298,7 +298,7 @@ const UserManagement: React.FC = () => {
       await remove(deletingId);
       setOpenDelete(false);
       toast.success("Xóa người dùng thành công");
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Xóa người dùng thất bại", e);
       toast.error("Xóa người dùng thất bại");
     }
