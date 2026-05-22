@@ -45,6 +45,7 @@ import { createSpeciesStageConfig, deleteSpeciesStageConfig, updateSpeciesStageC
 import useFeedTypes from "../../../hooks/useFeedTypes";
 import useGrowthStages from "../../../hooks/useGrowthStages";
 import type { SpeciesConfig, Stage } from "../../../hooks/useSpeciesConfigs";
+import { autoSuggestIcon } from "../../../utils/iconMapper";
 import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
 import ThresholdEditor from "./ThresholdEditor";
@@ -69,6 +70,7 @@ function arrayMove<T>(arr: T[], from: number, to: number) {
 
 const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThreshold, addStage, removeStage, onDeleteSpecies, onRenameSpecies, refreshStages }) => {
   const toast = useToast();
+  const speciesIcon = autoSuggestIcon(species.name);
   const { stages: growthStages, setStages: setGrowthStages, loading: growthLoading } = useGrowthStages(species.id);
   const { feeds: feedTypes, loading: feedLoading } = useFeedTypes();
 
@@ -319,7 +321,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, color: "#0F172A", display: "flex", alignItems: "center", gap: 1.5 }}>
-          <span style={{ fontSize: "2rem" }}>🐟</span>
+          <span style={{ fontSize: "2rem" }}>{speciesIcon}</span>
           {species.name}
         </Typography>
         <Stack direction="row" spacing={1}>
