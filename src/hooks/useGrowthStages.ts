@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { getGrowthStages } from "../api/growth-stages";
+import { getGrowthStages, getGrowthStagesBySpecies } from "../api/growth-stages";
 import type { GrowthStage } from "../types/growth-stage";
 
-export default function useGrowthStages() {
+export default function useGrowthStages(speciesId?: string) {
   const [stages, setStages] = useState<GrowthStage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -12,7 +12,7 @@ export default function useGrowthStages() {
     (async () => {
       setLoading(true);
       try {
-        const res = await getGrowthStages();
+        const res = speciesId ? await getGrowthStagesBySpecies(speciesId) : await getGrowthStages();
         if (mounted) setStages(res);
       } catch (e) {
         if (mounted) setError(e);
@@ -23,7 +23,7 @@ export default function useGrowthStages() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [speciesId]);
 
   return { stages, setStages, loading, error } as const;
 }

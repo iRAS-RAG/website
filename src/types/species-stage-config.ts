@@ -4,8 +4,11 @@ export type SpeciesStageConfig = {
   speciesName?: string;
   growthStageId?: string;
   growthStageName?: string;
-  feedTypeId?: string;
-  feedTypeName?: string;
+  // Backend now returns multiple feed types per stage
+  feedTypeIds?: string[];
+  feedTypeNames?: string[];
+  // Order of the stage within the species' stage list
+  sequence?: number;
   amountPer100Fish?: number;
   frequencyPerDay?: number;
   maxStockingDensity?: number;
@@ -15,7 +18,9 @@ export type SpeciesStageConfig = {
 export type SpeciesStageConfigCreate = {
   speciesId: string;
   growthStageId: string;
-  feedTypeId: string;
+  // Create payload now accepts multiple feed type ids and an optional sequence
+  feedTypeIds: string[];
+  sequence?: number;
   amountPer100Fish: number;
   frequencyPerDay: number;
   maxStockingDensity: number;
