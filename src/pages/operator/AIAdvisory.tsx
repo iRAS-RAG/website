@@ -10,7 +10,8 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 // Icons
 import SendIcon from "@mui/icons-material/Send";
@@ -47,6 +48,8 @@ interface Exchange {
 const AIAdvisory: React.FC = () => {
   const theme = useTheme();
   const toast = useToast();
+  const location = useLocation();
+  const prefillApplied = useRef(false);
 
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [loadingTanks, setLoadingTanks] = useState(true);
@@ -72,6 +75,23 @@ const AIAdvisory: React.FC = () => {
     };
     loadTanks();
   }, []);
+
+  // Khi điều hướng từ trang Cảnh báo sang: tự chọn bể + điền sẵn câu hỏi
+  useEffect(() => {
+    if (prefillApplied.current || tanks.length === 0) return;
+    const navState = location.state as {
+      tankId?: string;
+      prefillPrompt?: string;
+    } | null;
+    if (!navState?.tankId) return;
+
+    const matched = tanks.find((t) => t.id === navState.tankId);
+    if (matched) {
+      prefillApplied.current = true;
+      setSelectedTank(matched);
+      if (navState.prefillPrompt) setMessage(navState.prefillPrompt);
+    }
+  }, [tanks, location.state]);
 
   const handleSelectTank = (tank: Tank) => {
     setSelectedTank(tank);

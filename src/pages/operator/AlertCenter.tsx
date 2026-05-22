@@ -42,6 +42,7 @@ export interface AlertData {
   value: string;
   limit: string;
   tank: string;
+  tankId: string;
   staff: string;
   status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
 }
@@ -101,6 +102,7 @@ const AlertCenter = () => {
       value: `${alert.triggerValue} ${alert.unitOfMeasure}`,
       limit: `${alert.minThreshold} - ${alert.maxThreshold} ${alert.unitOfMeasure}`,
       tank: alert.fishTankName,
+      tankId: alert.fishTankId,
       staff: "Chưa phân công",
       status: getStatusLabel(alert.status),
     });

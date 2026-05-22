@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
@@ -32,6 +33,7 @@ import dayjs from "dayjs";
 
 // Icons
 import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import SearchIcon from "@mui/icons-material/Search";
 import SetMealIcon from "@mui/icons-material/SetMeal";
@@ -48,7 +50,11 @@ import { useToast } from "../../components/common/toastContext";
 import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import { operatorBatchesApi } from "../../api/operatorBatchesApi";
 import { isApiError } from "../../api/client";
-import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
+import type {
+  IOperatorFarmingBatch,
+  IOperatorFeedingLog,
+  IOperatorMortalityLog,
+} from "../../types/operatorBatch";
 
 const isBatchActive = (status: unknown) => {
   return status === 0 || String(status).toLowerCase() === "active";
@@ -79,9 +85,33 @@ const BatchManagement = () => {
   const [openFeedDialog, setOpenFeedDialog] = useState(false);
   const [feedInput, setFeedInput] = useState("");
   const [feedTypeIdInput, setFeedTypeIdInput] = useState("");
+  const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
 
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
+  const [editingDeathId, setEditingDeathId] = useState<string | null>(null);
+
+  // --- DIALOG CHO ĂN: mở ở chế độ thêm mới / chỉnh sửa ---
+  const openCreateFeedDialog = () => {
+    setEditingFeedId(null);
+    setFeedInput("");
+    setFeedTypeIdInput("");
+    setOpenFeedDialog(true);
+  };
+
+  const openEditFeedDialog = (log: IOperatorFeedingLog) => {
+    setEditingFeedId(log.id);
+    setFeedInput(String(log.amount));
+    setFeedTypeIdInput(log.feedTypeId ?? "");
+    setOpenFeedDialog(true);
+  };
+
+  const closeFeedDialog = () => {
+    setOpenFeedDialog(false);
+    setEditingFeedId(null);
+    setFeedInput("");
+    setFeedTypeIdInput("");
+  };
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
@@ -91,22 +121,29 @@ const BatchManagement = () => {
     if (!selectedBatch) return;
 
     try {
-      await operatorBatchesApi.recordFeeding(
-        selectedBatch.id,
-        parseFloat(feedInput),
-        feedTypeIdInput,
-      );
-      setOpenFeedDialog(false);
-      setFeedInput("");
-      setFeedTypeIdInput("");
+      if (editingFeedId) {
+        await operatorBatchesApi.updateFeeding(
+          editingFeedId,
+          parseFloat(feedInput),
+          feedTypeIdInput,
+        );
+        toast.success("Cập nhật lịch sử cho ăn thành công!");
+      } else {
+        await operatorBatchesApi.recordFeeding(
+          selectedBatch.id,
+          parseFloat(feedInput),
+          feedTypeIdInput,
+        );
+        toast.success("Ghi nhận cho ăn thành công!");
+      }
+      closeFeedDialog();
       refetchDetails();
-      toast.success("Ghi nhận cho ăn thành công!");
     } catch (err: unknown) {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
         toast.error(
-          errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.",
+          errorData?.message || "Lỗi từ máy chủ khi lưu lịch sử cho ăn.",
         );
       } else if (err instanceof Error) {
         toast.error(err.message);
@@ -114,6 +151,25 @@ const BatchManagement = () => {
         toast.error("Có lỗi không xác định xảy ra.");
       }
     }
+  };
+
+  // --- DIALOG HAO HỤT: mở ở chế độ thêm mới / chỉnh sửa ---
+  const openCreateDeathDialog = () => {
+    setEditingDeathId(null);
+    setDeathInput("");
+    setOpenDeathDialog(true);
+  };
+
+  const openEditDeathDialog = (log: IOperatorMortalityLog) => {
+    setEditingDeathId(log.id);
+    setDeathInput(String(log.quantity));
+    setOpenDeathDialog(true);
+  };
+
+  const closeDeathDialog = () => {
+    setOpenDeathDialog(false);
+    setEditingDeathId(null);
+    setDeathInput("");
   };
 
   const handleSaveMortality = async () => {
@@ -126,29 +182,29 @@ const BatchManagement = () => {
     const deathCount = parseFloat(deathInput);
 
     try {
-      // 1. Gọi API ghi nhận dòng lịch sử hao hụt
-      await operatorBatchesApi.logMortality(
-        selectedBatch.id,
-        deathCount,
-        new Date().toISOString(),
-      );
+      if (editingDeathId) {
+        await operatorBatchesApi.updateMortality(editingDeathId, deathCount);
+        toast.success("Cập nhật ghi nhận hao hụt thành công!");
+      } else {
+        await operatorBatchesApi.logMortality(
+          selectedBatch.id,
+          deathCount,
+          new Date().toISOString(),
+        );
+        toast.success("Báo cáo hao hụt thành công!");
+      }
 
-      setOpenDeathDialog(false);
-      setDeathInput("");
+      closeDeathDialog();
 
-      // 2. Tải lại chi tiết lô (để có dòng log cá chết mới)
+      // Tải lại chi tiết lô + danh sách lô (currentQuantity do Server tính lại)
       await refetchDetails();
-
-      // 3. Tải lại danh sách lô (để lấy currentQuantity mới nhất do Server trừ)
       await refetch();
-
-      toast.success("Báo cáo hao hụt thành công!");
     } catch (err: unknown) {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
         toast.error(
-          errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.",
+          errorData?.message || "Lỗi từ máy chủ khi lưu ghi nhận hao hụt.",
         );
       } else if (err instanceof Error) {
         toast.error(err.message);
@@ -428,7 +484,7 @@ const BatchManagement = () => {
                             variant="contained"
                             size="small"
                             startIcon={<AddIcon />}
-                            onClick={() => setOpenFeedDialog(true)}
+                            onClick={openCreateFeedDialog}
                             sx={{ textTransform: "none", boxShadow: "none" }}
                             disabled={!isBatchActive(selectedBatch.status)}
                           >
@@ -457,13 +513,19 @@ const BatchManagement = () => {
                                 >
                                   Khối lượng
                                 </TableCell>
+                                <TableCell
+                                  align="center"
+                                  sx={{ fontWeight: 600 }}
+                                >
+                                  Sửa
+                                </TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {feedingLogs.length === 0 ? (
                                 <TableRow>
                                   <TableCell
-                                    colSpan={3}
+                                    colSpan={4}
                                     align="center"
                                     sx={{ py: 3, color: "text.secondary" }}
                                   >
@@ -502,6 +564,17 @@ const BatchManagement = () => {
                                     >
                                       +{log.amount} kg
                                     </TableCell>
+                                    <TableCell align="center" padding="checkbox">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => openEditFeedDialog(log)}
+                                        disabled={
+                                          !isBatchActive(selectedBatch.status)
+                                        }
+                                      >
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                    </TableCell>
                                   </TableRow>
                                 ))
                               )}
@@ -530,7 +603,7 @@ const BatchManagement = () => {
                             color="error"
                             size="small"
                             startIcon={<WarningIcon />}
-                            onClick={() => setOpenDeathDialog(true)}
+                            onClick={openCreateDeathDialog}
                             sx={{ textTransform: "none", boxShadow: "none" }}
                             disabled={!isBatchActive(selectedBatch.status)}
                           >
@@ -556,13 +629,19 @@ const BatchManagement = () => {
                                 >
                                   Số lượng chết
                                 </TableCell>
+                                <TableCell
+                                  align="center"
+                                  sx={{ fontWeight: 600 }}
+                                >
+                                  Sửa
+                                </TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {mortalityLogs.length === 0 ? (
                                 <TableRow>
                                   <TableCell
-                                    colSpan={2}
+                                    colSpan={3}
                                     align="center"
                                     sx={{ py: 3, color: "text.secondary" }}
                                   >
@@ -587,6 +666,17 @@ const BatchManagement = () => {
                                       - {log.quantity}{" "}
                                       {selectedBatch.unitOfMeasure}
                                     </TableCell>
+                                    <TableCell align="center" padding="checkbox">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => openEditDeathDialog(log)}
+                                        disabled={
+                                          !isBatchActive(selectedBatch.status)
+                                        }
+                                      >
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                    </TableCell>
                                   </TableRow>
                                 ))
                               )}
@@ -606,11 +696,13 @@ const BatchManagement = () => {
       {/* DIALOG CHO ĂN */}
       <Dialog
         open={openFeedDialog}
-        onClose={() => setOpenFeedDialog(false)}
+        onClose={closeFeedDialog}
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Ghi nhận cho ăn</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {editingFeedId ? "Chỉnh sửa lịch sử cho ăn" : "Ghi nhận cho ăn"}
+        </DialogTitle>
         <DialogContent
           dividers
           sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}
@@ -649,13 +741,13 @@ const BatchManagement = () => {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenFeedDialog(false)}>Hủy</Button>
+          <Button onClick={closeFeedDialog}>Hủy</Button>
           <Button
             variant="contained"
             onClick={handleSaveFeeding}
             sx={{ boxShadow: "none" }}
           >
-            Lưu dữ liệu
+            {editingFeedId ? "Cập nhật" : "Lưu dữ liệu"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -663,12 +755,14 @@ const BatchManagement = () => {
       {/* DIALOG CÁ CHẾT */}
       <Dialog
         open={openDeathDialog}
-        onClose={() => setOpenDeathDialog(false)}
+        onClose={closeDeathDialog}
         maxWidth="xs"
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, color: theme.palette.error.main }}>
-          Báo cáo hao hụt (Cá chết)
+          {editingDeathId
+            ? "Chỉnh sửa ghi nhận hao hụt"
+            : "Báo cáo hao hụt (Cá chết)"}
         </DialogTitle>
         <DialogContent
           dividers
@@ -692,7 +786,7 @@ const BatchManagement = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button
-            onClick={() => setOpenDeathDialog(false)}
+            onClick={closeDeathDialog}
             sx={{ color: theme.palette.text.secondary }}
           >
             Hủy
@@ -703,7 +797,7 @@ const BatchManagement = () => {
             onClick={handleSaveMortality}
             sx={{ boxShadow: "none" }}
           >
-            Lưu báo cáo
+            {editingDeathId ? "Cập nhật" : "Lưu báo cáo"}
           </Button>
         </DialogActions>
       </Dialog>
