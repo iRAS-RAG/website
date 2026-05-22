@@ -1,4 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DescriptionIcon from "@mui/icons-material/Description";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
@@ -17,6 +18,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -39,7 +41,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { createGrowthStage, deleteGrowthStage } from "../../../api/growth-stages";
-import { createSpeciesStageConfig, updateSpeciesStageConfig } from "../../../api/species-stage-configs";
+import { createSpeciesStageConfig, deleteSpeciesStageConfig, updateSpeciesStageConfig } from "../../../api/species-stage-configs";
 import useFeedTypes from "../../../hooks/useFeedTypes";
 import useGrowthStages from "../../../hooks/useGrowthStages";
 import type { SpeciesConfig, Stage } from "../../../hooks/useSpeciesConfigs";
@@ -67,7 +69,7 @@ function arrayMove<T>(arr: T[], from: number, to: number) {
 
 const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThreshold, addStage, removeStage, onDeleteSpecies, onRenameSpecies, refreshStages }) => {
   const toast = useToast();
-  const { stages: growthStages, loading: growthLoading } = useGrowthStages(species.id);
+  const { stages: growthStages, setStages: setGrowthStages, loading: growthLoading } = useGrowthStages(species.id);
   const { feeds: feedTypes, loading: feedLoading } = useFeedTypes();
 
   const [displayStages, setDisplayStages] = useState<Stage[]>(() => (species.stages || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0)));
@@ -228,15 +230,35 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
     }
   }
 
-  async function handleDeleteGrowthStage(configId: string) {
+  async function handleDeleteGrowthStage(growthStageId: string) {
     try {
-      await deleteGrowthStage(configId);
-      const toRemove = (species.stages || []).find((s) => s.configId === configId);
-      if (toRemove) removeStage(species.id, toRemove.id);
+      await deleteGrowthStage(growthStageId);
+      // Remove any species stages that reference this growth stage id so the UI updates immediately
+      const toRemoveStages = (species.stages || []).filter((s) => s.growthStageId === growthStageId);
+      toRemoveStages.forEach((s) => removeStage(species.id, s.id));
+      // Remove from local growth stages list so the dialog updates without refresh
+      try {
+        setGrowthStages((prev) => prev.filter((g) => g.id !== growthStageId));
+      } catch (err) {
+        // ignore if setter not available
+      }
       toast.success("Xóa giai đoạn thành công");
     } catch (e) {
       console.error("Failed to delete growth stage", e);
       toast.error("Xóa giai đoạn thất bại");
+    }
+  }
+
+  async function handleDeleteSpeciesStageConfig(configId: string) {
+    try {
+      await deleteSpeciesStageConfig(configId);
+      const toRemove = (species.stages || []).find((s) => s.configId === configId);
+      if (toRemove) removeStage(species.id, toRemove.id);
+      toast.success("Xóa cấu hình giai đoạn thành công");
+      setStageToDelete(null);
+    } catch (e) {
+      console.error("Failed to delete species stage config", e);
+      toast.error("Xóa cấu hình giai đoạn thất bại");
     }
   }
 
@@ -323,6 +345,15 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       <Divider sx={{ mb: 3 }} />
 
       <Stack spacing={2}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A" }}>
+            Thứ tự giai đoạn
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#64748B" }}>
+            Từ trên xuống dưới
+          </Typography>
+          <ArrowDownwardIcon fontSize="small" sx={{ color: "#94A3B8", ml: 0.5 }} />
+        </Box>
         {displayStages.map((st, idx) => (
           <Accordion
             key={st.id}
@@ -339,6 +370,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", pr: 2 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Box
+                    sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "#EFF6FF", color: "#2A85FF", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+                  >
+                    {idx + 1}
+                  </Box>
+                  <Box
                     draggable
                     onDragStart={(e) => handleDragStart(e, idx)}
                     onDragEnd={() => {
@@ -350,6 +386,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                     <DragIndicatorIcon fontSize="small" />
                   </Box>
                   <Typography sx={{ fontWeight: 600, color: "#334155" }}>{st.name}</Typography>
+                  {idx === 0 ? <Chip label="Bắt đầu" size="small" sx={{ ml: 1 }} /> : idx === displayStages.length - 1 ? <Chip label="Cuối" size="small" sx={{ ml: 1 }} /> : null}
                 </Box>
                 {st.configId && (
                   <IconButton
@@ -622,7 +659,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         onClose={() => setStageToDelete(null)}
         onConfirm={() => {
           if (stageToDelete) {
-            if (stageToDelete.configId) handleDeleteGrowthStage(stageToDelete.configId);
+            if (stageToDelete.configId) handleDeleteSpeciesStageConfig(stageToDelete.configId);
             else removeStage(species.id, stageToDelete.id);
           }
         }}
