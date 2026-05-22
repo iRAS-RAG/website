@@ -86,7 +86,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   const [deletingSpecies, setDeletingSpecies] = useState(false);
 
   const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
-  const [deletingStage, setDeletingStage] = useState(false);
+  const [deletingStage] = useState(false);
 
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [reordering, setReordering] = useState(false);
@@ -147,14 +147,16 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
 
     setReordering(true);
     try {
+      const movedId = displayStages[from]?.id;
       const updates: Promise<unknown>[] = [];
+
       normalized.forEach((s) => {
         const newSeq = s.sequence ?? 0;
         const oldSeq = Number(prevSeqMap[s.id] ?? 0);
         // Update local parent cache immediately
         updateStage(species.id, s.id, { sequence: newSeq });
-        // Persist only when a server config exists and the sequence changed
-        if (s.configId && oldSeq !== newSeq) {
+        // Persist only the moved stage when a server config exists and the sequence changed
+        if (s.id === movedId && s.configId && oldSeq !== newSeq) {
           updates.push(updateSpeciesStageConfig(s.configId, { sequence: newSeq }));
         }
       });
