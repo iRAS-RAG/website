@@ -6,11 +6,27 @@ function toUi(item: Record<string, unknown>): GrowthStage {
     id: String(item.id ?? ""),
     name: String(item.name ?? ""),
     description: item.description ? String(item.description) : undefined,
+    speciesId: item.speciesId ? String(item.speciesId) : undefined,
+    speciesName: item.speciesName ? String(item.speciesName) : undefined,
   };
 }
 
 export async function getGrowthStages(): Promise<GrowthStage[]> {
   const res = await apiFetch<unknown>("/config/growth-stages");
+  if (Array.isArray(res)) return (res as unknown[]).map((i) => toUi(i as Record<string, unknown>));
+
+  if (res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
+    const obj = res as Record<string, unknown>;
+    const data = obj.data;
+    if (Array.isArray(data)) return data.map((i) => toUi(i as Record<string, unknown>));
+  }
+
+  return [];
+}
+
+export async function getGrowthStagesBySpecies(speciesId: string): Promise<GrowthStage[]> {
+  if (!speciesId) return [];
+  const res = await apiFetch<unknown>(`/config/growth-stages/by-species/${encodeURIComponent(speciesId)}`);
   if (Array.isArray(res)) return (res as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 
   if (res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
@@ -39,8 +55,8 @@ export async function getGrowthStage(id: string): Promise<GrowthStage | null> {
   return null;
 }
 
-export async function createGrowthStage(payload: { name: string; description?: string }): Promise<GrowthStage> {
-  const body = { name: payload.name, description: payload.description };
+export async function createGrowthStage(payload: { name: string; description?: string; speciesId: string }): Promise<GrowthStage> {
+  const body = { name: payload.name, description: payload.description, speciesId: payload.speciesId };
   const created = await apiFetch<Record<string, unknown>>("/config/growth-stages", { method: "POST", body });
   if (!created) throw new Error("Failed to create growth stage");
   // created may be wrapped

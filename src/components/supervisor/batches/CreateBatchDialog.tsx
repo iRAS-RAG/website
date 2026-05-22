@@ -1,26 +1,12 @@
 import SaveIcon from "@mui/icons-material/Save";
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormHelperText,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from "@mui/material";
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { getSpeciesStageConfigs } from "../../../api/species-stage-configs";
 import { getTanks } from "../../../api/tanks";
-import { useToast } from "../../common/toastContext";
 import useBatches from "../../../hooks/useBatches";
 import type { SpeciesStageConfig } from "../../../types/species-stage-config";
 import type { Tank } from "../../../types/tank";
+import { useToast } from "../../common/toastContext";
 
 type CreateBatchDialogProps = {
   open: boolean;
@@ -28,11 +14,7 @@ type CreateBatchDialogProps = {
   onSuccess: () => void;
 };
 
-const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
-  open,
-  onClose,
-  onSuccess,
-}) => {
+const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, onSuccess }) => {
   const toast = useToast();
   const { createBatch } = useBatches({ autoLoad: false });
 
@@ -47,9 +29,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
   const [startDate, setStartDate] = useState("");
   const [estimatedHarvestDate, setEstimatedHarvestDate] = useState("");
 
-  const [speciesStageConfigs, setSpeciesStageConfigs] = useState<
-    SpeciesStageConfig[]
-  >([]);
+  const [speciesStageConfigs, setSpeciesStageConfigs] = useState<SpeciesStageConfig[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -126,8 +106,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!batchName.trim()) newErrors.batchName = "Tên vụ nuôi là bắt buộc";
-    if (!selectedConfig)
-      newErrors.config = "Vui lòng chọn cấu hình loài/giai đoạn";
+    if (!selectedConfig) newErrors.config = "Vui lòng chọn cấu hình loài/giai đoạn";
     if (!selectedTank) newErrors.tank = "Vui lòng chọn bể nuôi";
     if (!startDate) newErrors.startDate = "Ngày bắt đầu là bắt buộc";
 
@@ -138,8 +117,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
       const start = new Date(startDate);
       const end = new Date(estimatedHarvestDate);
       if (end <= start) {
-        newErrors.estimatedHarvestDate =
-          "Ngày thu hoạch phải lớn hơn ngày bắt đầu";
+        newErrors.estimatedHarvestDate = "Ngày thu hoạch phải lớn hơn ngày bắt đầu";
       }
     }
 
@@ -204,22 +182,13 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
     }
   };
 
-  const handleClose = (
-    event: unknown,
-    reason: "backdropClick" | "escapeKeyDown",
-  ) => {
+  const handleClose = (reason: "backdropClick" | "escapeKeyDown") => {
     if (reason === "backdropClick") return;
     onClose();
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      fullWidth
-      maxWidth="sm"
-      disableEscapeKeyDown={submitting}
-    >
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" disableEscapeKeyDown={submitting}>
       <DialogTitle sx={{ fontWeight: 700 }}>Tạo vụ nuôi mới</DialogTitle>
       <DialogContent dividers>
         {loading ? (
@@ -234,19 +203,13 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
               value={batchName}
               onChange={(e) => setBatchName(e.target.value)}
               error={!!errors.batchName}
-              helperText={
-                errors.batchName || "Tự động sinh hoặc nhập tên tùy chỉnh"
-              }
+              helperText={errors.batchName || "Tự động sinh hoặc nhập tên tùy chỉnh"}
               required
             />
 
             <FormControl fullWidth error={!!errors.config} required>
               <InputLabel>Loài và giai đoạn phát triển</InputLabel>
-              <Select
-                value={selectedConfig}
-                onChange={(e) => setSelectedConfig(e.target.value)}
-                label="Loài và giai đoạn phát triển"
-              >
+              <Select value={selectedConfig} onChange={(e) => setSelectedConfig(e.target.value)} label="Loài và giai đoạn phát triển">
                 {speciesStageConfigs.length === 0 ? (
                   <MenuItem disabled value="">
                     <em>Không có dữ liệu cấu hình loài</em>
@@ -264,11 +227,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
 
             <FormControl fullWidth error={!!errors.tank} required>
               <InputLabel>Bể nuôi</InputLabel>
-              <Select
-                value={selectedTank}
-                onChange={(e) => setSelectedTank(e.target.value)}
-                label="Bể nuôi"
-              >
+              <Select value={selectedTank} onChange={(e) => setSelectedTank(e.target.value)} label="Bể nuôi">
                 {tanks.length === 0 ? (
                   <MenuItem disabled value="">
                     <em>Không có bể nuôi nào</em>
@@ -358,24 +317,14 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button
-          onClick={onClose}
-          disabled={submitting}
-          sx={{ color: "text.secondary" }}
-        >
+        <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
           Hủy
         </Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
           disabled={loading || submitting || !!errors.estimatedHarvestDate} // Disable nút lưu nếu ngày đang bị lỗi
-          startIcon={
-            submitting ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              <SaveIcon />
-            )
-          }
+          startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           sx={{
             bgcolor: "#2A85FF",
             "&:hover": { bgcolor: "#1F6FDB" },
