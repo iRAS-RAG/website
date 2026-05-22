@@ -2,84 +2,160 @@ import {
   Avatar,
   Box,
   Button,
-  IconButton,
+  Chip,
+  CircularProgress,
   Paper,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // Icons
-import AttachFileIcon from "@mui/icons-material/AttachFile";
-import InventoryIcon from "@mui/icons-material/Inventory";
 import SendIcon from "@mui/icons-material/Send";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 
-// Components (Giả sử đã có trong dự án)
+// Components
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { useToast } from "../../components/common/toastContext";
+
+// API
+import { advisoryApi } from "../../api/advisory";
+import { extractArray, isApiError } from "../../api/client";
 
 // --- TYPES ---
 interface Tank {
   id: string;
   name: string;
-  status: "normal" | "warning" | "error";
-  do: number;
-  ph: number;
-  temp: number;
-  ammonia: number;
+  hasOpenAlert?: boolean;
+}
+
+interface Exchange {
+  question: string;
+  answer: string;
+  isOffTopic: boolean;
+  citations: string[];
+  error: boolean;
 }
 
 const AIAdvisory: React.FC = () => {
   const theme = useTheme();
+  const toast = useToast();
+
+  const [tanks, setTanks] = useState<Tank[]>([]);
+  const [loadingTanks, setLoadingTanks] = useState(true);
   const [selectedTank, setSelectedTank] = useState<Tank | null>(null);
 
-  // --- DỮ LIỆU GIẢ LẬP ---
-  const tanks: Tank[] = [
-    {
-      id: "T01",
-      name: "Bể A-01",
-      status: "normal",
-      do: 6.5,
-      ph: 7.2,
-      temp: 28.5,
-      ammonia: 0.1,
-    },
-    {
-      id: "T02",
-      name: "Bể B-02",
-      status: "error",
-      do: 3.2,
-      ph: 6.8,
-      temp: 30.1,
-      ammonia: 0.9,
-    },
-    {
-      id: "T03",
-      name: "Bể C-03",
-      status: "warning",
-      do: 5.0,
-      ph: 7.5,
-      temp: 29.0,
-      ammonia: 0.4,
-    },
-    {
-      id: "T04",
-      name: "Bể D-04",
-      status: "normal",
-      do: 7.0,
-      ph: 7.4,
-      temp: 28.0,
-      ammonia: 0.05,
-    },
-  ];
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  // SỬA Ở ĐÂY: Đổi từ Object đơn thành Mảng (Array) để lưu nhiều câu chat
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
+
+  useEffect(() => {
+    const loadTanks = async () => {
+      try {
+        const res = await advisoryApi.getTanks();
+        setTanks(extractArray(res) as Tank[]);
+      } catch (err) {
+        console.error("Lỗi tải danh sách bể nuôi:", err);
+        toast.error("Không tải được danh sách bể nuôi.");
+      } finally {
+        setLoadingTanks(false);
+      }
+    };
+    loadTanks();
+  }, []);
+
+  const handleSelectTank = (tank: Tank) => {
+    setSelectedTank(tank);
+    setExchanges([]); // Xóa lịch sử khi đổi bể
+    setMessage("");
+  };
+
+  const handleChangeTank = () => {
+    setSelectedTank(null);
+    setExchanges([]); // Xóa lịch sử khi thoát bể
+    setMessage("");
+  };
+
+  // Cập nhật hàm handleSend để thêm (append) vào mảng thay vì ghi đè
+  const handleSend = async () => {
+    const question = message.trim();
+    if (!selectedTank || !question || sending) return;
+
+    setMessage("");
+    setSending(true);
+
+    // Tạo một khung chat tạm thời (chưa có câu trả lời) đẩy vào màn hình trước
+    setExchanges((prev) => [
+      ...prev,
+      {
+        question,
+        answer: "",
+        isOffTopic: false,
+        citations: [],
+        error: false,
+      },
+    ]);
+
+    try {
+      const res = await advisoryApi.chat(selectedTank.id, question);
+
+      // Khi có kết quả, update lại câu trả lời vào phần tử cuối cùng của mảng
+      setExchanges((prev) => {
+        const newExchanges = [...prev];
+        const lastIndex = newExchanges.length - 1;
+        newExchanges[lastIndex] = {
+          ...newExchanges[lastIndex],
+          answer:
+            res?.answer?.trim() ||
+            "Hệ thống chưa trả về câu trả lời. Vui lòng thử lại.",
+          isOffTopic: !!res?.isOffTopic,
+          citations: res?.citations ?? [],
+          error: false,
+        };
+        return newExchanges;
+      });
+    } catch (err) {
+      console.error("Lỗi gọi advisory chat:", err);
+      const status = isApiError(err) ? err.status : undefined;
+      const apiMsg = isApiError(err)
+        ? (err.data as { message?: string })?.message
+        : undefined;
+
+      let reason: string;
+      if (status === 403) {
+        reason =
+          (apiMsg || "Bạn không có quyền truy cập bể nuôi này.") +
+          " Vui lòng chọn bể khác.";
+      } else if (status === 401) {
+        reason = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+      } else {
+        reason = apiMsg || "Không thể kết nối tới trợ lý AI. Vui lòng thử lại.";
+      }
+
+      toast.error(reason);
+      setExchanges((prev) => {
+        const newExchanges = [...prev];
+        const lastIndex = newExchanges.length - 1;
+        newExchanges[lastIndex] = {
+          ...newExchanges[lastIndex],
+          answer: reason,
+          error: true,
+        };
+        return newExchanges;
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <Box
@@ -102,7 +178,6 @@ const AIAdvisory: React.FC = () => {
       >
         <OperatorHeader />
 
-        {/* Container cho cột chat */}
         <Box
           sx={{
             display: "flex",
@@ -111,7 +186,6 @@ const AIAdvisory: React.FC = () => {
             minHeight: 0,
           }}
         >
-          {/* ================= CỘT CHÍNH: CHAT INTERFACE ================= */}
           <Box
             sx={{
               flex: 1,
@@ -159,8 +233,7 @@ const AIAdvisory: React.FC = () => {
                       Phân tích sự cố: {selectedTank.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      DO: {selectedTank.do} mg/L | Ammonia:{" "}
-                      {selectedTank.ammonia} ppm | Temp: {selectedTank.temp}°C
+                      Trợ lý AI sẵn sàng tư vấn cho bể này
                     </Typography>
                   </Box>
                 </Stack>
@@ -178,7 +251,8 @@ const AIAdvisory: React.FC = () => {
                   variant="outlined"
                   startIcon={<SwapHorizIcon />}
                   size="small"
-                  onClick={() => setSelectedTank(null)}
+                  onClick={handleChangeTank}
+                  disabled={sending}
                   sx={{
                     borderRadius: "8px",
                     textTransform: "none",
@@ -193,7 +267,7 @@ const AIAdvisory: React.FC = () => {
             {/* Vùng nội dung chat */}
             <Box sx={{ flexGrow: 1, p: 3, overflowY: "auto", minHeight: 0 }}>
               <Stack spacing={3}>
-                {/* LỜI CHÀO & TANK CHIPS GỢI Ý MẶC ĐỊNH */}
+                {/* LỜI CHÀO & TANK CHIPS */}
                 <Box
                   sx={{
                     alignSelf: "flex-start",
@@ -212,7 +286,6 @@ const AIAdvisory: React.FC = () => {
                     >
                       <SmartToyIcon sx={{ fontSize: 18, color: "white" }} />
                     </Avatar>
-
                     <Box sx={{ flex: 1 }}>
                       <Paper
                         elevation={0}
@@ -228,86 +301,75 @@ const AIAdvisory: React.FC = () => {
                         </Typography>
                       </Paper>
 
-                      {/* TANK CHIPS SELECTION */}
-                      {!selectedTank && (
-                        <Stack
-                          direction="row"
-                          spacing={1.5}
-                          flexWrap="wrap"
-                          useFlexGap
-                          sx={{ mt: 1.5 }}
-                        >
-                          {tanks.map((tank) => (
-                            <Button
-                              key={tank.id}
-                              onClick={() => setSelectedTank(tank)}
-                              variant="contained"
-                              sx={{
-                                borderRadius: "20px",
-                                px: 2,
-                                py: 0.8,
-                                bgcolor:
-                                  tank.status === "error"
+                      {!selectedTank &&
+                        (loadingTanks ? (
+                          <CircularProgress size={24} sx={{ mt: 1.5 }} />
+                        ) : tanks.length === 0 ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 1 }}
+                          >
+                            Không có bể nuôi nào để tư vấn.
+                          </Typography>
+                        ) : (
+                          <Stack
+                            direction="row"
+                            spacing={1.5}
+                            flexWrap="wrap"
+                            useFlexGap
+                            sx={{ mt: 1.5 }}
+                          >
+                            {tanks.map((tank) => (
+                              <Button
+                                key={tank.id}
+                                onClick={() => handleSelectTank(tank)}
+                                variant="contained"
+                                sx={{
+                                  borderRadius: "20px",
+                                  px: 2,
+                                  py: 0.8,
+                                  bgcolor: tank.hasOpenAlert
                                     ? "#FEF2F2"
-                                    : tank.status === "warning"
-                                      ? "#FFF7ED"
-                                      : "#EFF6FF",
-                                color:
-                                  tank.status === "error"
+                                    : "#EFF6FF",
+                                  color: tank.hasOpenAlert
                                     ? "#DC2626"
-                                    : tank.status === "warning"
-                                      ? "#D97706"
-                                      : "#2563EB",
-                                boxShadow: "none",
-                                border: `1px solid ${tank.status === "error" ? "#FECACA" : tank.status === "warning" ? "#FED7AA" : "#BFDBFE"}`,
-                                fontWeight: 600,
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor:
-                                    tank.status === "error"
+                                    : "#2563EB",
+                                  boxShadow: "none",
+                                  border: `1px solid ${tank.hasOpenAlert ? "#FECACA" : "#BFDBFE"}`,
+                                  fontWeight: 600,
+                                  textTransform: "none",
+                                  "&:hover": {
+                                    bgcolor: tank.hasOpenAlert
                                       ? "#FEE2E2"
-                                      : tank.status === "warning"
-                                        ? "#FFEDD5"
-                                        : "#DBEAFE",
-                                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                                  transform: "translateY(-1px)",
-                                },
-                                transition: "all 0.2s",
-                              }}
-                              startIcon={<WaterDropIcon fontSize="small" />}
-                              endIcon={
-                                tank.status === "error" ? (
-                                  <WarningAmberIcon
-                                    fontSize="small"
-                                    color="error"
-                                  />
-                                ) : tank.status === "warning" ? (
-                                  <WarningAmberIcon
-                                    fontSize="small"
-                                    color="warning"
-                                  />
-                                ) : null
-                              }
-                            >
-                              {tank.name}
-                            </Button>
-                          ))}
-                        </Stack>
-                      )}
+                                      : "#DBEAFE",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                                    transform: "translateY(-1px)",
+                                  },
+                                  transition: "all 0.2s",
+                                }}
+                                startIcon={<WaterDropIcon fontSize="small" />}
+                                endIcon={
+                                  tank.hasOpenAlert ? (
+                                    <WarningAmberIcon
+                                      fontSize="small"
+                                      color="error"
+                                    />
+                                  ) : null
+                                }
+                              >
+                                {tank.name}
+                              </Button>
+                            ))}
+                          </Stack>
+                        ))}
                     </Box>
                   </Stack>
                 </Box>
 
-                {/* AI ANALYSIS ĐƯỢC KÍCH HOẠT KHI CHỌN BỂ */}
-                {selectedTank && (
-                  <Box
-                    sx={{
-                      alignSelf: "flex-start",
-                      maxWidth: "95%",
-                      width: "100%",
-                      animation: "fadeIn 0.5s",
-                    }}
-                  >
+                {/* BONG BÓNG SẴN SÀNG */}
+                {selectedTank && exchanges.length === 0 && (
+                  <Box sx={{ alignSelf: "flex-start", maxWidth: "95%" }}>
                     <Stack
                       direction="row"
                       spacing={1.5}
@@ -323,143 +385,147 @@ const AIAdvisory: React.FC = () => {
                       >
                         <SmartToyIcon sx={{ fontSize: 18, color: "white" }} />
                       </Avatar>
-
-                      <Box sx={{ flex: 1 }}>
-                        <Paper
-                          elevation={0}
-                          sx={{ p: 2, borderRadius: "12px 12px 12px 0", mb: 2 }}
+                      <Paper
+                        elevation={0}
+                        sx={{ p: 2, borderRadius: "12px 12px 12px 0" }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "text.primary" }}
                         >
-                          <Typography
-                            variant="body2"
-                            sx={{ color: "text.primary" }}
-                          >
-                            Tôi đã phân tích tình trạng{" "}
-                            <strong>{selectedTank.name}</strong>. Hệ thống ghi
-                            nhận mức DO là {selectedTank.do} mg/L và Ammonia là{" "}
-                            {selectedTank.ammonia} ppm. Dưới đây là hướng dẫn
-                            chi tiết từng bước để xử lý:
-                          </Typography>
-                        </Paper>
-
-                        {/* Các bước xử lý */}
-                        <Stack spacing={1.5} sx={{ mb: 2 }}>
-                          <Paper
-                            variant="outlined"
-                            sx={{
-                              p: 2,
-                              borderRadius: "12px",
-                              borderColor: "rgba(0,0,0,0.08)",
-                              bgcolor: "white",
-                            }}
-                          >
-                            <Stack direction="row" spacing={1.5}>
-                              <CheckCircleOutlineIcon color="success" />
-                              <Box>
-                                <Typography
-                                  variant="subtitle2"
-                                  sx={{ fontWeight: 700 }}
-                                >
-                                  Bước 1: Tăng oxy hòa tan ngay lập tức
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  sx={{
-                                    display: "block",
-                                    mt: 0.5,
-                                    lineHeight: 1.4,
-                                  }}
-                                >
-                                  Tăng công suất hệ thống sục khí lên 100%. Kiểm
-                                  tra tất cả đầu sục khí có hoạt động bình
-                                  thường. Mục tiêu: Đạt DO ≥ 5.5 mg/L trong 30
-                                  phút.
-                                </Typography>
-                              </Box>
-                            </Stack>
-                          </Paper>
-                        </Stack>
-
-                        {/* Vật tư cần thiết */}
-                        <Paper
-                          variant="outlined"
-                          sx={{
-                            p: 2,
-                            borderRadius: "12px",
-                            bgcolor: "#FAFAFA",
-                          }}
-                        >
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="center"
-                            sx={{ mb: 2 }}
-                          >
-                            <InventoryIcon fontSize="small" color="success" />
-                            <Typography
-                              variant="subtitle2"
-                              sx={{ fontWeight: 700 }}
-                            >
-                              Vật tư cần thiết
-                            </Typography>
-                          </Stack>
-                          <Stack spacing={2}>
-                            <Stack
-                              direction="row"
-                              justifyContent="space-between"
-                              alignItems="center"
-                            >
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 600 }}
-                                >
-                                  Vi sinh Bacillus
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  display="block"
-                                >
-                                  Mã: BIO-BAC-001
-                                </Typography>
-                              </Box>
-                              <Box sx={{ textAlign: "right" }}>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 600 }}
-                                >
-                                  500g
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  display="block"
-                                >
-                                  Kho A - Kệ 3
-                                </Typography>
-                              </Box>
-                              <Button
-                                variant="contained"
-                                color="success"
-                                size="small"
-                                sx={{
-                                  minWidth: 40,
-                                  height: 24,
-                                  fontSize: "10px",
-                                  borderRadius: "6px",
-                                  boxShadow: "none",
-                                }}
-                              >
-                                Lấy
-                              </Button>
-                            </Stack>
-                          </Stack>
-                        </Paper>
-                      </Box>
+                          Tôi đã sẵn sàng phân tích cho{" "}
+                          <strong>{selectedTank.name}</strong>. Bạn hãy nhập câu
+                          hỏi hoặc mô tả vấn đề bên dưới để tôi tư vấn.
+                        </Typography>
+                      </Paper>
                     </Stack>
                   </Box>
                 )}
+
+                {/* VÒNG LẶP HIỂN THỊ LỊCH SỬ CHAT */}
+                {exchanges.map((ex, index) => {
+                  const isLastItem = index === exchanges.length - 1;
+                  const isWaitingForAPI = isLastItem && sending;
+
+                  return (
+                    <React.Fragment key={index}>
+                      {/* CÂU HỎI CỦA NGƯỜI DÙNG */}
+                      <Box sx={{ alignSelf: "flex-end", maxWidth: "85%" }}>
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            borderRadius: "12px 12px 0 12px",
+                            bgcolor: theme.palette.primary.main,
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ color: "white" }}>
+                            {ex.question}
+                          </Typography>
+                        </Paper>
+                      </Box>
+
+                      {/* CÂU TRẢ LỜI CỦA AI */}
+                      <Box
+                        sx={{
+                          alignSelf: "flex-start",
+                          maxWidth: "95%",
+                          width: "100%",
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="flex-start"
+                        >
+                          <Avatar
+                            sx={{
+                              bgcolor: theme.palette.primary.main,
+                              width: 32,
+                              height: 32,
+                              mt: 0.5,
+                            }}
+                          >
+                            <SmartToyIcon
+                              sx={{ fontSize: 18, color: "white" }}
+                            />
+                          </Avatar>
+                          <Box sx={{ flex: 1 }}>
+                            <Paper
+                              elevation={0}
+                              sx={{ p: 2, borderRadius: "12px 12px 12px 0" }}
+                            >
+                              {isWaitingForAPI ? (
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                >
+                                  <CircularProgress size={16} />
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    Đang phân tích...
+                                  </Typography>
+                                </Stack>
+                              ) : (
+                                <>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      color: ex.error
+                                        ? "error.main"
+                                        : "text.primary",
+                                      whiteSpace: "pre-wrap",
+                                    }}
+                                  >
+                                    {ex.answer}
+                                  </Typography>
+
+                                  {ex.isOffTopic && !ex.error && (
+                                    <Chip
+                                      size="small"
+                                      icon={<WarningAmberIcon />}
+                                      label="Câu hỏi nằm ngoài phạm vi tư vấn"
+                                      color="warning"
+                                      variant="outlined"
+                                      sx={{ mt: 1.5 }}
+                                    />
+                                  )}
+
+                                  {ex.citations && ex.citations.length > 0 && (
+                                    <Box sx={{ mt: 1.5 }}>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          fontWeight: 700,
+                                          color: "text.secondary",
+                                        }}
+                                      >
+                                        Nguồn tham khảo:
+                                      </Typography>
+                                      {ex.citations.map((c, i) => (
+                                        <Typography
+                                          key={i}
+                                          variant="caption"
+                                          display="block"
+                                          color="text.secondary"
+                                        >
+                                          • {c}
+                                        </Typography>
+                                      ))}
+                                    </Box>
+                                  )}
+                                </>
+                              )}
+                            </Paper>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </React.Fragment>
+                  );
+                })}
               </Stack>
             </Box>
 
@@ -491,14 +557,8 @@ const AIAdvisory: React.FC = () => {
                   borderRadius: "12px",
                   borderColor: theme.palette.divider,
                   opacity: selectedTank ? 1 : 0.6,
-                  pointerEvents: selectedTank ? "auto" : "none",
                 }}
               >
-                <IconButton sx={{ p: "8px" }} aria-label="attach" size="small">
-                  <AttachFileIcon
-                    sx={{ color: "text.secondary", fontSize: 20 }}
-                  />
-                </IconButton>
                 <TextField
                   sx={{
                     ml: 1,
@@ -511,17 +571,32 @@ const AIAdvisory: React.FC = () => {
                       : "Vui lòng chọn bể phía trên trước..."
                   }
                   variant="standard"
-                  disabled={!selectedTank}
+                  disabled={!selectedTank || sending}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
                   InputProps={{
                     disableUnderline: true,
                     style: { fontSize: "13px" },
                   }}
                 />
                 <Button
-                  disabled={!selectedTank}
+                  disabled={!selectedTank || sending || !message.trim()}
+                  onClick={handleSend}
                   variant="contained"
                   size="small"
-                  endIcon={<SendIcon sx={{ fontSize: "16px !important" }} />}
+                  endIcon={
+                    sending ? (
+                      <CircularProgress size={14} color="inherit" />
+                    ) : (
+                      <SendIcon sx={{ fontSize: "16px !important" }} />
+                    )
+                  }
                   sx={{
                     borderRadius: "8px",
                     px: 2,
