@@ -28,9 +28,11 @@ import {
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { SensorCard } from "../../components/operator/SensorCard";
+import { LiveSensorChart } from "../../components/operator/LiveSensorChart";
 
 // Hooks & API
 import { useRealTimeTanks } from "../../hooks/useRealTimeTanks";
+import { useLiveTelemetry } from "../../hooks/useLiveTelemetry";
 import { realtimeApi } from "../../api/realtimeApi";
 import { useToast } from "../../components/common/toastContext";
 
@@ -88,6 +90,8 @@ const RealTimeSensors = () => {
     refetch,
   } = useRealTimeTanks();
 
+  const liveSeries = useLiveTelemetry(selectedTank?.id ?? null);
+
   // State quản lý Sensor đang được chọn (Master-Detail)
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
 
@@ -120,7 +124,7 @@ const RealTimeSensors = () => {
     setIsToggling(true);
     try {
       await realtimeApi.toggleDevice(deviceToToggle.id, !deviceToToggle.state);
-      refetch();
+      refetch(true);
       toast.success(
         deviceToToggle.state ? "Đã tắt thiết bị" : "Đã bật thiết bị",
       );
@@ -384,6 +388,42 @@ const RealTimeSensors = () => {
                   </Typography>
                 )}
               </Box>
+            )}
+
+            {/* BIỂU ĐỒ TRỰC TIẾP 10 GIÂY */}
+            {latestData.length > 0 && (
+              <>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 600, mb: 2.5, color: theme.palette.text.primary }}
+                >
+                  Biểu đồ trực tiếp (10 giây gần nhất)
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(560px, 1fr))",
+                    gap: 3,
+                    mb: 5,
+                  }}
+                >
+                  {latestData.map((sensor) => {
+                    const cfg = getChartConfig(sensor.sensorTypeName);
+                    return (
+                      <LiveSensorChart
+                        key={sensor.sensorId}
+                        sensorName={sensor.sensorName}
+                        sensorTypeName={sensor.sensorTypeName}
+                        unitOfMeasure={sensor.unitOfMeasure}
+                        points={liveSeries.get(sensor.sensorId) ?? []}
+                        color={cfg.color}
+                        safeMin={cfg.min}
+                        safeMax={cfg.max}
+                      />
+                    );
+                  })}
+                </Box>
+              </>
             )}
 
             {/* DETAIL: BIỂU ĐỒ & THỐNG KÊ CHI TIẾT CẢM BIẾN */}
