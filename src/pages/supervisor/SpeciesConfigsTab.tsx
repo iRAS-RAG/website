@@ -77,6 +77,8 @@ const SpeciesConfigsTab: React.FC = () => {
         frequencyPerDay: c.frequencyPerDay ?? 0,
         maxStockingDensity: c.maxStockingDensity ?? 0,
         expectedDurationDays: c.expectedDurationDays ?? 0,
+        expectedWeightKgPerFish: (c as any).expectedWeightKgPerFish ?? 0,
+        survivalRate: (c as any).survivalRate ?? 1,
         // preserve ordering metadata
         sequence: (c as any).sequence,
         thresholds: mappedThresholds,

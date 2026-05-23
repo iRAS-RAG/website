@@ -13,6 +13,8 @@ export type SpeciesStageConfig = {
   frequencyPerDay?: number;
   maxStockingDensity?: number;
   expectedDurationDays?: number;
+  expectedWeightKgPerFish?: number;
+  survivalRate?: number;
 };
 
 export type SpeciesStageConfigCreate = {
@@ -25,4 +27,6 @@ export type SpeciesStageConfigCreate = {
   frequencyPerDay: number;
   maxStockingDensity: number;
   expectedDurationDays: number;
+  expectedWeightKgPerFish?: number;
+  survivalRate?: number;
 };

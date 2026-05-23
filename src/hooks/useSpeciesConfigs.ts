@@ -26,6 +26,9 @@ export type Stage = {
   frequencyPerDay: number;
   maxStockingDensity: number; // per cubic meter
   expectedDurationDays: number;
+  // New fields added by API
+  expectedWeightKgPerFish: number;
+  survivalRate: number;
   thresholds: SensorThreshold[];
 };
 
@@ -43,6 +46,8 @@ function defaultStage(name = "Stage 1"): Stage {
     frequencyPerDay: 1,
     maxStockingDensity: 0,
     expectedDurationDays: 0,
+    expectedWeightKgPerFish: 0,
+    survivalRate: 1,
     thresholds: [],
   };
 }

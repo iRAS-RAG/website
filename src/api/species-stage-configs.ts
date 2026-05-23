@@ -16,6 +16,8 @@ function toUi(item: Record<string, unknown>): SpeciesStageConfig {
     frequencyPerDay: item.frequencyPerDay !== undefined ? Number(item.frequencyPerDay) : undefined,
     maxStockingDensity: item.maxStockingDensity !== undefined ? Number(item.maxStockingDensity) : undefined,
     expectedDurationDays: item.expectedDurationDays !== undefined ? Number(item.expectedDurationDays) : undefined,
+    expectedWeightKgPerFish: item.expectedWeightKgPerFish !== undefined ? Number(item.expectedWeightKgPerFish) : undefined,
+    survivalRate: item.survivalRate !== undefined ? Number(item.survivalRate) : undefined,
   };
 }
 
