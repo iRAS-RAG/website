@@ -25,6 +25,12 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
 
   const currentAge = calculateAge(batch.startDate);
 
+  const initialQty = batch.initialQuantity ?? 0;
+  const currentQty = batch.currentQuantity ?? batch.initialQuantity;
+  const netChange = (currentQty ?? 0) - (initialQty ?? 0);
+  const netPercent = initialQty > 0 ? ((currentQty ?? 0) / initialQty - 1) * 100 : undefined;
+  const estimatedSurvivalPct = batch.estimatedHarvestCount != null && initialQty > 0 ? (batch.estimatedHarvestCount / initialQty) * 100 : undefined;
+
   const statusConfig = {
     ACTIVE: { color: "success" as const, icon: <CheckCircleIcon /> },
     HARVESTED: { color: "default" as const, icon: <CheckCircleIcon /> },
@@ -66,6 +72,14 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
               </Typography>
               <Typography variant="body1" fontWeight={600}>
                 {batch.fishTankName || batch.fishTankId}
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Typography variant="caption" color="text.secondary">
+                Số lượng hiện tại
+              </Typography>
+              <Typography variant="body1" fontWeight={600}>
+                {currentQty}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>

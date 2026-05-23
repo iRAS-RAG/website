@@ -17,11 +17,6 @@ type Props = {
 };
 
 const TabOverview: React.FC<Props> = ({ batch }) => {
-  // Calculate some basic metrics
-  const currentStock = batch.currentQuantity ?? batch.initialQuantity;
-  // Note: Biomass requires weight data which is not currently available
-  // const estimatedBiomass = (currentStock * avgWeight) / 1000;
-
   const [stages, setStages] = useState<PlannedStage[] | undefined>(batch.plannedStages);
 
   useEffect(() => {
@@ -76,7 +71,11 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
     };
   }, [batch.id]);
 
-  const survivalRateDisplay = batch.survivalRate ? `${batch.survivalRate.toFixed(1)}%` : "—";
+  const initialQty = batch.initialQuantity ?? 0;
+  const currentQty = batch.currentQuantity ?? batch.initialQuantity;
+  const netChange = (currentQty ?? 0) - (initialQty ?? 0);
+  const netPercent = initialQty > 0 ? ((currentQty ?? 0) / initialQty - 1) * 100 : undefined;
+  const estimatedSurvivalPct = batch.estimatedHarvestCount != null && initialQty > 0 ? (batch.estimatedHarvestCount / initialQty) * 100 : undefined;
 
   return (
     <Box>
@@ -121,6 +120,15 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
                             Mật độ tối đa: <strong>{s.maxStockingDensity ?? "—"}</strong>
                           </Typography>
                         </Stack>
+
+                        <Stack direction="row" spacing={1} sx={{ mt: 1, gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Trọng lượng kỳ vọng: <strong>{s.expectedWeightKgPerFish != null ? `${s.expectedWeightKgPerFish} kg` : "—"}</strong>
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Tỷ lệ sống: <strong>{s.survivalRate != null ? `${(s.survivalRate * 100).toFixed(1)}%` : "—"}</strong>
+                          </Typography>
+                        </Stack>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -134,13 +142,27 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: theme.palette.text.primary }}>
           Chỉ số Sinh học & Hạ tầng
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
           <KPICard icon={<WaterIcon sx={{ color: theme.palette.primary.main }} />} label="Dung tích bể" value={batch.tankVolume ? `${batch.tankVolume} m³` : "-- m³"} desc={batch.fishTankName || ""} />
+          <KPICard icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />} label="Số lượng ban đầu" value={`${initialQty}`} desc="Số lượng lúc thả giống" />
+          <KPICard icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />} label="Số lượng hiện tại" value={`${currentQty}`} desc={`Đơn vị: ${batch.unitOfMeasure}`} />
           <KPICard
-            icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />}
-            label="Số lượng hiện tại / Ban đầu"
-            value={`${currentStock} / ${batch.initialQuantity}`}
-            desc={`Tỷ lệ sống: ${survivalRateDisplay}`}
+            icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
+            label="Biến động"
+            value={`${netChange >= 0 ? "+" : ""}${netChange}`}
+            desc={netPercent != null ? `${netPercent >= 0 ? "+" : ""}${netPercent.toFixed(1)}% so với ban đầu` : "—"}
+          />
+          <KPICard
+            icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
+            label="Tỷ lệ sống dự kiến (thu hoạch)"
+            value={estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"}
+            desc={batch.estimatedHarvestCount != null ? `Dự kiến số: ${batch.estimatedHarvestCount}` : ""}
+          />
+          <KPICard
+            icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
+            label="Dự kiến thu hoạch"
+            value={batch.estimatedHarvestCount != null ? `${batch.estimatedHarvestCount}` : "—"}
+            desc={batch.estimatedHarvestWeightKg != null ? `Tổng trọng lượng: ${batch.estimatedHarvestWeightKg.toFixed(2)} kg` : ""}
           />
           <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
           <KPICard icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />} label="Tổng hao hụt (Cá chết)" value={`${totalDead} ${batch.unitOfMeasure}`} desc="Số lượng" />

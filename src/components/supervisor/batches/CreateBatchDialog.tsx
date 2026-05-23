@@ -117,27 +117,48 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
         onClose();
       }
     } catch (error) {
-      // Bỏ chữ ': any' đi
       console.error("Failed to create batch:", error);
 
-      // Định nghĩa hình dáng object lỗi mà ta kỳ vọng từ Backend/Axios/Fetch
-      type ApiError = {
+      // Try to extract a helpful message from various error shapes returned by apiFetch/axios
+      const apiErr = error as {
         message?: string;
-        response?: {
-          data?: {
-            message?: string;
-          };
-        };
+        status?: number;
+        data?: unknown;
+        response?: { data?: unknown };
       };
 
-      // Ép kiểu an toàn (Type Assertion)
-      const err = error as ApiError;
+      let backendMessage: string | undefined;
 
-      // Lấy thông báo lỗi
-      const backendMessage = err?.message || err?.response?.data?.message;
+      // Prefer axios-style response payload (error.response.data) or apiFetch's err.data
+      const respData = apiErr.response?.data ?? apiErr.data;
+      if (respData) {
+        if (typeof respData === "string") {
+          backendMessage = respData;
+        } else if (typeof respData === "object" && respData !== null) {
+          const rd = respData as Record<string, unknown>;
+          if (typeof rd.message === "string") backendMessage = rd.message;
+          else if (rd.errors) {
+            // Try to pick the first validation error message
+            try {
+              const errs = rd.errors as Record<string, unknown>;
+              const first = Object.values(errs).flat?.()[0] ?? Object.values(errs)[0];
+              if (typeof first === "string") backendMessage = first;
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+
+      // Fallback to generic message if available and not generic axios text
+      if (!backendMessage && apiErr.message && !apiErr.message.toLowerCase().includes("request failed")) {
+        backendMessage = apiErr.message;
+      }
 
       if (backendMessage) {
-        toast.error(backendMessage);
+        // Surface server validation to the user inline on the quantity field
+        setErrors((prev) => ({ ...prev, initialQuantity: backendMessage }));
+        //toast.error(backendMessage);
       } else {
         toast.error("Không thể tạo vụ nuôi. Bể này có thể đang được sử dụng!");
       }
