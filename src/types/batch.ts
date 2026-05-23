@@ -74,9 +74,8 @@ export type CreateBatchPayload = {
 };
 
 export type HarvestBatchPayload = {
-  actualHarvestDate: string;
-  finalQuantity: number;
-  notes?: string;
+  harvestDate: string; // ISO date-time string
+  force?: boolean; // allow forcing early harvest
 };
 
 export type BatchComparison = {

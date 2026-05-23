@@ -173,11 +173,9 @@ export async function updateBatch(id: string, payload: Partial<CreateBatchPayloa
  */
 export async function harvestBatch(id: string, payload: HarvestBatchPayload): Promise<Batch | null> {
   try {
-    const body = {
-      actualHarvestDate: payload.actualHarvestDate,
-      finalQuantity: payload.finalQuantity,
-      notes: payload.notes,
-      status: "HARVESTED",
+    const body: Record<string, unknown> = {
+      harvestDate: payload.harvestDate,
+      force: payload.force ?? false,
     };
     const res = await apiFetch<Record<string, unknown>>(`/batches/${id}/harvest`, { method: "POST", body });
     if (!res) return null;

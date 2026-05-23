@@ -1,6 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { Box, Button, Card, CardContent, CircularProgress, Grid, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, Paper, TextField, Typography } from "@mui/material";
+import dayjs from "dayjs";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../../components/common/toastContext";
@@ -16,64 +17,9 @@ const HarvestBatchPage: React.FC = () => {
   const { harvestBatch } = useBatches({ autoLoad: false });
   const { batch, loading } = useBatchDetails(id || null);
 
+  const [harvestDate, setHarvestDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [submitting, setSubmitting] = useState(false);
-  const [harvestDate, setHarvestDate] = useState(new Date().toISOString().split("T")[0]);
-  const [finalQuantity, setFinalQuantity] = useState("");
-  const [finalTotalWeight, setFinalTotalWeight] = useState("");
-  const [notes, setNotes] = useState("");
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Validation
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!harvestDate) newErrors.harvestDate = "Ngày thu hoạch là bắt buộc";
-
-    const quantity = parseInt(finalQuantity);
-    if (!finalQuantity || isNaN(quantity) || quantity < 0) {
-      newErrors.finalQuantity = "Vui lòng nhập số lượng hợp lệ";
-    }
-
-    const weight = parseFloat(finalTotalWeight);
-    if (!finalTotalWeight || isNaN(weight) || weight <= 0) {
-      newErrors.finalTotalWeight = "Vui lòng nhập tổng khối lượng hợp lệ";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle submit
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!id || !batch) return;
-
-    if (!validate()) {
-      toast.error("Vui lòng kiểm tra lại thông tin nhập");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const result = await harvestBatch(id, {
-        actualHarvestDate: harvestDate,
-        finalQuantity: parseInt(finalQuantity),
-        notes: notes || undefined,
-      });
-
-      if (result) {
-        toast.success("Thu hoạch vụ nuôi thành công");
-        navigate(`/supervisor/batches/${id}`);
-      }
-    } catch (error) {
-      console.error("Failed to harvest batch:", error);
-      toast.error("Không thể thu hoạch vụ nuôi");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (loading) {
     return (
@@ -127,11 +73,44 @@ const HarvestBatchPage: React.FC = () => {
     );
   }
 
-  // Calculate metrics
   const currentStock = batch.currentQuantity ?? batch.initialQuantity;
-  const survivalRate = ((parseInt(finalQuantity || "0") / batch.initialQuantity) * 100).toFixed(1);
-  const cycleDuration = Math.ceil((new Date(harvestDate).getTime() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24));
-  const avgFinalWeight = finalTotalWeight && finalQuantity ? ((parseFloat(finalTotalWeight) * 1000) / parseInt(finalQuantity)).toFixed(1) : "—";
+
+  const doHarvest = async (force: boolean) => {
+    if (!id) return;
+    setSubmitting(true);
+    try {
+      const iso = new Date(harvestDate).toISOString();
+      await harvestBatch(id, { harvestDate: iso, force });
+      toast.success("Thu hoạch vụ nuôi thành công");
+      navigate(`/supervisor/batches/${id}`);
+    } catch (err) {
+      console.error("Failed to harvest batch:", err);
+      const msg = err instanceof Error ? err.message : "Không thể thu hoạch vụ nuôi";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleHarvestClick = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!harvestDate) {
+      toast.error("Vui lòng chọn ngày thu hoạch");
+      return;
+    }
+
+    if (batch.estimatedHarvestDate) {
+      const chosen = new Date(harvestDate).getTime();
+      const est = new Date(batch.estimatedHarvestDate).getTime();
+      if (chosen < est) {
+        setConfirmOpen(true);
+        return;
+      }
+    }
+
+    await doHarvest(false);
+  };
 
   return (
     <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
@@ -140,7 +119,6 @@ const HarvestBatchPage: React.FC = () => {
         <SupervisorHeader />
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           <Box sx={{ maxWidth: 1000, mx: "auto" }}>
-            {/* Header */}
             <Box sx={{ mb: 4 }}>
               <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/supervisor/batches/${id}`)} sx={{ mb: 2 }}>
                 Quay lại chi tiết vụ nuôi
@@ -154,7 +132,6 @@ const HarvestBatchPage: React.FC = () => {
             </Box>
 
             <Grid container spacing={3}>
-              {/* Left: Summary Info */}
               <Grid size={{ xs: 12, md: 4 }}>
                 <Card>
                   <CardContent>
@@ -172,26 +149,10 @@ const HarvestBatchPage: React.FC = () => {
                       </Box>
                       <Box>
                         <Typography variant="caption" color="text.secondary">
-                          Loài
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600}>
-                          {batch.speciesName || "—"}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Số lượng ban đầu
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600}>
-                          {batch.initialQuantity.toLocaleString()} con
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
                           Số lượng hiện tại
                         </Typography>
                         <Typography variant="body1" fontWeight={600}>
-                          {currentStock.toLocaleString()} con
+                          {currentStock.toLocaleString()} {batch.unitOfMeasure}
                         </Typography>
                       </Box>
                       <Box>
@@ -199,7 +160,7 @@ const HarvestBatchPage: React.FC = () => {
                           Ngày thả giống
                         </Typography>
                         <Typography variant="body1" fontWeight={600}>
-                          {new Date(batch.startDate).toLocaleDateString()}
+                          {dayjs(batch.startDate).format("DD-MM-YYYY")}
                         </Typography>
                       </Box>
                     </Box>
@@ -207,10 +168,9 @@ const HarvestBatchPage: React.FC = () => {
                 </Card>
               </Grid>
 
-              {/* Right: Harvest Form */}
               <Grid size={{ xs: 12, md: 8 }}>
                 <Paper sx={{ p: 4 }}>
-                  <form onSubmit={handleSubmit}>
+                  <form onSubmit={handleHarvestClick}>
                     <Grid container spacing={3}>
                       <Grid size={{ xs: 12 }}>
                         <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
@@ -219,95 +179,9 @@ const HarvestBatchPage: React.FC = () => {
                       </Grid>
 
                       <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          type="date"
-                          label="Ngày thu hoạch"
-                          value={harvestDate}
-                          onChange={(e) => setHarvestDate(e.target.value)}
-                          error={!!errors.harvestDate}
-                          helperText={errors.harvestDate}
-                          InputLabelProps={{ shrink: true }}
-                          required
-                        />
+                        <TextField fullWidth type="date" label="Ngày thu hoạch" value={harvestDate} onChange={(e) => setHarvestDate(e.target.value)} InputLabelProps={{ shrink: true }} required />
                       </Grid>
 
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          type="number"
-                          label="Số lượng thu hoạch thực tế"
-                          value={finalQuantity}
-                          onChange={(e) => setFinalQuantity(e.target.value)}
-                          error={!!errors.finalQuantity}
-                          helperText={errors.finalQuantity || "Số lượng cá thu hoạch"}
-                          inputProps={{ min: 0, step: 1 }}
-                          required
-                        />
-                      </Grid>
-
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                          fullWidth
-                          type="number"
-                          label="Tổng khối lượng thu hoạch (kg)"
-                          value={finalTotalWeight}
-                          onChange={(e) => setFinalTotalWeight(e.target.value)}
-                          error={!!errors.finalTotalWeight}
-                          helperText={errors.finalTotalWeight || "Tổng khối lượng thu hoạch"}
-                          inputProps={{ min: 0.1, step: 0.1 }}
-                          required
-                        />
-                      </Grid>
-
-                      <Grid size={{ xs: 12 }}>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={4}
-                          label="Ghi chú (tùy chọn)"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="Nhập ghi chú thêm về lần thu hoạch hoặc chu kỳ nuôi..."
-                        />
-                      </Grid>
-
-                      {/* Calculated Metrics */}
-                      <Grid size={{ xs: 12 }}>
-                        <Box sx={{ mt: 2, p: 2, backgroundColor: "action.hover", borderRadius: 2 }}>
-                          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                            Chỉ số tính toán
-                          </Typography>
-                          <Grid container spacing={2}>
-                            <Grid size={{ xs: 6, sm: 3 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                Tỷ lệ sống
-                              </Typography>
-                              <Typography variant="h6" fontWeight={700} color="primary.main">
-                                {survivalRate}%
-                              </Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                Thời gian chu kỳ
-                              </Typography>
-                              <Typography variant="h6" fontWeight={700}>
-                                {cycleDuration} ngày
-                              </Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                Khối lượng TB cuối kỳ
-                              </Typography>
-                              <Typography variant="h6" fontWeight={700}>
-                                {avgFinalWeight}g
-                              </Typography>
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      </Grid>
-
-                      {/* Actions */}
                       <Grid size={{ xs: 12 }}>
                         <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 2 }}>
                           <Button variant="outlined" onClick={() => navigate(`/supervisor/batches/${id}`)} disabled={submitting}>
@@ -326,6 +200,24 @@ const HarvestBatchPage: React.FC = () => {
           </Box>
         </Box>
       </Box>
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Xác nhận thu hoạch sớm</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Ngày thu hoạch bạn chọn ({dayjs(harvestDate).format("DD-MM-YYYY")}) sớm hơn ngày dự kiến ({batch.estimatedHarvestDate ? dayjs(batch.estimatedHarvestDate).format("DD-MM-YYYY") : "—"}).
+          </Alert>
+          <Typography>Bạn có chắc chắn muốn thu hoạch sớm không? Hành động này sẽ ghi đè hạn chế và có thể ảnh hưởng đến báo cáo.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} disabled={submitting}>
+            Hủy
+          </Button>
+          <Button onClick={() => doHarvest(true)} variant="contained" color="error" disabled={submitting}>
+            Xác nhận thu hoạch sớm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
