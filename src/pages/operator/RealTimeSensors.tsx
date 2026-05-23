@@ -25,7 +25,6 @@ import {
 } from "recharts";
 
 // Components
-import { ConfirmActionModal } from "../../components/operator/ConfirmActionModal";
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { SensorCard } from "../../components/operator/SensorCard";
@@ -40,13 +39,9 @@ import AirIcon from "@mui/icons-material/Air";
 import BoltIcon from "@mui/icons-material/Bolt";
 import PowerOffIcon from "@mui/icons-material/PowerOff";
 import ScienceIcon from "@mui/icons-material/Science";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
-import CloudQueueIcon from "@mui/icons-material/CloudQueue";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 // --- RECHARTS CUSTOM DOT ---
 interface CustomDotProps {
@@ -88,14 +83,10 @@ const RealTimeSensors = () => {
     setSelectedTank,
     latestData,
     devices,
-    recommendations,
     chartData,
     loading,
     refetch,
   } = useRealTimeTanks();
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState("");
 
   // State quản lý Sensor đang được chọn (Master-Detail)
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
@@ -123,15 +114,6 @@ const RealTimeSensors = () => {
   //     setSelectedSensorId(latestData[0].sensorId);
   //   }
   // }, [latestData, selectedSensorId]);
-
-  const handleOpenModal = (title: string) => {
-    setSelectedAction(title);
-    setModalOpen(true);
-  };
-
-  const handleConfirmAction = () => {
-    setModalOpen(false);
-  };
 
   const handleConfirmToggle = async () => {
     if (!deviceToToggle) return;
@@ -265,7 +247,8 @@ const RealTimeSensors = () => {
                 variant="body2"
                 sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
               >
-                Theo dõi chi tiết từng bể và nhận hướng dẫn can thiệp từ AI
+                Theo dõi chi tiết thông số cảm biến và trạng thái thiết bị
+                của từng bể
               </Typography>
             </Box>
 
@@ -378,7 +361,7 @@ const RealTimeSensors = () => {
                     >
                       <SensorCard
                         label={sensor.sensorTypeName}
-                        value={sensor.latestData?.latestAvg?.toString() || "--"}
+                        value={sensor.latestData?.latestAvg?.toFixed(2) ?? "--"}
                         unit={sensor.unitOfMeasure}
                         trend="Cập nhật real-time"
                         status={
@@ -538,7 +521,7 @@ const RealTimeSensors = () => {
                       Thấp nhất (24h)
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                      {min24h} {activeSensor.unitOfMeasure}
+                      {min24h.toFixed(2)} {activeSensor.unitOfMeasure}
                     </Typography>
                   </Box>
                   <Box>
@@ -546,7 +529,7 @@ const RealTimeSensors = () => {
                       Cao nhất (24h)
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                      {max24h} {activeSensor.unitOfMeasure}
+                      {max24h.toFixed(2)} {activeSensor.unitOfMeasure}
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: "right" }}>
@@ -562,7 +545,7 @@ const RealTimeSensors = () => {
                           : theme.palette.success.main,
                       }}
                     >
-                      {currentValue} {activeSensor.unitOfMeasure}
+                      {currentValue.toFixed(2)} {activeSensor.unitOfMeasure}
                     </Typography>
                   </Box>
                 </Box>
@@ -658,77 +641,8 @@ const RealTimeSensors = () => {
               )}
             </Box>
           </Box>
-
-          {/* CỘT PHẢI: AI ADVISOR */}
-          <Box
-            sx={{
-              width: 340,
-              p: 3,
-              bgcolor: "white",
-              borderLeft: `1px solid ${theme.palette.divider}`,
-              height: "100vh",
-              overflowY: "auto",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                mb: 2,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                color: theme.palette.text.primary,
-              }}
-            >
-              <CloudQueueIcon fontSize="small" color="primary" /> AI Advisor -
-              Khuyến nghị
-            </Typography>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<SmartToyIcon />}
-              sx={{ mb: 3, borderRadius: "8px" }}
-            >
-              Phân tích AI ngay
-            </Button>
-
-            {loading ? (
-              <CircularProgress size={23} />
-            ) : (
-              <Stack spacing={2}>
-                {recommendations.map((rec) => (
-                  <DetailedActionCard
-                    key={rec.id}
-                    title={rec.documentTitle || "Khuyến nghị tự động"}
-                    risk={rec.suggestionText}
-                    method="Tham khảo chi tiết SOP để xử lý"
-                    onAction={() => handleOpenModal(rec.documentTitle)}
-                  />
-                ))}
-                {recommendations.length === 0 && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    align="center"
-                    mt={5}
-                  >
-                    Hệ thống đang hoạt động ổn định. Không có khuyến nghị AI
-                    nào.
-                  </Typography>
-                )}
-              </Stack>
-            )}
-          </Box>
         </Box>
       </Box>
-
-      <ConfirmActionModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirmAction}
-        actionTitle={selectedAction}
-      />
 
       {/* DIALOG XÁC NHẬN BẬT/TẮT THIẾT BỊ ĐIỀU KHIỂN */}
       <Dialog
@@ -826,117 +740,6 @@ const RealTimeSensors = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  );
-};
-
-// --- COMPONENT DETAILED ACTION CARD ---
-interface DetailedActionCardProps {
-  title: string;
-  risk: string;
-  method: string;
-  onAction: () => void;
-}
-
-const DetailedActionCard = ({
-  title,
-  risk,
-  method,
-  onAction,
-}: DetailedActionCardProps) => {
-  const theme = useTheme();
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        borderRadius: "12px",
-        borderColor: theme.palette.warning.light,
-        overflow: "hidden",
-      }}
-    >
-      <Box sx={{ p: 2, bgcolor: "#FFFBEB" }}>
-        <Stack direction="row" spacing={1} alignItems="flex-start">
-          <ErrorOutlineIcon
-            sx={{ color: theme.palette.warning.main, fontSize: 20, mt: 0.2 }}
-          />
-          <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, color: theme.palette.text.primary }}
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: theme.palette.text.secondary,
-                lineHeight: 1.3,
-                display: "block",
-                mt: 0.5,
-              }}
-            >
-              {risk}
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ mb: 2, p: 1.5, bgcolor: "#F8FAFC", borderRadius: "8px" }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 700,
-              color: "#94A3B8",
-              fontSize: "0.65rem",
-              textTransform: "uppercase",
-            }}
-          >
-            GHI CHÚ HỆ THỐNG
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: theme.palette.text.primary, mt: 0.5 }}
-          >
-            {method}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="contained"
-            fullWidth
-            size="small"
-            startIcon={<PlayArrowIcon />}
-            onClick={onAction}
-            sx={{
-              bgcolor: "#2563EB",
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: 600,
-              py: "1px",
-              minHeight: 30,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Áp dụng
-          </Button>
-          <Button
-            variant="outlined"
-            fullWidth
-            size="small"
-            startIcon={<DescriptionOutlinedIcon />}
-            sx={{
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: 600,
-              py: "4px",
-              minHeight: 30,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Xem SOP
-          </Button>
-        </Stack>
-      </Box>
-    </Paper>
   );
 };
 

@@ -12,10 +12,10 @@ import {
   Divider,
   useTheme,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import SendIcon from "@mui/icons-material/Send";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import {
   LineChart,
   Line,
@@ -35,6 +35,7 @@ export interface AlertData {
   value: string;
   limit: string;
   tank: string;
+  tankId: string;
   staff: string;
   status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
 }
@@ -60,6 +61,24 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   data,
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
+
+  // Task 1: chuyển sang trang AI Advisor với prompt mở đầu điền sẵn
+  const handleConsultAI = () => {
+    if (!data) return;
+    const prompt =
+      `${data.tank} đang có chỉ số ${data.sensorName} là ${data.value} ` +
+      `(vượt ngưỡng an toàn ${data.limit}). ` +
+      `Hãy hướng dẫn tôi quy trình xử lý SOP khẩn cấp cho tình huống này.`;
+    navigate("/operator/ai-advisory", {
+      state: {
+        tankId: data.tankId,
+        tankName: data.tank,
+        prefillPrompt: prompt,
+      },
+    });
+    onClose();
+  };
 
   if (!data) return null;
 
@@ -315,34 +334,19 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
         >
           <Stack direction="row" spacing={1.5}>
             {data.status !== "Đóng sự cố" ? (
-              <>
-                <Button
-                  variant="outlined"
-                  startIcon={<SendIcon />}
-                  sx={{
-                    borderRadius: "8px",
-                    textTransform: "none",
-                    fontWeight: 600,
-                    borderColor: theme.palette.divider,
-                    color: theme.palette.text.secondary,
-                  }}
-                >
-                  Gửi hỗ trợ
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleIcon />}
-                  sx={{
-                    borderRadius: "8px",
-                    textTransform: "none",
-                    fontWeight: 700,
-                    boxShadow: "none",
-                  }}
-                >
-                  Đã xử lý
-                </Button>
-              </>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<SmartToyOutlinedIcon />}
+                onClick={handleConsultAI}
+                sx={{
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Tham vấn AI Advisor
+              </Button>
             ) : (
               <Chip
                 label="Sự cố đã được đóng"
