@@ -6,6 +6,7 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditIcon from "@mui/icons-material/Edit";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LocalDiningIcon from "@mui/icons-material/LocalDining";
+import PercentIcon from "@mui/icons-material/Percent";
 import SaveIcon from "@mui/icons-material/Save";
 import ScaleIcon from "@mui/icons-material/Scale";
 import ScheduleIcon from "@mui/icons-material/Schedule";
@@ -113,6 +114,8 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         maxStockingDensity: pending.created.maxStockingDensity ?? found.maxStockingDensity,
         expectedDurationDays: pending.created.expectedDurationDays ?? found.expectedDurationDays,
         feedTypeIds: pending.created.feedTypeIds ?? found.feedTypeIds,
+        expectedWeightKgPerFish: pending.created.expectedWeightKgPerFish ?? found.expectedWeightKgPerFish,
+        survivalRate: pending.created.survivalRate ?? found.survivalRate,
       });
       pendingCreateRef.current = null;
     }
@@ -198,6 +201,8 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         frequencyPerDay: st.frequencyPerDay,
         maxStockingDensity: st.maxStockingDensity,
         expectedDurationDays: st.expectedDurationDays,
+        expectedWeightKgPerFish: st.expectedWeightKgPerFish,
+        survivalRate: st.survivalRate,
         feedTypeIds: st.feedTypeIds,
         sequence: st.sequence ?? displayStages.findIndex((d) => d.id === st.id) + 1,
       };
@@ -511,6 +516,28 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                     fullWidth
                     value={st.expectedDurationDays}
                     onChange={(e) => updateStage(species.id, st.id, { expectedDurationDays: Number(e.target.value) })}
+                  />
+                </Box>
+
+                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <TextField
+                    label={labelWithIcon(<ScaleIcon fontSize="small" />, "Trọng lượng mong đợi (kg/cá)")}
+                    type="number"
+                    fullWidth
+                    value={st.expectedWeightKgPerFish}
+                    inputProps={{ step: "0.0001" }}
+                    onChange={(e) => updateStage(species.id, st.id, { expectedWeightKgPerFish: Number(e.target.value) })}
+                  />
+                </Box>
+
+                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <TextField
+                    label={labelWithIcon(<PercentIcon fontSize="small" />, "Tỷ lệ sống (0-1)")}
+                    type="number"
+                    fullWidth
+                    value={st.survivalRate}
+                    inputProps={{ step: "0.01", min: 0, max: 1 }}
+                    onChange={(e) => updateStage(species.id, st.id, { survivalRate: Number(e.target.value) })}
                   />
                 </Box>
 
