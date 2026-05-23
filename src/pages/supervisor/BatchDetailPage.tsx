@@ -1,17 +1,10 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
+import { Box, Button, CircularProgress, Tab, Tabs, Typography } from "@mui/material";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BatchHeader from "../../components/supervisor/batches/BatchHeader";
 import TabAlertHistory from "../../components/supervisor/batches/TabAlertHistory";
-import TabOperationsLog from "../../components/supervisor/batches/TabOperationsLog";
+import TabOperationsLog from "../../components/supervisor/batches/TabOperationsLog.tsx";
 import TabOverview from "../../components/supervisor/batches/TabOverview";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
@@ -24,8 +17,7 @@ const BatchDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
 
-  const { loading, batch, logs, performance, createLog, loadPerformance } =
-    useBatchDetails(id || null);
+  const { loading, batch, logs, performance, createLog, loadPerformance } = useBatchDetails(id || null);
 
   if (loading) {
     return (
@@ -67,10 +59,7 @@ const BatchDetailPage: React.FC = () => {
             <Typography variant="h6" color="text.secondary">
               Không tìm thấy vụ nuôi
             </Typography>
-            <Button
-              onClick={() => navigate("/supervisor/batches")}
-              sx={{ mt: 2 }}
-            >
+            <Button onClick={() => navigate("/supervisor/batches")} sx={{ mt: 2 }}>
               Quay lại danh sách vụ nuôi
             </Button>
           </Box>
@@ -101,11 +90,7 @@ const BatchDetailPage: React.FC = () => {
         <SupervisorHeader />
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           {/* Back Button */}
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/supervisor/batches")}
-            sx={{ mb: 2 }}
-          >
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/supervisor/batches")} sx={{ mb: 2 }}>
             Quay lại danh sách vụ nuôi
           </Button>
 
@@ -114,10 +99,7 @@ const BatchDetailPage: React.FC = () => {
 
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 3, mb: 3 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, newValue) => setActiveTab(newValue)}
-            >
+            <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
               <Tab label="Tổng quan" value="overview" />
               <Tab label="Nhật ký vận hành" value="operations" />
               <Tab label="Lịch sử cảnh báo" value="alerts" />
@@ -126,21 +108,17 @@ const BatchDetailPage: React.FC = () => {
 
           {/* Tab Content */}
           <Box sx={{ mt: 3 }}>
-            {activeTab === "overview" && (
-              <TabOverview
-                batch={batch}
-                performance={performance}
-                onLoadPerformance={loadPerformance}
+            {activeTab === "overview" && <TabOverview batch={batch} performance={performance} onLoadPerformance={loadPerformance} />}
+            {activeTab === "operations" && <TabOperationsLog batch={batch} logs={logs} onCreateLog={createLog} />}
+            {activeTab === "alerts" && (
+              <TabAlertHistory
+                batchId={batch.id}
+                batchName={batch.name}
+                fishTankId={batch.fishTankId}
+                startDate={batch.startDate}
+                endDate={batch.actualHarvestDate ?? batch.estimatedHarvestDate ?? undefined}
               />
             )}
-            {activeTab === "operations" && (
-              <TabOperationsLog
-                batch={batch}
-                logs={logs}
-                onCreateLog={createLog}
-              />
-            )}
-            {activeTab === "alerts" && <TabAlertHistory batchId={batch.id} />}
           </Box>
         </Box>
       </Box>

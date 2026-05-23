@@ -12,25 +12,7 @@ type Props = {
   onCreateLog: (log: Omit<BatchOperationLog, "id" | "batchId" | "createdAt">) => Promise<BatchOperationLog | null>;
 };
 
-const operationTypeLabels: Record<BatchOperationLog["operationType"], string> = {
-  feeding: "Cho ăn",
-  sampling: "Lấy mẫu",
-  mortality: "Hao hụt",
-  treatment: "Xử lý",
-  water_change: "Thay nước",
-  other: "Khác",
-};
-
-const operationTypeColors: Record<BatchOperationLog["operationType"], "default" | "primary" | "error" | "warning" | "info"> = {
-  feeding: "primary",
-  sampling: "info",
-  mortality: "error",
-  treatment: "warning",
-  water_change: "default",
-  other: "default",
-};
-
-const TabOperationsLog: React.FC<Props> = ({ batch, logs }) => {
+const TabOperationsLog: React.FC<Props> = ({ batch }) => {
   const [feedingLogs, setFeedingLogs] = useState<IOperatorFeedingLog[]>([]);
   const [mortalityLogs, setMortalityLogs] = useState<IOperatorMortalityLog[]>([]);
 
