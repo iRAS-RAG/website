@@ -163,6 +163,14 @@ const HarvestBatchPage: React.FC = () => {
                           {dayjs(batch.startDate).format("DD-MM-YYYY")}
                         </Typography>
                       </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Ngày dự kiến thu hoạch
+                        </Typography>
+                        <Typography variant="body1" fontWeight={600}>
+                          {batch.estimatedHarvestDate ? dayjs(batch.estimatedHarvestDate).format("DD-MM-YYYY") : "—"}
+                        </Typography>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>

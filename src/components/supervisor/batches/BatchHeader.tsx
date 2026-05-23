@@ -2,6 +2,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import EditIcon from "@mui/icons-material/Edit";
 import ErrorIcon from "@mui/icons-material/Error";
 import { Box, Button, Chip, Grid, Paper, Typography } from "@mui/material";
+import dayjs from "dayjs";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import type { Batch } from "../../../types/batch";
@@ -22,7 +23,6 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const currentStock = batch.currentQuantity ?? batch.initialQuantity;
   const currentAge = calculateAge(batch.startDate);
 
   const statusConfig = {
@@ -74,6 +74,22 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
               </Typography>
               <Typography variant="body1" fontWeight={600}>
                 {currentAge} ngày
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Typography variant="caption" color="text.secondary">
+                {batch.status === "HARVESTED" ? "Ngày thu hoạch thực tế" : "Ngày dự kiến thu hoạch"}
+              </Typography>
+              <Typography variant="body1" fontWeight={600}>
+                {batch.status === "HARVESTED"
+                  ? batch.actualHarvestDate
+                    ? dayjs(batch.actualHarvestDate).format("DD-MM-YYYY")
+                    : batch.estimatedHarvestDate
+                      ? dayjs(batch.estimatedHarvestDate).format("DD-MM-YYYY")
+                      : "—"
+                  : batch.estimatedHarvestDate
+                    ? dayjs(batch.estimatedHarvestDate).format("DD-MM-YYYY")
+                    : "—"}
               </Typography>
             </Grid>
           </Grid>
