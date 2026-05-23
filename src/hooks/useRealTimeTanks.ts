@@ -47,9 +47,11 @@ export const useRealTimeTanks = () => {
     fetchTanks();
   }, []);
 
-  const fetchTankDetails = useCallback(async () => {
+  // Full load: metadata + 24h history. Runs on mount and tank change.
+  // Pass silent=true to skip the loading state (e.g. background refetch after device toggle).
+  const fetchTankDetails = useCallback(async (silent = false) => {
     if (!selectedTank) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const [dataRes, devicesRes, recsRes] = await Promise.all([
         realtimeApi.getTankLatestData(selectedTank.id).catch(() => []),
@@ -65,11 +67,9 @@ export const useRealTimeTanks = () => {
       setDevices(extractArray(devicesRes) as IControlDevice[]);
       setRecommendations(extractArray(recsRes) as IRecommendation[]);
 
-      // === XỬ LÝ DỮ LIỆU BIỂU ĐỒ LỊCH SỬ THỜI GIAN THỰC ===
       const toDate = dayjs().toISOString();
       const fromDate = dayjs().subtract(24, "hour").toISOString();
 
-      // 1. Gọi API history cho từng cảm biến
       const historyPromises = (sensorsData as ILatestSensorData[]).map(
         async (sensor) => {
           try {
@@ -95,7 +95,6 @@ export const useRealTimeTanks = () => {
 
       const histories = await Promise.all(historyPromises);
 
-      // 2. Khởi tạo 12 mốc thời gian (2 tiếng / mốc)
       const buckets: Record<
         string,
         { time: string; tempAcc: number[]; phAcc: number[]; doAcc: number[] }
@@ -113,7 +112,6 @@ export const useRealTimeTanks = () => {
         };
       }
 
-      // 3. Phân bổ dữ liệu
       histories.forEach((hist) => {
         let key: "tempAcc" | "phAcc" | "doAcc" | null = null;
         if (hist.type.includes("nhiệt độ") || hist.type.includes("temp"))
@@ -141,7 +139,6 @@ export const useRealTimeTanks = () => {
         });
       });
 
-      // 4. Tính trung bình cộng
       const finalChartData = Object.values(buckets).map((b) => ({
         time: b.time,
         temp: b.tempAcc.length
@@ -163,8 +160,6 @@ export const useRealTimeTanks = () => {
           : null,
       }));
 
-      // 5. SMART FALLBACK (Dành cho Demo/Báo cáo Đồ án)
-      // Nếu trong 24h qua DB không có data thật, ta vẽ đường ảo để UI luôn đẹp
       const hasRealData = finalChartData.some(
         (d) => d.temp !== null || d.ph !== null || d.do !== null,
       );
@@ -193,11 +188,33 @@ export const useRealTimeTanks = () => {
     }
   }, [selectedTank]);
 
+  // Lightweight poll: metadata only, no loading state, no history calls.
+  const refreshMetadata = useCallback(async () => {
+    if (!selectedTank) return;
+    try {
+      const [dataRes, devicesRes, recsRes] = await Promise.all([
+        realtimeApi.getTankLatestData(selectedTank.id).catch(() => []),
+        realtimeApi.getControlDevices(selectedTank.id).catch(() => []),
+        realtimeApi.getRecommendations().catch(() => []),
+      ]);
+
+      const dataResObj = dataRes as { data?: ILatestSensorData[] };
+      const sensorsData = Array.isArray(dataRes)
+        ? dataRes
+        : dataResObj?.data || [];
+      setLatestData(sensorsData as ILatestSensorData[]);
+      setDevices(extractArray(devicesRes) as IControlDevice[]);
+      setRecommendations(extractArray(recsRes) as IRecommendation[]);
+    } catch (err) {
+      console.error("Lỗi làm mới metadata bể", err);
+    }
+  }, [selectedTank]);
+
   useEffect(() => {
     fetchTankDetails();
-    const interval = setInterval(fetchTankDetails, 30000);
+    const interval = setInterval(refreshMetadata, 30000);
     return () => clearInterval(interval);
-  }, [fetchTankDetails]);
+  }, [fetchTankDetails, refreshMetadata]);
 
   return {
     tanks,
