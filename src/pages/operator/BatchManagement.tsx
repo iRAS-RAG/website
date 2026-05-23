@@ -336,7 +336,7 @@ const BatchManagement = () => {
                           <Box
                             sx={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gridTemplateColumns: "repeat(4, 1fr)",
                               gap: 2,
                             }}
                           >
@@ -347,11 +347,44 @@ const BatchManagement = () => {
                               value={selectedBatch.tankVolume ? `${selectedBatch.tankVolume} m³` : "-- m³"}
                               desc={selectedBatch.fishTankName}
                             />
+                            {/* Initial / Current / Net / Estimated Survival */}
                             <KPICard
                               icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />}
-                              label="Số lượng hiện tại / Ban đầu"
-                              value={`${selectedBatch.currentQuantity} / ${selectedBatch.initialQuantity}`}
-                              desc={`Tỷ lệ sống: ${survivalRate}%`}
+                              label="Số lượng ban đầu"
+                              value={`${selectedBatch.initialQuantity ?? 0}`}
+                              desc="Số lượng lúc thả giống"
+                            />
+                            <KPICard
+                              icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />}
+                              label="Số lượng hiện tại"
+                              value={`${selectedBatch.currentQuantity ?? 0}`}
+                              desc={`Đơn vị: ${selectedBatch.unitOfMeasure}`}
+                            />
+                            <KPICard
+                              icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
+                              label="Biến động"
+                              value={`${(selectedBatch.currentQuantity ?? 0) - (selectedBatch.initialQuantity ?? 0) >= 0 ? "+" : ""}${(selectedBatch.currentQuantity ?? 0) - (selectedBatch.initialQuantity ?? 0)}`}
+                              desc={
+                                selectedBatch.initialQuantity && selectedBatch.initialQuantity > 0
+                                  ? `${(((selectedBatch.currentQuantity ?? 0) / selectedBatch.initialQuantity - 1) * 100).toFixed(1)}% so với ban đầu`
+                                  : "—"
+                              }
+                            />
+                            <KPICard
+                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
+                              label="Tỷ lệ sống dự kiến (thu hoạch)"
+                              value={
+                                selectedBatch.estimatedHarvestCount != null && selectedBatch.initialQuantity
+                                  ? `${((selectedBatch.estimatedHarvestCount / selectedBatch.initialQuantity) * 100).toFixed(1)}%`
+                                  : "—"
+                              }
+                              desc={selectedBatch.estimatedHarvestCount != null ? `Dự kiến số: ${selectedBatch.estimatedHarvestCount}` : ""}
+                            />
+                            <KPICard
+                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
+                              label="Dự kiến thu hoạch"
+                              value={selectedBatch.estimatedHarvestCount != null ? `${selectedBatch.estimatedHarvestCount}` : "—"}
+                              desc={selectedBatch.estimatedHarvestWeightKg != null ? `Tổng trọng lượng: ${selectedBatch.estimatedHarvestWeightKg.toFixed(2)} kg` : ""}
                             />
                             <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
                             <KPICard

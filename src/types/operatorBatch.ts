@@ -20,6 +20,8 @@ export interface IOperatorFarmingBatch {
   currentQuantity: number;
   unitOfMeasure: string;
   tankVolume?: number;
+  estimatedHarvestCount?: number;
+  estimatedHarvestWeightKg?: number;
   createdAt?: string;
   modifiedAt?: string | null;
 }
