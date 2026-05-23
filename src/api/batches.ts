@@ -40,6 +40,8 @@ function toBatch(item: Record<string, unknown>): Batch {
     initialQuantity: initialQty,
     currentQuantity: currentQty,
     unitOfMeasure: String(item.unitOfMeasure ?? "con"),
+    estimatedHarvestCount: typeof item.estimatedHarvestCount === "number" ? (item.estimatedHarvestCount as number) : undefined,
+    estimatedHarvestWeightKg: typeof item.estimatedHarvestWeightKg === "number" ? (item.estimatedHarvestWeightKg as number) : undefined,
     tankVolume: typeof item.tankVolume === "number" ? (item.tankVolume as number) : typeof item.tank_volume === "number" ? (item.tank_volume as number) : undefined,
     survivalRate,
     createdAt: (item.createdAt as string) || undefined,
@@ -89,6 +91,8 @@ function toPlannedStage(item: Record<string, unknown>): PlannedStage {
     frequencyPerDay: typeof item.frequencyPerDay === "number" ? (item.frequencyPerDay as number) : undefined,
     maxStockingDensity: typeof item.maxStockingDensity === "number" ? (item.maxStockingDensity as number) : undefined,
     feedTypeNames: Array.isArray(item.feedTypeNames) ? (item.feedTypeNames as unknown[]).map((f) => String(f)) : undefined,
+    expectedWeightKgPerFish: typeof item.expectedWeightKgPerFish === "number" ? (item.expectedWeightKgPerFish as number) : undefined,
+    survivalRate: typeof item.survivalRate === "number" ? (item.survivalRate as number) : undefined,
   };
 }
 

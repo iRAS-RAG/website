@@ -15,6 +15,8 @@ export type PlannedStage = {
   frequencyPerDay?: number;
   maxStockingDensity?: number;
   feedTypeNames?: string[];
+  expectedWeightKgPerFish?: number;
+  survivalRate?: number; // fraction 0-1 or null
 };
 
 export type Batch = {
@@ -37,6 +39,8 @@ export type Batch = {
   initialQuantity: number;
   currentQuantity?: number;
   unitOfMeasure: string;
+  estimatedHarvestCount?: number;
+  estimatedHarvestWeightKg?: number;
   survivalRate?: number; // percentage (calculated client-side)
   createdAt?: string;
   modifiedAt?: string | null;
