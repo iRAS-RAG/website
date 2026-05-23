@@ -1,27 +1,16 @@
 import AddIcon from "@mui/icons-material/Add";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
-import {
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Divider,
-  Paper,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Chip, CircularProgress, Divider, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DataTable, type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
+import CreateBatchDialog from "../../components/supervisor/batches/CreateBatchDialog";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useBatches from "../../hooks/useBatches";
 import type { Batch, BatchStatus } from "../../types/batch";
-import CreateBatchDialog from "../../components/supervisor/batches/CreateBatchDialog";
 
 const statusLabels: Record<BatchStatus, string> = {
   ACTIVE: "Đang nuôi",
@@ -55,26 +44,15 @@ const BatchListPage: React.FC = () => {
   });
 
   // Lọc dữ liệu theo Tab và Thanh tìm kiếm
-  let filteredBatches =
-    statusFilter === "all"
-      ? batches
-      : batches.filter((b) => b.status === statusFilter);
+  let filteredBatches = statusFilter === "all" ? batches : batches.filter((b) => b.status === statusFilter);
 
   if (searchTerm) {
-    filteredBatches = filteredBatches.filter(
-      (b) =>
-        b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (b.speciesName &&
-          b.speciesName.toLowerCase().includes(searchTerm.toLowerCase())),
-    );
+    filteredBatches = filteredBatches.filter((b) => b.name.toLowerCase().includes(searchTerm.toLowerCase()) || (b.speciesName && b.speciesName.toLowerCase().includes(searchTerm.toLowerCase())));
   }
 
   // Phân trang dữ liệu
   const totalPages = Math.ceil(filteredBatches.length / pageSize) || 1;
-  const paginatedBatches = filteredBatches.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
-  );
+  const paginatedBatches = filteredBatches.slice((page - 1) * pageSize, page * pageSize);
 
   const calculateAge = (startDate: string): number => {
     const start = new Date(startDate);
@@ -169,14 +147,47 @@ const BatchListPage: React.FC = () => {
       },
     },
     {
+      field: "plannedStages",
+      label: "Các giai đoạn",
+      sortable: false,
+      render: (row) => {
+        const stages = row.plannedStages ?? [];
+        if (stages.length === 0)
+          return (
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              —
+            </Typography>
+          );
+
+        const ordered = [...stages].sort((a, b) => a.sequence - b.sequence);
+
+        return (
+          <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
+            {ordered.map((s) => (
+              <Chip
+                key={s.id}
+                label={`${s.sequence}. ${s.stageName}`}
+                size="small"
+                sx={{
+                  bgcolor: "#F1F5F9",
+                  color: "#334155",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                }}
+              />
+            ))}
+          </Stack>
+        );
+      },
+    },
+    {
       field: "survivalRate",
       label: "Tỷ lệ sống",
       sortable: true,
       render: (row) => {
         if (!row.survivalRate && row.survivalRate !== 0) return "—";
         const rate = row.survivalRate;
-        const color =
-          rate >= 90 ? "#10B981" : rate >= 70 ? "#F59E0B" : "#EF4444";
+        const color = rate >= 90 ? "#10B981" : rate >= 70 ? "#F59E0B" : "#EF4444";
         return (
           <Typography variant="body2" sx={{ color, fontWeight: 700 }}>
             {rate.toFixed(1)}%
@@ -191,10 +202,7 @@ const BatchListPage: React.FC = () => {
       render: (row) => {
         const current = row.currentQuantity ?? row.initialQuantity;
         return (
-          <Typography
-            variant="body2"
-            sx={{ color: "#334155", fontWeight: 500 }}
-          >
+          <Typography variant="body2" sx={{ color: "#334155", fontWeight: 500 }}>
             {current.toLocaleString()}
           </Typography>
         );
@@ -202,10 +210,7 @@ const BatchListPage: React.FC = () => {
     },
   ];
 
-  const handleTabChange = (
-    _event: React.SyntheticEvent,
-    newValue: BatchStatus | "all",
-  ) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: BatchStatus | "all") => {
     setStatusFilter(newValue);
     setSelectedBatches([]);
     setPage(1); // Reset page khi đổi tab
@@ -240,27 +245,15 @@ const BatchListPage: React.FC = () => {
         <SupervisorHeader />
 
         {/* Đã gỡ bỏ maxWidth, để flexGrow lấp đầy */}
-        <Box
-          component="main"
-          sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}
-        >
+        <Box component="main" sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}>
           {/* HEADER KHU VỰC NỘI DUNG */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 4 }}
-          >
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
             <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
-              >
+              <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
                 Quản lý vụ nuôi
               </Typography>
               <Typography variant="body2" sx={{ color: "#64748B" }}>
-                Theo dõi tiến độ, trạng thái và tỷ lệ sống của các lô nuôi thủy
-                sản.
+                Theo dõi tiến độ, trạng thái và tỷ lệ sống của các lô nuôi thủy sản.
               </Typography>
             </Box>
 
@@ -367,9 +360,7 @@ const BatchListPage: React.FC = () => {
                   Không tìm thấy vụ nuôi
                 </Typography>
                 <Typography variant="body2" color="#94A3B8" sx={{ mt: 1 }}>
-                  {statusFilter === "all"
-                    ? "Hãy tạo vụ nuôi đầu tiên để bắt đầu."
-                    : `Không có vụ nuôi nào ở trạng thái ${statusLabels[statusFilter]}.`}
+                  {statusFilter === "all" ? "Hãy tạo vụ nuôi đầu tiên để bắt đầu." : `Không có vụ nuôi nào ở trạng thái ${statusLabels[statusFilter]}.`}
                 </Typography>
               </Box>
             ) : (
@@ -385,11 +376,7 @@ const BatchListPage: React.FC = () => {
                   bgcolor: "#FFFFFF",
                 }}
               >
-                <PaginationControls
-                  page={page}
-                  totalPages={totalPages}
-                  onPageChange={(p) => setPage(p)}
-                />
+                <PaginationControls page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} />
               </Box>
             )}
           </Paper>

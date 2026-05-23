@@ -1,10 +1,10 @@
 import SaveIcon from "@mui/icons-material/Save";
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { getSpeciesStageConfigs } from "../../../api/species-stage-configs";
+import { getSpecies } from "../../../api/species";
 import { getTanks } from "../../../api/tanks";
 import useBatches from "../../../hooks/useBatches";
-import type { SpeciesStageConfig } from "../../../types/species-stage-config";
+import type { Species } from "../../../types/species";
 import type { Tank } from "../../../types/tank";
 import { useToast } from "../../common/toastContext";
 
@@ -23,13 +23,12 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
 
   // Form data
   const [batchName, setBatchName] = useState("");
-  const [selectedConfig, setSelectedConfig] = useState("");
+  const [selectedSpecies, setSelectedSpecies] = useState("");
   const [selectedTank, setSelectedTank] = useState("");
   const [initialQuantity, setInitialQuantity] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState("");
 
-  const [speciesStageConfigs, setSpeciesStageConfigs] = useState<SpeciesStageConfig[]>([]);
+  const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -40,28 +39,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     }
   }, [open]);
 
-  // TÍNH NĂNG MỚI: Theo dõi và Validate Real-time Ngày tháng
-  useEffect(() => {
-    if (startDate && estimatedHarvestDate) {
-      const start = new Date(startDate);
-      const end = new Date(estimatedHarvestDate);
-
-      // Nếu ngày kết thúc <= ngày bắt đầu -> Báo lỗi ngay lập tức
-      if (end <= start) {
-        setErrors((prev) => ({
-          ...prev,
-          estimatedHarvestDate: "Ngày thu hoạch phải lớn hơn ngày bắt đầu",
-        }));
-      } else {
-        // Nếu đã sửa đúng -> Xóa lỗi
-        setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors.estimatedHarvestDate;
-          return newErrors;
-        });
-      }
-    }
-  }, [startDate, estimatedHarvestDate]);
+  // No estimated harvest date validation required anymore; backend plans stages
 
   const resetForm = () => {
     const today = new Date();
@@ -69,12 +47,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
 
     setBatchName(`BATCH-${timestamp}`);
     setStartDate(today.toISOString().split("T")[0]);
-
-    const defaultHarvest = new Date();
-    defaultHarvest.setMonth(defaultHarvest.getMonth() + 6);
-    setEstimatedHarvestDate(defaultHarvest.toISOString().split("T")[0]);
-
-    setSelectedConfig("");
+    setSelectedSpecies("");
     setSelectedTank("");
     setInitialQuantity("");
     setErrors({});
@@ -84,8 +57,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     setLoading(true);
     try {
       const [configsData, tanksData] = await Promise.all([
-        getSpeciesStageConfigs().catch((err) => {
-          console.error("Lỗi lấy cấu hình loài:", err);
+        getSpecies().catch((err) => {
+          console.error("Lỗi lấy danh sách loài:", err);
           return [];
         }),
         getTanks().catch((err) => {
@@ -94,7 +67,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
         }),
       ]);
 
-      setSpeciesStageConfigs(configsData || []);
+      setSpeciesList(configsData || []);
       setTanks(tanksData || []);
     } catch (error) {
       console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
@@ -106,20 +79,12 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!batchName.trim()) newErrors.batchName = "Tên vụ nuôi là bắt buộc";
-    if (!selectedConfig) newErrors.config = "Vui lòng chọn cấu hình loài/giai đoạn";
+    if (!selectedSpecies) newErrors.config = "Vui lòng chọn loài";
     if (!selectedTank) newErrors.tank = "Vui lòng chọn bể nuôi";
     if (!startDate) newErrors.startDate = "Ngày bắt đầu là bắt buộc";
 
     // Kiểm tra chặn lúc bấm Submit
-    if (!estimatedHarvestDate) {
-      newErrors.estimatedHarvestDate = "Ngày dự kiến thu hoạch là bắt buộc";
-    } else if (startDate) {
-      const start = new Date(startDate);
-      const end = new Date(estimatedHarvestDate);
-      if (end <= start) {
-        newErrors.estimatedHarvestDate = "Ngày thu hoạch phải lớn hơn ngày bắt đầu";
-      }
-    }
+    // no estimated harvest date validation — backend determines stages
 
     const quantity = parseInt(initialQuantity);
     if (!initialQuantity || isNaN(quantity) || quantity <= 0) {
@@ -140,9 +105,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
       const newBatch = await createBatch({
         name: batchName,
         fishTankId: selectedTank,
-        speciesStageConfigId: selectedConfig,
-        startDate: startDate,
-        estimatedHarvestDate: estimatedHarvestDate,
+        speciesId: selectedSpecies,
+        startDate: new Date(startDate).toISOString(),
         initialQuantity: parseInt(initialQuantity),
         unitOfMeasure: "con",
       });
@@ -208,16 +172,16 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
             />
 
             <FormControl fullWidth error={!!errors.config} required>
-              <InputLabel>Loài và giai đoạn phát triển</InputLabel>
-              <Select value={selectedConfig} onChange={(e) => setSelectedConfig(e.target.value)} label="Loài và giai đoạn phát triển">
-                {speciesStageConfigs.length === 0 ? (
+              <InputLabel>Loài</InputLabel>
+              <Select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} label="Loài">
+                {speciesList.length === 0 ? (
                   <MenuItem disabled value="">
-                    <em>Không có dữ liệu cấu hình loài</em>
+                    <em>Không có dữ liệu loài</em>
                   </MenuItem>
                 ) : (
-                  speciesStageConfigs.map((config) => (
-                    <MenuItem key={config.id} value={config.id}>
-                      {config.speciesName} - {config.growthStageName}
+                  speciesList.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.name}
                     </MenuItem>
                   ))
                 )}
@@ -299,19 +263,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 InputLabelProps={{ shrink: true }}
                 required
               />
-              <TextField
-                fullWidth
-                sx={{ flex: 1 }}
-                type="date"
-                label="Ngày dự kiến thu hoạch"
-                value={estimatedHarvestDate}
-                onChange={(e) => setEstimatedHarvestDate(e.target.value)}
-                // Hiển thị lỗi màu đỏ ngay lập tức dựa vào state `errors`
-                error={!!errors.estimatedHarvestDate}
-                helperText={errors.estimatedHarvestDate}
-                InputLabelProps={{ shrink: true }}
-                required
-              />
+              {/* Estimated harvest date is no longer required; backend plans stages */}
             </Box>
           </Box>
         )}
