@@ -3,13 +3,13 @@ import SaveIcon from "@mui/icons-material/Save";
 import { Box, Button, CircularProgress, FormControl, FormHelperText, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSpeciesStageConfigs } from "../../api/species-stage-configs";
+import { getSpecies } from "../../api/species";
 import { getTanks } from "../../api/tanks";
 import { useToast } from "../../components/common/toastContext";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useBatches from "../../hooks/useBatches";
-import type { SpeciesStageConfig } from "../../types/species-stage-config";
+import type { Species } from "../../types/species";
 import type { Tank } from "../../types/tank";
 
 const CreateBatchPage: React.FC = () => {
@@ -25,12 +25,11 @@ const CreateBatchPage: React.FC = () => {
   const [selectedConfig, setSelectedConfig] = useState("");
   const [selectedTank, setSelectedTank] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
-  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState("");
   const [initialQuantity, setInitialQuantity] = useState("");
   const [unitOfMeasure, setUnitOfMeasure] = useState("con");
 
   // Dropdown options
-  const [speciesStageConfigs, setSpeciesStageConfigs] = useState<SpeciesStageConfig[]>([]);
+  const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
 
   // Errors
@@ -41,18 +40,15 @@ const CreateBatchPage: React.FC = () => {
     async function loadData() {
       setLoading(true);
       try {
-        const [configsData, tanksData] = await Promise.all([getSpeciesStageConfigs(), getTanks()]);
-        setSpeciesStageConfigs(configsData);
+        const [configsData, tanksData] = await Promise.all([getSpecies(), getTanks()]);
+        setSpeciesList(configsData);
         setTanks(tanksData);
 
         // Generate default batch name
         const timestamp = new Date().toISOString().split("T")[0].replace(/-/g, "");
         setBatchName(`BATCH-${timestamp}`);
 
-        // Set default harvest date (6 months from start)
-        const defaultHarvest = new Date();
-        defaultHarvest.setMonth(defaultHarvest.getMonth() + 6);
-        setEstimatedHarvestDate(defaultHarvest.toISOString().split("T")[0]);
+        // Note: estimated harvest date is handled by backend planning
       } catch (error) {
         console.error("Failed to load data:", error);
         toast.error("Không thể tải dữ liệu biểu mẫu");
@@ -68,10 +64,9 @@ const CreateBatchPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
 
     if (!batchName.trim()) newErrors.batchName = "Tên vụ nuôi là bắt buộc";
-    if (!selectedConfig) newErrors.config = "Vui lòng chọn cấu hình loài/giai đoạn";
+    if (!selectedConfig) newErrors.config = "Vui lòng chọn loài";
     if (!selectedTank) newErrors.tank = "Vui lòng chọn bể nuôi";
     if (!startDate) newErrors.startDate = "Ngày bắt đầu là bắt buộc";
-    if (!estimatedHarvestDate) newErrors.estimatedHarvestDate = "Ngày dự kiến thu hoạch là bắt buộc";
 
     const quantity = parseInt(initialQuantity);
     if (!initialQuantity || isNaN(quantity) || quantity <= 0) {
@@ -96,9 +91,8 @@ const CreateBatchPage: React.FC = () => {
       const newBatch = await createBatch({
         name: batchName,
         fishTankId: selectedTank,
-        speciesStageConfigId: selectedConfig,
-        startDate,
-        estimatedHarvestDate,
+        speciesId: selectedConfig,
+        startDate: new Date(startDate).toISOString(),
         initialQuantity: parseInt(initialQuantity),
         unitOfMeasure,
       });
@@ -160,19 +154,25 @@ const CreateBatchPage: React.FC = () => {
                     />
                   </Grid>
 
-                  {/* Species/Stage Config */}
+                  {/* Species */}
                   <Grid size={{ xs: 12 }}>
                     <FormControl fullWidth error={!!errors.config} required>
-                      <InputLabel>Loài và giai đoạn phát triển</InputLabel>
-                      <Select value={selectedConfig} onChange={(e) => setSelectedConfig(e.target.value)} label="Loài và giai đoạn phát triển">
-                        {speciesStageConfigs.map((config) => (
-                          <MenuItem key={config.id} value={config.id}>
-                            {config.speciesName} - {config.growthStageName}
+                      <InputLabel>Loài</InputLabel>
+                      <Select value={selectedConfig} onChange={(e) => setSelectedConfig(e.target.value)} label="Loài">
+                        {speciesList.length === 0 ? (
+                          <MenuItem disabled value="">
+                            <em>Không có dữ liệu loài</em>
                           </MenuItem>
-                        ))}
+                        ) : (
+                          speciesList.map((s) => (
+                            <MenuItem key={s.id} value={s.id}>
+                              {s.name}
+                            </MenuItem>
+                          ))
+                        )}
                       </Select>
                       {errors.config && <FormHelperText>{errors.config}</FormHelperText>}
-                      {!errors.config && <FormHelperText>Chọn loài và giai đoạn cho vụ nuôi này</FormHelperText>}
+                      {!errors.config && <FormHelperText>Chọn loài cho vụ nuôi này</FormHelperText>}
                     </FormControl>
                   </Grid>
 
@@ -219,20 +219,7 @@ const CreateBatchPage: React.FC = () => {
                     />
                   </Grid>
 
-                  {/* Estimated Harvest Date */}
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      type="date"
-                      label="Ngày dự kiến thu hoạch"
-                      value={estimatedHarvestDate}
-                      onChange={(e) => setEstimatedHarvestDate(e.target.value)}
-                      error={!!errors.estimatedHarvestDate}
-                      helperText={errors.estimatedHarvestDate}
-                      InputLabelProps={{ shrink: true }}
-                      required
-                    />
-                  </Grid>
+                  {/* Estimated harvest date removed — backend plans stages */}
 
                   {/* Initial Quantity */}
                   <Grid size={{ xs: 12 }}>
