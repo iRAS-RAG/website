@@ -16,7 +16,7 @@ type Props = {
   onLoadPerformance: (days: number) => void;
 };
 
-const TabOverview: React.FC<Props> = ({ batch, performance }) => {
+const TabOverview: React.FC<Props> = ({ batch }) => {
   // Calculate some basic metrics
   const currentStock = batch.currentQuantity ?? batch.initialQuantity;
   // Note: Biomass requires weight data which is not currently available

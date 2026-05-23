@@ -1,6 +1,6 @@
 // src/api/alerts.ts
-import { apiFetch } from "./client";
 import type { IAlert, IAlertListRequest } from "../types/alert";
+import { apiFetch } from "./client";
 
 export const alertApi = {
   // Lấy danh sách cảnh báo có phân trang
@@ -8,8 +8,9 @@ export const alertApi = {
     const query = new URLSearchParams();
     if (params.page) query.append("page", params.page.toString());
     if (params.pageSize) query.append("pageSize", params.pageSize.toString());
-    if (params.status !== undefined)
-      query.append("status", params.status.toString());
+    if (params.status !== undefined) query.append("status", params.status.toString());
+    // server expects TankId query param for filtering by tank
+    if (params.tankId) query.append("TankId", params.tankId);
 
     const url = `/alerts?${query.toString()}`;
     return await apiFetch<unknown>(url, { method: "GET" });

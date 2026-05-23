@@ -1,11 +1,6 @@
 // src/types/alert.ts
 
-export type AlertStatus =
-  | "OPEN"
-  | "ACKNOWLEDGED"
-  | "RESOLVED"
-  | string
-  | number;
+export type AlertStatus = "OPEN" | "ACKNOWLEDGED" | "RESOLVED" | string | number;
 
 export interface IAlert {
   id: string;
@@ -33,4 +28,6 @@ export interface IAlertListRequest {
   page?: number;
   pageSize?: number;
   status?: AlertStatus;
+  // Optional server-side filters
+  tankId?: string; // will be sent as `TankId` query param
 }
