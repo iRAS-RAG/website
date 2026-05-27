@@ -1,4 +1,4 @@
-import AddIcon from "@mui/icons-material/Add";
+// AddIcon intentionally removed: adding new masterboards per-tank disabled
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import CodeIcon from "@mui/icons-material/Code";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -9,16 +9,7 @@ import OpacityIcon from "@mui/icons-material/Opacity";
 import ScienceIcon from "@mui/icons-material/Science";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
-import {
-  Box,
-  Button,
-  Chip,
-  Divider,
-  Paper,
-  Typography,
-  alpha,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, Chip, Divider, Paper, Typography, alpha, useTheme } from "@mui/material";
 import type { MasterBoard } from "../../../types/masterboard";
 import type { Sensor } from "../../../types/sensor";
 import type { Tank } from "../../../types/tank";
@@ -28,7 +19,6 @@ type Props = {
   boards: MasterBoard[];
   sensors: Sensor[];
   onEdit: (t: Tank) => void;
-  onAddBoard: () => void;
   onDelete: (t: Tank) => void;
 };
 
@@ -37,25 +27,15 @@ const getSensorIcon = (typeName?: string) => {
   const t = typeName?.toLowerCase() || "";
   if (t.includes("nhiệt độ")) return <ThermostatIcon color="error" />;
   if (t.includes("ph")) return <ScienceIcon color="success" />;
-  if (t.includes("oxy") || t.includes("tds"))
-    return <OpacityIcon color="primary" />;
+  if (t.includes("oxy") || t.includes("tds")) return <OpacityIcon color="primary" />;
   return <ThermostatIcon color="action" />;
 };
 
-export default function TankDetail({
-  tank,
-  boards,
-  sensors,
-  onEdit,
-  onAddBoard,
-  onDelete,
-}: Props) {
+export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: Props) {
   const theme = useTheme();
 
   // Lọc ra danh sách các cảm biến thuộc về bể cá này
-  const tankSensors = sensors.filter((s) =>
-    boards.some((b) => b.id === s.masterBoardId),
-  );
+  const tankSensors = sensors.filter((s) => boards.some((b) => b.id === s.masterBoardId));
 
   return (
     <Box>
@@ -76,31 +56,10 @@ export default function TankDetail({
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={onAddBoard}
-            sx={{ boxShadow: "none" }}
-          >
-            Thêm bảng mạch
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => onEdit(tank)}
-          >
+          <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(tank)}>
             Sửa
           </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={() => onDelete(tank)}
-          >
+          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(tank)}>
             Xóa
           </Button>
         </Box>
@@ -133,23 +92,13 @@ export default function TankDetail({
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <CodeIcon fontSize="small" /> MÃ CHỦ ĐỀ (TOPIC)
               </Typography>
-              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>
-                {tank.topicCode ?? "—"}
-              </Typography>
+              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>{tank.topicCode ?? "—"}</Typography>
             </Box>
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <CameraAltIcon fontSize="small" /> CAMERA URL
               </Typography>
               {tank.cameraUrl ? (
@@ -192,28 +141,16 @@ export default function TankDetail({
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <HeightIcon fontSize="small" /> CHIỀU CAO (cm)
               </Typography>
-              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>
-                {typeof tank.height === "number" ? tank.height : "—"}
-              </Typography>
+              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>{typeof tank.height === "number" ? tank.height : "—"}</Typography>
             </Box>
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <StraightenIcon fontSize="small" /> BÁN KÍNH (cm)
               </Typography>
-              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>
-                {typeof tank.radius === "number" ? tank.radius : "—"}
-              </Typography>
+              <Typography sx={{ mt: 0.5, fontWeight: 500 }}>{typeof tank.radius === "number" ? tank.radius : "—"}</Typography>
             </Box>
           </Box>
         </Paper>
@@ -247,9 +184,7 @@ export default function TankDetail({
             </Typography>
           ) : (
             boards.map((board, index) => {
-              const bSensors = tankSensors.filter(
-                (s) => s.masterBoardId === board.id,
-              );
+              const bSensors = tankSensors.filter((s) => s.masterBoardId === board.id);
               return (
                 <Box
                   key={board.id}
@@ -273,11 +208,7 @@ export default function TankDetail({
                   </Typography>
 
                   {bSensors.length === 0 ? (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ pl: 3.5 }}
-                    >
+                    <Typography variant="body2" color="text.secondary" sx={{ pl: 3.5 }}>
                       Chưa có cảm biến kết nối.
                     </Typography>
                   ) : (
