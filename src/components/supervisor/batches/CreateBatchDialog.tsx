@@ -2,7 +2,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { getSpecies } from "../../../api/species";
-import { getTanks } from "../../../api/tanks";
+import { getTankRecommendedInitials, getTanks } from "../../../api/tanks";
 import useBatches from "../../../hooks/useBatches";
 import type { Species } from "../../../types/species";
 import type { Tank } from "../../../types/tank";
@@ -31,6 +31,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [recommendedInitials, setRecommendedInitials] = useState<Record<string, number | null>>({});
+  const [recommendedLoading, setRecommendedLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -73,6 +75,23 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
       console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecommendedInitialsForTank = async (tankId: string) => {
+    if (!tankId) {
+      setRecommendedInitials({});
+      return;
+    }
+    setRecommendedLoading(true);
+    try {
+      const map = await getTankRecommendedInitials(tankId);
+      setRecommendedInitials(map || {});
+    } catch (err) {
+      console.error("Lỗi lấy mức khuyến nghị ban đầu:", err);
+      setRecommendedInitials({});
+    } finally {
+      setRecommendedLoading(false);
     }
   };
 
@@ -172,6 +191,17 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     onClose();
   };
 
+  const recommendedForSelectedSpecies = selectedSpecies ? recommendedInitials[selectedSpecies] : undefined;
+  let initialQuantityHelper = errors.initialQuantity || "Số lượng cá giống";
+  if (!errors.initialQuantity && selectedSpecies) {
+    if (recommendedLoading) initialQuantityHelper = "Đang lấy gợi ý...";
+    else {
+      const recText = recommendedForSelectedSpecies === null || recommendedForSelectedSpecies === undefined ? "N/A" : String(recommendedForSelectedSpecies);
+      initialQuantityHelper = `${recText} là mức khuyến nghị số lượng ban đầu tối thiểu cho loài này ở bể đã chọn nhằm đảm bảo hiệu suất tối thiểu`;
+    }
+  }
+  const showExplanatoryHelperGreen = !errors.initialQuantity && !!selectedSpecies && !recommendedLoading;
+
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" disableEscapeKeyDown={submitting}>
       <DialogTitle sx={{ fontWeight: 700 }}>Tạo vụ nuôi mới</DialogTitle>
@@ -192,27 +222,19 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
               required
             />
 
-            <FormControl fullWidth error={!!errors.config} required>
-              <InputLabel>Loài</InputLabel>
-              <Select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} label="Loài">
-                {speciesList.length === 0 ? (
-                  <MenuItem disabled value="">
-                    <em>Không có dữ liệu loài</em>
-                  </MenuItem>
-                ) : (
-                  speciesList.map((s) => (
-                    <MenuItem key={s.id} value={s.id}>
-                      {s.name}
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
-              <FormHelperText>{errors.config}</FormHelperText>
-            </FormControl>
-
             <FormControl fullWidth error={!!errors.tank} required>
               <InputLabel>Bể nuôi</InputLabel>
-              <Select value={selectedTank} onChange={(e) => setSelectedTank(e.target.value)} label="Bể nuôi">
+              <Select
+                value={selectedTank}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedTank(val);
+                  setSelectedSpecies("");
+                  setRecommendedInitials({});
+                  fetchRecommendedInitialsForTank(val);
+                }}
+                label="Bể nuôi"
+              >
                 {tanks.length === 0 ? (
                   <MenuItem disabled value="">
                     <em>Không có bể nuôi nào</em>
@@ -226,6 +248,34 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 )}
               </Select>
               <FormHelperText>{errors.tank}</FormHelperText>
+            </FormControl>
+
+            <FormControl fullWidth error={!!errors.config} required>
+              <InputLabel>Loài</InputLabel>
+              <Select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} label="Loài" disabled={!selectedTank}>
+                {speciesList.length === 0 ? (
+                  <MenuItem disabled value="">
+                    <em>Không có dữ liệu loài</em>
+                  </MenuItem>
+                ) : (
+                  speciesList.map((s) => {
+                    const rec = recommendedInitials[s.id];
+                    const hasRec = rec !== null && rec !== undefined;
+                    const recDisplay = hasRec ? `${rec} (con)` : "N/A";
+                    return (
+                      <MenuItem key={s.id} value={s.id}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                          <Box component="span">{s.name}</Box>
+                          <Box component="span" sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
+                            {recDisplay}
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                    );
+                  })
+                )}
+              </Select>
+              <FormHelperText>{errors.config ? errors.config : !selectedTank ? "Vui lòng chọn bể trước để nhận gợi ý" : recommendedLoading ? "Đang lấy gợi ý..." : ""}</FormHelperText>
             </FormControl>
 
             <Box
@@ -243,7 +293,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 value={initialQuantity}
                 onChange={(e) => setInitialQuantity(e.target.value)}
                 error={!!errors.initialQuantity}
-                helperText={errors.initialQuantity || "Số lượng cá giống"}
+                helperText={initialQuantityHelper}
+                FormHelperTextProps={showExplanatoryHelperGreen ? { sx: { color: "success.main" } } : undefined}
                 inputProps={{ min: 1, step: 1 }}
                 required
               />
@@ -260,7 +311,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                   "& .MuiOutlinedInput-root": { backgroundColor: "#F8FAFC" },
                 }}
                 label="Đơn vị tính"
-                value="Con (cá)"
+                value="Con"
                 InputProps={{ readOnly: true }}
               />
             </Box>

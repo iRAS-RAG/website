@@ -57,7 +57,7 @@ const CreateBatchPage: React.FC = () => {
       }
     }
     loadData();
-  }, []);
+  }, [toast]);
 
   // Validate form
   const validate = (): boolean => {
@@ -197,7 +197,7 @@ const CreateBatchPage: React.FC = () => {
                     <FormControl fullWidth>
                       <InputLabel>Đơn vị tính</InputLabel>
                       <Select value={unitOfMeasure} onChange={(e) => setUnitOfMeasure(e.target.value)} label="Đơn vị tính">
-                        <MenuItem value="con">Con (cá)</MenuItem>
+                        <MenuItem value="con">Con</MenuItem>
                         <MenuItem value="kg">Kg</MenuItem>
                       </Select>
                       <FormHelperText>Chọn đơn vị đo lường</FormHelperText>
