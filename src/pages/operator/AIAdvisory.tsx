@@ -45,6 +45,18 @@ interface Exchange {
   error: boolean;
 }
 
+// Loại bỏ cú pháp Markdown phổ biến trong câu trả lời của AI để hiển thị
+// dạng văn bản thuần (tránh hiện thừa các ký tự **, *, #, `, ...)
+const stripMarkdown = (s: string): string => {
+  if (!s) return s;
+  return s
+    .replace(/\*\*([\s\S]+?)\*\*/g, "$1") // **bold**
+    .replace(/__([\s\S]+?)__/g, "$1") // __bold__
+    .replace(/^#{1,6}\s+/gm, "") // headers # / ##
+    .replace(/^\s*[*+\-]\s+/gm, "• ") // bullets: *, -, +
+    .replace(/`([^`]+)`/g, "$1"); // `code`
+};
+
 const AIAdvisory: React.FC = () => {
   const theme = useTheme();
   const toast = useToast();
@@ -500,7 +512,7 @@ const AIAdvisory: React.FC = () => {
                                       whiteSpace: "pre-wrap",
                                     }}
                                   >
-                                    {ex.answer}
+                                    {stripMarkdown(ex.answer)}
                                   </Typography>
 
                                   {ex.isOffTopic && !ex.error && (

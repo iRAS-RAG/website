@@ -41,20 +41,6 @@ export const operatorBatchesApi = {
       body: { batchId, quantity, date },
     }),
 
-  // CẬP NHẬT 1 dòng lịch sử cho ăn (PUT /api/feeding-logs/{id})
-  updateFeeding: async (logId: string, amount: number, feedTypeId: string) =>
-    await apiFetch<unknown>(`/feeding-logs/${logId}`, {
-      method: "PUT",
-      body: { amount, feedTypeId },
-    }),
-
-  // CẬP NHẬT 1 dòng lịch sử hao hụt (PUT /api/mortality-logs/{id})
-  updateMortality: async (logId: string, quantity: number) =>
-    await apiFetch<unknown>(`/mortality-logs/${logId}`, {
-      method: "PUT",
-      body: { quantity },
-    }),
-
   harvestBatch: async (batchId: string) =>
     await apiFetch<unknown>(`/batches/${batchId}/harvest`, {
       method: "PUT",
