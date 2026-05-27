@@ -40,6 +40,7 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import WarningIcon from "@mui/icons-material/Warning";
 import CakeIcon from "@mui/icons-material/Cake";
 import WaterIcon from "@mui/icons-material/Water";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useToast } from "../../components/common/toastContext";
@@ -82,6 +83,10 @@ const BatchManagement = () => {
 
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
+  const [deathWeightInput, setDeathWeightInput] = useState("");
+  // null = chưa validate; string = có cảnh báo vượt ngưỡng
+  const [mortalityWarning, setMortalityWarning] = useState<string | null>(null);
+  const [isSavingMortality, setIsSavingMortality] = useState(false);
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
@@ -116,24 +121,76 @@ const BatchManagement = () => {
     }
   };
 
+  /**
+   * Bước 1: validate rồi cảnh báo (nếu vượt ngưỡng).
+   * Bước 2: nếu đã xác nhận cảnh báo (mortalityWarning !== null), ghi thẳng.
+   */
   const handleSaveMortality = async () => {
-    if (!deathInput) {
-      toast.error("Vui lòng nhập số lượng cá chết!");
+    if (!deathInput || !deathWeightInput) {
+      toast.error("Vui lòng nhập đầy đủ số lượng (con) và khối lượng (kg)!");
       return;
     }
     if (!selectedBatch) return;
 
-    const deathCount = parseFloat(deathInput);
+    const quantity = parseInt(deathInput, 10);
+    const weight = parseFloat(deathWeightInput);
 
+    if (isNaN(quantity) || quantity <= 0) {
+      toast.error("Số lượng cá chết phải là số nguyên dương!");
+      return;
+    }
+    if (isNaN(weight) || weight <= 0) {
+      toast.error("Khối lượng phải là số dương!");
+      return;
+    }
+
+    setIsSavingMortality(true);
+    const date = new Date().toISOString();
+
+    // ── Bước 1: Validate (best-effort) ───────────────────────────────────────
+    // Nếu chưa có cảnh báo đang chờ xác nhận → thử validate trước.
+    // Nếu validate gặp lỗi (400, 500, network…), bỏ qua và ghi nhận bình thường.
+    if (mortalityWarning === null) {
+      try {
+        const validateRes = await operatorBatchesApi.validateMortality(
+          selectedBatch.id,
+          quantity,
+          weight,
+          date,
+        );
+
+        if (!validateRes.isWithinRange) {
+          // Lưu cảnh báo → operator thấy, bấm lần 2 để xác nhận
+          setMortalityWarning(
+            validateRes.message || "Số liệu vượt ngưỡng cho phép.",
+          );
+          setIsSavingMortality(false);
+          return; // dừng lại, chờ người dùng xác nhận
+        }
+        // isWithinRange=true → tiếp tục ghi nhận bình thường bên dưới
+      } catch (validateErr) {
+        // Validate thất bại (400/500/network) → coi như không có ngưỡng cần kiểm tra,
+        // vẫn cho phép ghi nhận. Log để debug nhưng KHÔNG hiện toast lỗi ở đây.
+        console.warn(
+          "Validate mortality bị lỗi, bỏ qua và tiếp tục ghi nhận:",
+          validateErr,
+        );
+      }
+    }
+
+    // ── Bước 2: Ghi nhận thực tế ─────────────────────────────────────────────
     try {
       await operatorBatchesApi.logMortality(
         selectedBatch.id,
-        deathCount,
-        new Date().toISOString(),
+        quantity,
+        weight,
+        date,
       );
 
       setOpenDeathDialog(false);
       setDeathInput("");
+      setDeathWeightInput("");
+      setMortalityWarning(null);
 
       await refetchDetails();
       await refetch();
@@ -151,6 +208,8 @@ const BatchManagement = () => {
       } else {
         toast.error("Có lỗi không xác định xảy ra.");
       }
+    } finally {
+      setIsSavingMortality(false);
     }
   };
 
@@ -550,7 +609,13 @@ const BatchManagement = () => {
                                   align="right"
                                   sx={{ fontWeight: 600 }}
                                 >
-                                  Số lượng chết
+                                  Số lượng (con)
+                                </TableCell>
+                                <TableCell
+                                  align="right"
+                                  sx={{ fontWeight: 600 }}
+                                >
+                                  Khối lượng (kg)
                                 </TableCell>
                               </TableRow>
                             </TableHead>
@@ -580,8 +645,18 @@ const BatchManagement = () => {
                                         color: theme.palette.error.main,
                                       }}
                                     >
-                                      - {log.quantity}{" "}
-                                      {selectedBatch.unitOfMeasure}
+                                      -{log.quantity} con
+                                    </TableCell>
+                                    <TableCell
+                                      align="right"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: theme.palette.error.main,
+                                      }}
+                                    >
+                                      {log.lostWeightKg != null
+                                        ? `${log.lostWeightKg} kg`
+                                        : "—"}
                                     </TableCell>
                                   </TableRow>
                                 ))
@@ -659,7 +734,12 @@ const BatchManagement = () => {
       {/* DIALOG CÁ CHẾT */}
       <Dialog
         open={openDeathDialog}
-        onClose={() => setOpenDeathDialog(false)}
+        onClose={() => {
+          setOpenDeathDialog(false);
+          setDeathInput("");
+          setDeathWeightInput("");
+          setMortalityWarning(null);
+        }}
         maxWidth="xs"
         fullWidth
       >
@@ -673,22 +753,83 @@ const BatchManagement = () => {
           <TextField
             fullWidth
             size="small"
-            label="Số lượng chết"
+            label="Số lượng cá chết"
             type="number"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  {selectedBatch?.unitOfMeasure}
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">con</InputAdornment>
+                ),
+              },
             }}
             value={deathInput}
-            onChange={(e) => setDeathInput(e.target.value)}
+            onChange={(e) => {
+              setDeathInput(e.target.value);
+              setMortalityWarning(null); // reset cảnh báo khi thay đổi input
+            }}
           />
+          <TextField
+            fullWidth
+            size="small"
+            label="Khối lượng cá chết"
+            type="number"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">kg</InputAdornment>
+                ),
+              },
+            }}
+            value={deathWeightInput}
+            onChange={(e) => {
+              setDeathWeightInput(e.target.value);
+              setMortalityWarning(null);
+            }}
+          />
+
+          {/* CẢNH BÁO VƯỢT NGƯỠNG — hiện sau khi validate trả về isWithinRange=false */}
+          {mortalityWarning && (
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                p: 1.5,
+                borderRadius: "8px",
+                bgcolor: "#FFF7ED",
+                border: `1px solid #FDBA74`,
+              }}
+            >
+              <ErrorOutlineIcon
+                sx={{ color: "#F97316", fontSize: 20, flexShrink: 0, mt: 0.1 }}
+              />
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: 700, color: "#C2410C", display: "block" }}
+                >
+                  Cảnh báo vượt ngưỡng
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#9A3412" }}>
+                  {mortalityWarning}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#9A3412", display: "block", mt: 0.5 }}
+                >
+                  Bấm &quot;Xác nhận &amp; Lưu&quot; để tiếp tục ghi nhận.
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button
-            onClick={() => setOpenDeathDialog(false)}
+            onClick={() => {
+              setOpenDeathDialog(false);
+              setDeathInput("");
+              setDeathWeightInput("");
+              setMortalityWarning(null);
+            }}
             sx={{ color: theme.palette.text.secondary }}
           >
             Hủy
@@ -697,9 +838,15 @@ const BatchManagement = () => {
             variant="contained"
             color="error"
             onClick={handleSaveMortality}
+            disabled={isSavingMortality}
+            startIcon={mortalityWarning ? <WarningIcon /> : undefined}
             sx={{ boxShadow: "none" }}
           >
-            Lưu báo cáo
+            {isSavingMortality
+              ? "Đang xử lý..."
+              : mortalityWarning
+                ? "Xác nhận & Lưu"
+                : "Lưu báo cáo"}
           </Button>
         </DialogActions>
       </Dialog>
