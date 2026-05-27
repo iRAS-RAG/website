@@ -1,42 +1,20 @@
 import AddIcon from "@mui/icons-material/Add";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-  InputAdornment,
-  IconButton,
-  Popover,
-} from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, Paper, Popover, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
 import { createSpecies, deleteSpecies, updateSpecies } from "../../api/species";
-import { getSpeciesStageConfigs } from "../../api/species-stage-configs";
+import { getSpeciesStageConfigsBySpecies } from "../../api/species-stage-configs";
 import { getSpeciesThresholds } from "../../api/species-threshholds";
 import { useToast } from "../../components/common/toastContext";
-import SpeciesDetail from "../../components/supervisor/species-configs/SpeciesDetail";
+import * as SpeciesDetailModule from "../../components/supervisor/species-configs/SpeciesDetail";
 import SpeciesList from "../../components/supervisor/species-configs/SpeciesList";
 import useSpeciesConfigs from "../../hooks/useSpeciesConfigs";
+const SpeciesDetail = (SpeciesDetailModule as any).default ?? (SpeciesDetailModule as any).SpeciesDetail ?? (SpeciesDetailModule as any);
 
-// IMPORT LOGIC ICON MAPPER VỪA TẠO
-// (Bạn hãy chỉnh lại đường dẫn cho khớp với vị trí file utils/iconMapper.ts của dự án nhé)
 import { autoSuggestIcon, SPECIES_ICONS } from "../../utils/iconMapper";
 
 const SpeciesConfigsTab: React.FC = () => {
-  const {
-    speciesConfigs,
-    setSpeciesConfigs,
-    updateStage,
-    updateStageThreshold,
-    addStage,
-    removeStage,
-  } = useSpeciesConfigs();
+  const { speciesConfigs, setSpeciesConfigs, updateStage, updateStageThreshold, addStage, removeStage } = useSpeciesConfigs();
   const toast = useToast();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -49,28 +27,22 @@ const SpeciesConfigsTab: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   // Logic xác định Icon hiển thị
-  const displayIcon =
-    selectedIcon !== null ? selectedIcon : autoSuggestIcon(newSpeciesName);
+  const displayIcon = selectedIcon !== null ? selectedIcon : autoSuggestIcon(newSpeciesName);
 
   function generateId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
   async function fetchStagesForSpecies(speciesId: string, speciesName: string) {
-    const configs = await getSpeciesStageConfigs(speciesName);
+    // Use per-species endpoint rather than SearchTerm query
+    const configs = await getSpeciesStageConfigsBySpecies(speciesId);
     const thresholdsAll = await getSpeciesThresholds();
 
     return configs.map((c) => {
       const mappedThresholds = (thresholdsAll || [])
         .filter((t) => {
-          const speciesMatch =
-            (t.speciesId && speciesId && t.speciesId === speciesId) ||
-            (t.speciesName && t.speciesName === speciesName);
-          const stageMatch =
-            (t.growthStageId &&
-              c.growthStageId &&
-              t.growthStageId === c.growthStageId) ||
-            (t.growthStageName && t.growthStageName === c.growthStageName);
+          const speciesMatch = (t.speciesId && speciesId && t.speciesId === speciesId) || (t.speciesName && t.speciesName === speciesName);
+          const stageMatch = (t.growthStageId && c.growthStageId && t.growthStageId === c.growthStageId) || (t.growthStageName && t.growthStageName === c.growthStageName);
           return speciesMatch && stageMatch;
         })
         .map((t) => ({
@@ -81,16 +53,34 @@ const SpeciesConfigsTab: React.FC = () => {
           max: t.maxValue ?? null,
         }));
 
+      // Normalize feed type arrays (backend now returns feedTypeIds/feedTypeNames)
+      const feedTypeIds: string[] | undefined = Array.isArray((c as any).feedTypeIds) ? (c as any).feedTypeIds.map(String) : (c as any).feedTypeId ? [String((c as any).feedTypeId)] : undefined;
+
+      const feedTypeNames: string[] | undefined = Array.isArray((c as any).feedTypeNames)
+        ? (c as any).feedTypeNames.map(String)
+        : (c as any).feedTypeName
+          ? [String((c as any).feedTypeName)]
+          : undefined;
+
+      const feedTypeDisplay = (feedTypeNames && feedTypeNames.length > 0 ? feedTypeNames.join(", ") : undefined) ?? feedTypeIds?.[0] ?? (c as any).feedTypeName ?? "";
+
       return {
         id: generateId(),
         name: c.growthStageName ?? "",
         growthStageId: c.growthStageId,
         configId: c.id,
-        feedType: c.feedTypeId ?? c.feedTypeName ?? "",
+        // keep legacy single-value `feedType` for existing components,
+        // and also expose `feedTypeIds` for multi-feed support
+        feedType: feedTypeDisplay,
+        feedTypeIds: feedTypeIds,
         feedPer100: c.amountPer100Fish ?? 0,
         frequencyPerDay: c.frequencyPerDay ?? 0,
         maxStockingDensity: c.maxStockingDensity ?? 0,
         expectedDurationDays: c.expectedDurationDays ?? 0,
+        expectedWeightKgPerFish: (c as any).expectedWeightKgPerFish ?? 0,
+        survivalRate: (c as any).survivalRate ?? 1,
+        // preserve ordering metadata
+        sequence: (c as any).sequence,
         thresholds: mappedThresholds,
       };
     });
@@ -101,9 +91,7 @@ const SpeciesConfigsTab: React.FC = () => {
     if (!name) return;
 
     // Kiểm tra trùng tên ở Frontend
-    const isDuplicate = speciesConfigs.some(
-      (s) => s.name.toLowerCase() === name.toLowerCase(),
-    );
+    const isDuplicate = speciesConfigs.some((s) => s.name.toLowerCase() === name.toLowerCase());
     if (isDuplicate) {
       toast.warning(`Loài "${name}" đã tồn tại trong hệ thống!`);
       return;
@@ -121,10 +109,7 @@ const SpeciesConfigsTab: React.FC = () => {
         toast.error("Tải cấu hình loài thất bại");
       }
 
-      const next = [
-        { id: created.id, name: created.name, stages: createdStages },
-        ...speciesConfigs,
-      ];
+      const next = [{ id: created.id, name: created.name, stages: createdStages }, ...speciesConfigs];
       setSpeciesConfigs(next);
       setSelectedId(created.id);
 
@@ -173,9 +158,7 @@ const SpeciesConfigsTab: React.FC = () => {
 
     try {
       const stages = await fetchStagesForSpecies(sp.id, sp.name);
-      const next = speciesConfigs.map((s) =>
-        s.id === id ? { ...s, stages } : s,
-      );
+      const next = speciesConfigs.map((s) => (s.id === id ? { ...s, stages } : s));
       setSpeciesConfigs(next);
     } catch (e) {
       console.error("Failed to fetch species stage configs or thresholds", e);
@@ -183,6 +166,20 @@ const SpeciesConfigsTab: React.FC = () => {
     }
 
     setSelectedId(id);
+  }
+
+  async function refreshStagesForSpecies(speciesId: string) {
+    const sp = speciesConfigs.find((s) => s.id === speciesId);
+    if (!sp) return;
+
+    try {
+      const stages = await fetchStagesForSpecies(sp.id, sp.name);
+      const next = speciesConfigs.map((s) => (s.id === speciesId ? { ...s, stages } : s));
+      setSpeciesConfigs(next);
+    } catch (e) {
+      console.error("Failed to refresh species stages", e);
+      toast.error("Tải cấu hình loài thất bại");
+    }
   }
 
   async function handleDeleteSpecies(id: string) {
@@ -209,9 +206,7 @@ const SpeciesConfigsTab: React.FC = () => {
     try {
       const updated = await updateSpecies(id, { name: nextName });
       const finalName = updated?.name || nextName;
-      const next = speciesConfigs.map((s) =>
-        s.id === id ? { ...s, name: finalName } : s,
-      );
+      const next = speciesConfigs.map((s) => (s.id === id ? { ...s, name: finalName } : s));
       setSpeciesConfigs(next);
       toast.success("Đổi tên loài thành công");
     } catch (e) {
@@ -239,17 +234,9 @@ const SpeciesConfigsTab: React.FC = () => {
   return (
     <Box sx={{ width: "100%", flexGrow: 1 }}>
       {/* HEADER PAGE */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        sx={{ mb: 4 }}
-      >
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
         <Box>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
-          >
+          <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
             Cấu hình thông số loài
           </Typography>
           <Typography variant="body2" sx={{ color: "#64748B" }}>
@@ -274,9 +261,7 @@ const SpeciesConfigsTab: React.FC = () => {
       </Stack>
 
       {/* MAIN SPLIT PANE CONTENT */}
-      <Box
-        sx={{ display: "flex", gap: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}
-      >
+      <Box sx={{ display: "flex", gap: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
         {/* LEFT COLUMN: DANH SÁCH LOÀI (30%) */}
         <Box sx={{ width: { xs: "100%", md: "30%" }, minWidth: "300px" }}>
           <Paper
@@ -288,11 +273,7 @@ const SpeciesConfigsTab: React.FC = () => {
               p: 2,
             }}
           >
-            <SpeciesList
-              items={speciesConfigs}
-              onSelect={handleSelect}
-              selectedId={selectedId}
-            />
+            <SpeciesList items={speciesConfigs} onSelect={handleSelect} selectedId={selectedId} />
           </Paper>
         </Box>
 
@@ -319,6 +300,7 @@ const SpeciesConfigsTab: React.FC = () => {
                     removeStage={removeStage}
                     onDeleteSpecies={handleDeleteSpecies}
                     onRenameSpecies={handleRenameSpecies}
+                    refreshStages={() => refreshStagesForSpecies(sp.id)}
                   />
                 </Paper>
               ) : null;
@@ -339,15 +321,8 @@ const SpeciesConfigsTab: React.FC = () => {
                 textAlign: "center",
               }}
             >
-              <SettingsSuggestIcon
-                sx={{ fontSize: 80, color: "#CBD5E1", mb: 2 }}
-              />
-              <Typography
-                sx={{ color: "#94A3B8", fontSize: "1.1rem", maxWidth: 400 }}
-              >
-                Vui lòng chọn một loài từ danh sách bên trái để xem và chỉnh sửa
-                cấu hình.
-              </Typography>
+              <SettingsSuggestIcon sx={{ fontSize: 80, color: "#CBD5E1", mb: 2 }} />
+              <Typography sx={{ color: "#94A3B8", fontSize: "1.1rem", maxWidth: 400 }}>Vui lòng chọn một loài từ danh sách bên trái để xem và chỉnh sửa cấu hình.</Typography>
             </Paper>
           )}
         </Box>
@@ -366,9 +341,7 @@ const SpeciesConfigsTab: React.FC = () => {
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle
-          sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
-        >
+        <DialogTitle sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
           <AddIcon fontSize="small" />
           Thêm loài mới
         </DialogTitle>
@@ -415,10 +388,7 @@ const SpeciesConfigsTab: React.FC = () => {
             slotProps={{ paper: { elevation: 3, sx: { borderRadius: 2 } } }}
           >
             <Box sx={{ p: 2, width: 250 }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 1.5, color: "#475569" }}
-              >
+              <Typography variant="subtitle2" sx={{ mb: 1.5, color: "#475569" }}>
                 Chọn biểu tượng
               </Typography>
 
@@ -436,12 +406,8 @@ const SpeciesConfigsTab: React.FC = () => {
                     <IconButton
                       onClick={() => handleIconSelect(icon)}
                       sx={{
-                        border:
-                          displayIcon === icon
-                            ? "2px solid #2A85FF"
-                            : "2px solid transparent",
-                        bgcolor:
-                          displayIcon === icon ? "#EFF6FF" : "transparent",
+                        border: displayIcon === icon ? "2px solid #2A85FF" : "2px solid transparent",
+                        bgcolor: displayIcon === icon ? "#EFF6FF" : "transparent",
                       }}
                     >
                       {icon}
@@ -478,12 +444,7 @@ const SpeciesConfigsTab: React.FC = () => {
           >
             Hủy
           </Button>
-          <Button
-            onClick={handleCreateSpecies}
-            disabled={creatingSpecies || !newSpeciesName.trim()}
-            variant="contained"
-            startIcon={<AddIcon fontSize="small" />}
-          >
+          <Button onClick={handleCreateSpecies} disabled={creatingSpecies || !newSpeciesName.trim()} variant="contained" startIcon={<AddIcon fontSize="small" />}>
             Tạo loài
           </Button>
         </DialogActions>

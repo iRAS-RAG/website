@@ -2,6 +2,14 @@
 import { apiFetch } from "./client";
 import type { ILatestSensorData } from "../types/realtime";
 
+export type TelemetryPush = {
+  sensorId: string;
+  tankId: string;
+  value: number;
+  timestamp: string;
+  sensorTypeName: string | null;
+};
+
 export const realtimeApi = {
   // Lấy danh sách bể
   getTanks: async () => {
@@ -43,6 +51,13 @@ export const realtimeApi = {
       },
     );
   },
+  getTelemetryWindow: async (tankId: string) => {
+    return await apiFetch<TelemetryPush[]>(
+      `/telemetry/tanks/${tankId}/window`,
+      { method: "GET" },
+    );
+  },
+
   getSensorHistory: async (
     sensorId: string,
     from: string,

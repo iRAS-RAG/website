@@ -1,29 +1,10 @@
-import AddIcon from "@mui/icons-material/Add";
-import {
-  Box,
-  Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from "@mui/material";
-import React, { useState } from "react";
+import { Box, Chip, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import dayjs from "dayjs";
+import React, { useEffect, useState } from "react";
+import { extractArray } from "../../../api/client";
+import { operatorBatchesApi } from "../../../api/operatorBatchesApi";
 import type { Batch, BatchOperationLog } from "../../../types/batch";
-import { useToast } from "../../common/toastContext";
+import type { IOperatorFeedingLog, IOperatorMortalityLog } from "../../../types/operatorBatch";
 
 type Props = {
   batch: Batch;
@@ -31,152 +12,107 @@ type Props = {
   onCreateLog: (log: Omit<BatchOperationLog, "id" | "batchId" | "createdAt">) => Promise<BatchOperationLog | null>;
 };
 
-const operationTypeLabels: Record<BatchOperationLog["operationType"], string> = {
-  feeding: "Cho ăn",
-  sampling: "Lấy mẫu",
-  mortality: "Hao hụt",
-  treatment: "Xử lý",
-  water_change: "Thay nước",
-  other: "Khác",
-};
+const TabOperationsLog: React.FC<Props> = ({ batch }) => {
+  const [feedingLogs, setFeedingLogs] = useState<IOperatorFeedingLog[]>([]);
+  const [mortalityLogs, setMortalityLogs] = useState<IOperatorMortalityLog[]>([]);
 
-const operationTypeColors: Record<BatchOperationLog["operationType"], "default" | "primary" | "error" | "warning" | "info"> = {
-  feeding: "primary",
-  sampling: "info",
-  mortality: "error",
-  treatment: "warning",
-  water_change: "default",
-  other: "default",
-};
-
-const TabOperationsLog: React.FC<Props> = ({ batch, logs, onCreateLog }) => {
-  const toast = useToast();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Form state
-  const [operationType, setOperationType] = useState<BatchOperationLog["operationType"]>("feeding");
-  const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("");
-
-  const handleSubmit = async () => {
-    if (!description.trim()) {
-      toast.error("Mô tả là bắt buộc");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await onCreateLog({
-        operationType,
-        description: description.trim(),
-        quantity: quantity ? parseInt(quantity) : undefined,
-        timestamp: new Date().toISOString(),
-      });
-
-      toast.success("Ghi nhận sự kiện thành công");
-      setDialogOpen(false);
-      setDescription("");
-      setQuantity("");
-      setOperationType("feeding");
-    } catch (error) {
-      console.error("Failed to create log:", error);
-      toast.error("Không thể ghi nhận sự kiện");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!batch?.id) return;
+      try {
+        const [feedRes, mortRes] = await Promise.all([operatorBatchesApi.getFeedingLogs(batch.id).catch(() => []), operatorBatchesApi.getMortalityLogs(batch.id).catch(() => [])]);
+        if (!mounted) return;
+        setFeedingLogs(extractArray(feedRes) as IOperatorFeedingLog[]);
+        setMortalityLogs(extractArray(mortRes) as IOperatorMortalityLog[]);
+      } catch (err) {
+        console.error("Failed to load operator logs:", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [batch?.id]);
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h6" fontWeight={600}>
-          Nhật ký vận hành
+      {/* Feeding History (operator logs) */}
+      <Box sx={{ mt: 2, mb: 4 }}>
+        <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+          Lịch sử Dinh dưỡng
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)} disabled={batch.status !== "ACTIVE"}>
-          Ghi nhận sự kiện
-        </Button>
-      </Box>
-
-      {/* Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Ngày & giờ</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Loại</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Mô tả</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Số lượng</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Người ghi nhận</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {logs.length === 0 ? (
+        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+          <Table size="small">
+            <TableHead sx={{ bgcolor: "action.hover" }}>
               <TableRow>
-                <TableCell colSpan={5} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                    Chưa có sự kiện nào được ghi nhận
-                  </Typography>
+                <TableCell sx={{ fontWeight: 700 }}>Thời gian</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Loại thức ăn</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Khối lượng
                 </TableCell>
               </TableRow>
-            ) : (
-              logs.map((log) => (
-                <TableRow key={log.id} hover>
-                  <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Chip label={operationTypeLabels[log.operationType]} color={operationTypeColors[log.operationType]} size="small" />
+            </TableHead>
+            <TableBody>
+              {feedingLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                    Chưa có dữ liệu.
                   </TableCell>
-                  <TableCell>{log.description}</TableCell>
-                  <TableCell>{log.quantity !== undefined ? log.quantity : "—"}</TableCell>
-                  <TableCell>{log.loggedByName || log.loggedBy || "—"}</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              ) : (
+                feedingLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>{dayjs(log.createdDate).format("DD/MM/YYYY HH:mm")}</TableCell>
+                    <TableCell>
+                      <Chip label={log.feedTypeName || "Đang cập nhật..."} size="small" sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 600, fontSize: "0.7rem", borderRadius: "6px" }} />
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: "success.main" }}>
+                      +{log.amount} kg
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
 
-      {/* Log Event Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ghi nhận sự kiện vận hành</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Loại sự kiện</InputLabel>
-              <Select value={operationType} onChange={(e) => setOperationType(e.target.value as BatchOperationLog["operationType"])} label="Loại sự kiện">
-                {Object.entries(operationTypeLabels).map(([key, label]) => (
-                  <MenuItem key={key} value={key}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <TextField fullWidth label="Mô tả" multiline rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Nhập chi tiết về sự kiện này..." required />
-
-            {operationType === "mortality" && (
-              <TextField
-                fullWidth
-                type="number"
-                label="Số lượng (số con cá)"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                inputProps={{ min: 1 }}
-                helperText="Thông tin này sẽ cập nhật số lượng hiện tại"
-              />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={submitting}>
-            Hủy
-          </Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={submitting}>
-            {submitting ? "Đang lưu..." : "Lưu nhật ký"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Mortality History */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+          Theo dõi Hao hụt
+        </Typography>
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead sx={{ bgcolor: "action.hover" }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Ngày ghi nhận</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Số lượng chết
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {mortalityLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={2} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                    Chưa có dữ liệu.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                mortalityLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>{dayjs(log.date).format("DD/MM/YYYY HH:mm")}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: "error.main" }}>
+                      - {log.quantity} {batch.unitOfMeasure}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
     </Box>
   );
 };

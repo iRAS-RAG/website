@@ -18,10 +18,17 @@ export type Stage = {
   growthStageId?: string;
   configId?: string;
   feedType: string;
+  // Support multiple feed types returned from backend
+  feedTypeIds?: string[];
+  // Order of this stage within the species
+  sequence?: number;
   feedPer100: number; // kg per 100 fishes
   frequencyPerDay: number;
   maxStockingDensity: number; // per cubic meter
   expectedDurationDays: number;
+  // New fields added by API
+  expectedWeightKgPerFish: number;
+  survivalRate: number;
   thresholds: SensorThreshold[];
 };
 
@@ -34,10 +41,13 @@ function defaultStage(name = "Stage 1"): Stage {
     id: generateId(),
     name,
     feedType: "",
+    feedTypeIds: [],
     feedPer100: 0,
     frequencyPerDay: 1,
     maxStockingDensity: 0,
     expectedDurationDays: 0,
+    expectedWeightKgPerFish: 0,
+    survivalRate: 1,
     thresholds: [],
   };
 }
@@ -101,75 +111,67 @@ export default function useSpeciesConfigs() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
-      // SỬA LỖI 3: Thêm comment
-      /* ignore */
+      /* ignore storage quota error */
     }
   }
 
-  function updateStageThreshold(
-    speciesId: string,
-    stageId: string,
-    sensor: string,
-    min: number | null,
-    max: number | null,
-    id?: string,
-  ) {
-    const next = speciesConfigs.map((sp) => {
-      if (sp.id !== speciesId) return sp;
-      return {
-        ...sp,
-        stages: sp.stages.map((st) => {
-          if (st.id !== stageId) return st;
-          const other = st.thresholds.filter((t) => t.sensor !== sensor);
-          other.push({ id, sensor, min, max });
-          return { ...st, thresholds: other };
-        }),
-      };
+  function persistUpdater(updater: (prev: SpeciesConfig[]) => SpeciesConfig[]) {
+    setSpeciesConfigs((prev) => {
+      const next = updater(prev);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore storage quota error */
+      }
+      return next;
     });
-    persist(next);
+  }
+
+  function updateStageThreshold(speciesId: string, stageId: string, sensor: string, min: number | null, max: number | null, id?: string) {
+    persistUpdater((prev) =>
+      prev.map((sp) => {
+        if (sp.id !== speciesId) return sp;
+        return {
+          ...sp,
+          stages: sp.stages.map((st) => {
+            if (st.id !== stageId) return st;
+            const other = st.thresholds.filter((t) => t.sensor !== sensor);
+            other.push({ id, sensor, min, max });
+            return { ...st, thresholds: other };
+          }),
+        };
+      }),
+    );
   }
 
   function addStage(speciesId: string, growthStageId?: string, name?: string) {
-    const next = speciesConfigs.map((sp) => {
-      if (sp.id !== speciesId) return sp;
-      // prevent duplicate growthStageId
-      if (
-        growthStageId &&
-        sp.stages.some((s) => s.growthStageId === growthStageId)
-      )
-        return sp;
-      const st = defaultStage(name);
-      if (growthStageId) st.growthStageId = growthStageId;
-      if (name) st.name = name;
-      return { ...sp, stages: [...sp.stages, st] };
-    });
-    persist(next);
+    persistUpdater((prev) =>
+      prev.map((sp) => {
+        if (sp.id !== speciesId) return sp;
+        // prevent duplicate growthStageId
+        if (growthStageId && sp.stages.some((s) => s.growthStageId === growthStageId)) return sp;
+        const st = defaultStage(name);
+        if (growthStageId) st.growthStageId = growthStageId;
+        if (name) st.name = name;
+        return { ...sp, stages: [...sp.stages, st] };
+      }),
+    );
   }
 
-  function updateStage(
-    speciesId: string,
-    stageId: string,
-    patch: Partial<Stage>,
-  ) {
-    const next = speciesConfigs.map((sp) => {
-      if (sp.id !== speciesId) return sp;
-      return {
-        ...sp,
-        stages: sp.stages.map((st) =>
-          st.id === stageId ? { ...st, ...patch } : st,
-        ),
-      };
-    });
-    persist(next);
+  function updateStage(speciesId: string, stageId: string, patch: Partial<Stage>) {
+    persistUpdater((prev) =>
+      prev.map((sp) => {
+        if (sp.id !== speciesId) return sp;
+        return {
+          ...sp,
+          stages: sp.stages.map((st) => (st.id === stageId ? { ...st, ...patch } : st)),
+        };
+      }),
+    );
   }
 
   function removeStage(speciesId: string, stageId: string) {
-    const next = speciesConfigs.map((sp) =>
-      sp.id === speciesId
-        ? { ...sp, stages: sp.stages.filter((s) => s.id !== stageId) }
-        : sp,
-    );
-    persist(next);
+    persistUpdater((prev) => prev.map((sp) => (sp.id === speciesId ? { ...sp, stages: sp.stages.filter((s) => s.id !== stageId) } : sp)));
   }
 
   return {

@@ -1,11 +1,32 @@
 export type BatchStatus = "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED";
 
+export type PlannedStage = {
+  id: string;
+  sequence: number;
+  speciesStageConfigId?: string;
+  growthStageId?: string;
+  stageName: string;
+  expectedDurationDays?: number;
+  estimatedStartDate?: string;
+  estimatedEndDate?: string;
+  actualStartDate?: string;
+  actualEndDate?: string;
+  amountPer100Fish?: number;
+  frequencyPerDay?: number;
+  maxStockingDensity?: number;
+  feedTypeNames?: string[];
+  expectedWeightKgPerFish?: number;
+  survivalRate?: number; // fraction 0-1 or null
+};
+
 export type Batch = {
   id: string;
   name: string;
   fishTankId: string;
   fishTankName?: string;
+  tankVolume?: number;
   speciesStageConfigId: string;
+  plannedStages?: PlannedStage[];
   speciesId?: string;
   speciesName?: string;
   growthStageId?: string;
@@ -18,6 +39,8 @@ export type Batch = {
   initialQuantity: number;
   currentQuantity?: number;
   unitOfMeasure: string;
+  estimatedHarvestCount?: number;
+  estimatedHarvestWeightKg?: number;
   survivalRate?: number; // percentage (calculated client-side)
   createdAt?: string;
   modifiedAt?: string | null;
@@ -26,13 +49,7 @@ export type Batch = {
 export type BatchOperationLog = {
   id: string;
   batchId: string;
-  operationType:
-    | "feeding"
-    | "sampling"
-    | "mortality"
-    | "treatment"
-    | "water_change"
-    | "other";
+  operationType: "feeding" | "sampling" | "mortality" | "treatment" | "water_change" | "other";
   description: string;
   quantity?: number; // for mortality events
   loggedBy?: string;
@@ -54,17 +71,15 @@ export type BatchPerformance = {
 export type CreateBatchPayload = {
   fishTankId: string;
   name: string;
-  speciesStageConfigId: string;
+  speciesId: string;
   startDate: string;
-  estimatedHarvestDate: string;
   initialQuantity: number;
   unitOfMeasure: string;
 };
 
 export type HarvestBatchPayload = {
-  actualHarvestDate: string;
-  finalQuantity: number;
-  notes?: string;
+  harvestDate: string; // ISO date-time string
+  force?: boolean; // allow forcing early harvest
 };
 
 export type BatchComparison = {

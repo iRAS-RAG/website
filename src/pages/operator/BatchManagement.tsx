@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -15,20 +16,19 @@ import {
   Select,
   Stack,
   Tab,
-  Tabs,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
   TextField,
   Typography,
   useTheme,
-  CircularProgress,
 } from "@mui/material";
-import { useState, type ReactNode } from "react";
 import dayjs from "dayjs";
+import { useState, type ReactNode } from "react";
 
 // Icons
 import AddIcon from "@mui/icons-material/Add";
@@ -38,16 +38,15 @@ import SetMealIcon from "@mui/icons-material/SetMeal";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import WarningIcon from "@mui/icons-material/Warning";
-import CakeIcon from "@mui/icons-material/Cake";
 import WaterIcon from "@mui/icons-material/Water";
 
-import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useToast } from "../../components/common/toastContext";
+import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // API & HOOK
-import { useOperatorBatches } from "../../hooks/useOperatorBatches";
-import { operatorBatchesApi } from "../../api/operatorBatchesApi";
 import { isApiError } from "../../api/client";
+import { operatorBatchesApi } from "../../api/operatorBatchesApi";
+import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
 const isBatchActive = (status: unknown) => {
@@ -58,21 +57,7 @@ const BatchManagement = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const {
-    batches,
-    selectedBatch,
-    setSelectedBatch,
-    feedingLogs,
-    mortalityLogs,
-    feedTypes,
-    totalFeed,
-    totalDead,
-    ageDays,
-    survivalRate,
-    loading,
-    refetch,
-    refetchDetails,
-  } = useOperatorBatches();
+  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, loading, refetch, refetchDetails } = useOperatorBatches();
 
   const [tabValue, setTabValue] = useState(0);
 
@@ -91,11 +76,7 @@ const BatchManagement = () => {
     if (!selectedBatch) return;
 
     try {
-      await operatorBatchesApi.recordFeeding(
-        selectedBatch.id,
-        parseFloat(feedInput),
-        feedTypeIdInput,
-      );
+      await operatorBatchesApi.recordFeeding(selectedBatch.id, parseFloat(feedInput), feedTypeIdInput);
       setOpenFeedDialog(false);
       setFeedInput("");
       setFeedTypeIdInput("");
@@ -105,9 +86,7 @@ const BatchManagement = () => {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        toast.error(
-          errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.",
-        );
+        toast.error(errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.");
       } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
@@ -126,11 +105,7 @@ const BatchManagement = () => {
     const deathCount = parseFloat(deathInput);
 
     try {
-      await operatorBatchesApi.logMortality(
-        selectedBatch.id,
-        deathCount,
-        new Date().toISOString(),
-      );
+      await operatorBatchesApi.logMortality(selectedBatch.id, deathCount, new Date().toISOString());
 
       setOpenDeathDialog(false);
       setDeathInput("");
@@ -143,9 +118,7 @@ const BatchManagement = () => {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        toast.error(
-          errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.",
-        );
+        toast.error(errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.");
       } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
@@ -189,22 +162,12 @@ const BatchManagement = () => {
             height: "100vh",
           }}
         >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 600, color: theme.palette.text.primary }}
-              >
+              <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
                 Quản lý Lô nuôi
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
-              >
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
                 Theo dõi sinh trưởng, dinh dưỡng và vận hành của từng lô.
               </Typography>
             </Box>
@@ -245,12 +208,7 @@ const BatchManagement = () => {
               <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
                 <Stack spacing={2}>
                   {batches.map((batch) => (
-                    <BatchListItem
-                      key={batch.id}
-                      data={batch}
-                      selected={selectedBatch?.id === batch.id}
-                      onClick={() => setSelectedBatch(batch)}
-                    />
+                    <BatchListItem key={batch.id} data={batch} selected={selectedBatch?.id === batch.id} onClick={() => setSelectedBatch(batch)} />
                   ))}
                 </Stack>
               </Box>
@@ -277,11 +235,7 @@ const BatchManagement = () => {
                       borderBottom: `1px solid ${theme.palette.divider}`,
                     }}
                   >
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="flex-start"
-                    >
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box>
                         <Typography
                           variant="h5"
@@ -299,29 +253,15 @@ const BatchManagement = () => {
                             fontWeight: 500,
                           }}
                         >
-                          Ngày thả giống:{" "}
-                          {dayjs(selectedBatch.startDate).format("DD/MM/YYYY")}
+                          Ngày thả giống: {dayjs(selectedBatch.startDate).format("DD/MM/YYYY")}
                         </Typography>
                       </Box>
                     </Stack>
 
-                    <Tabs
-                      value={tabValue}
-                      onChange={(_, v) => setTabValue(v)}
-                      sx={{ mt: 2 }}
-                    >
-                      <Tab
-                        label="Tổng quan"
-                        sx={{ textTransform: "none", fontWeight: 600 }}
-                      />
-                      <Tab
-                        label="Lịch sử cho ăn"
-                        sx={{ textTransform: "none", fontWeight: 600 }}
-                      />
-                      <Tab
-                        label="Ghi nhận hao hụt"
-                        sx={{ textTransform: "none", fontWeight: 600 }}
-                      />
+                    <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mt: 2 }}>
+                      <Tab label="Tổng quan" sx={{ textTransform: "none", fontWeight: 600 }} />
+                      <Tab label="Lịch sử cho ăn" sx={{ textTransform: "none", fontWeight: 600 }} />
+                      <Tab label="Ghi nhận hao hụt" sx={{ textTransform: "none", fontWeight: 600 }} />
                     </Tabs>
                   </Box>
 
@@ -343,60 +283,58 @@ const BatchManagement = () => {
                           <Box
                             sx={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gridTemplateColumns: "repeat(4, 1fr)",
                               gap: 2,
                             }}
                           >
                             <KPICard
-                              icon={
-                                <CakeIcon
-                                  sx={{ color: theme.palette.info.main }}
-                                />
-                              }
-                              label="Ngày tuổi"
-                              value={`${ageDays} ngày`}
-                              desc="Kể từ lúc thả giống"
-                            />
-                            <KPICard
-                              icon={
-                                <WaterIcon
-                                  sx={{ color: theme.palette.primary.main }}
-                                />
-                              }
+                              icon={<WaterIcon sx={{ color: theme.palette.primary.main }} />}
                               label="Dung tích bể"
-                              value={
-                                selectedBatch.tankVolume
-                                  ? `${selectedBatch.tankVolume} m³`
-                                  : "-- m³"
-                              }
+                              value={selectedBatch.tankVolume ? `${selectedBatch.tankVolume} m³` : "-- m³"}
                               desc={selectedBatch.fishTankName}
                             />
+                            {/* Initial / Current / Net / Estimated Survival */}
                             <KPICard
-                              icon={
-                                <Inventory2OutlinedIcon
-                                  sx={{ color: theme.palette.secondary.main }}
-                                />
-                              }
-                              label="Số lượng hiện tại / Ban đầu"
-                              value={`${selectedBatch.currentQuantity} / ${selectedBatch.initialQuantity}`}
-                              desc={`Tỷ lệ sống: ${survivalRate}%`}
+                              icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />}
+                              label="Số lượng ban đầu"
+                              value={`${selectedBatch.initialQuantity ?? 0}`}
+                              desc="Số lượng lúc thả giống"
                             />
                             <KPICard
-                              icon={
-                                <SetMealIcon
-                                  sx={{ color: theme.palette.success.main }}
-                                />
-                              }
-                              label="Tổng lượng cám tiêu thụ"
-                              value={`${totalFeed.toFixed(1)} kg`}
-                              desc="Hiệu suất tiêu thụ"
+                              icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />}
+                              label="Số lượng hiện tại"
+                              value={`${selectedBatch.currentQuantity ?? 0}`}
+                              desc={`Đơn vị: ${selectedBatch.unitOfMeasure}`}
                             />
                             <KPICard
-                              icon={
-                                <TrendingDownIcon
-                                  sx={{ color: theme.palette.error.main }}
-                                />
+                              icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
+                              label="Biến động"
+                              value={`${(selectedBatch.currentQuantity ?? 0) - (selectedBatch.initialQuantity ?? 0) >= 0 ? "+" : ""}${(selectedBatch.currentQuantity ?? 0) - (selectedBatch.initialQuantity ?? 0)}`}
+                              desc={
+                                selectedBatch.initialQuantity && selectedBatch.initialQuantity > 0
+                                  ? `${(((selectedBatch.currentQuantity ?? 0) / selectedBatch.initialQuantity - 1) * 100).toFixed(1)}% so với ban đầu`
+                                  : "—"
                               }
+                            />
+                            <KPICard
+                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
+                              label="Tỷ lệ sống dự kiến (thu hoạch)"
+                              value={
+                                selectedBatch.estimatedHarvestCount != null && selectedBatch.initialQuantity
+                                  ? `${((selectedBatch.estimatedHarvestCount / selectedBatch.initialQuantity) * 100).toFixed(1)}%`
+                                  : "—"
+                              }
+                              desc={selectedBatch.estimatedHarvestCount != null ? `Dự kiến số: ${selectedBatch.estimatedHarvestCount}` : ""}
+                            />
+                            <KPICard
+                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
+                              label="Dự kiến thu hoạch"
+                              value={selectedBatch.estimatedHarvestCount != null ? `${selectedBatch.estimatedHarvestCount}` : "—"}
+                              desc={selectedBatch.estimatedHarvestWeightKg != null ? `Tổng trọng lượng: ${selectedBatch.estimatedHarvestWeightKg.toFixed(2)} kg` : ""}
+                            />
+                            <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
+                            <KPICard
+                              icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
                               label="Tổng hao hụt (Cá chết)"
                               value={`${totalDead} ${selectedBatch.unitOfMeasure}`}
                               desc="Số lượng"
@@ -409,15 +347,8 @@ const BatchManagement = () => {
                     {/* TAB LỊCH SỬ CHO ĂN */}
                     {tabValue === 1 && (
                       <Stack spacing={2}>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                        >
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                             Lịch sử Dinh dưỡng
                           </Typography>
                           <Button
@@ -431,26 +362,13 @@ const BatchManagement = () => {
                             Ghi nhận cho ăn
                           </Button>
                         </Stack>
-                        <TableContainer
-                          component={Paper}
-                          variant="outlined"
-                          sx={{ borderRadius: "8px" }}
-                        >
+                        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "8px" }}>
                           <Table size="small">
-                            <TableHead
-                              sx={{ bgcolor: theme.palette.action.hover }}
-                            >
+                            <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 600 }}>
-                                  Thời gian
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>
-                                  Loại thức ăn
-                                </TableCell>
-                                <TableCell
-                                  align="right"
-                                  sx={{ fontWeight: 600 }}
-                                >
+                                <TableCell sx={{ fontWeight: 600 }}>Thời gian</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>Loại thức ăn</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600 }}>
                                   Khối lượng
                                 </TableCell>
                               </TableRow>
@@ -458,27 +376,17 @@ const BatchManagement = () => {
                             <TableBody>
                               {feedingLogs.length === 0 ? (
                                 <TableRow>
-                                  <TableCell
-                                    colSpan={4}
-                                    align="center"
-                                    sx={{ py: 3, color: "text.secondary" }}
-                                  >
+                                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary" }}>
                                     Chưa có dữ liệu.
                                   </TableCell>
                                 </TableRow>
                               ) : (
                                 feedingLogs.map((log) => (
                                   <TableRow key={log.id}>
-                                    <TableCell>
-                                      {dayjs(log.createdDate).format(
-                                        "DD/MM/YYYY HH:mm",
-                                      )}
-                                    </TableCell>
+                                    <TableCell>{dayjs(log.createdDate).format("DD/MM/YYYY HH:mm")}</TableCell>
                                     <TableCell>
                                       <Chip
-                                        label={
-                                          log.feedTypeName || "Đang cập nhật..."
-                                        }
+                                        label={log.feedTypeName || "Đang cập nhật..."}
                                         size="small"
                                         sx={{
                                           bgcolor: "#F1F5F9",
@@ -510,15 +418,8 @@ const BatchManagement = () => {
                     {/* TAB GHI NHẬN HAO HỤT */}
                     {tabValue === 2 && (
                       <Stack spacing={2}>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="center"
-                        >
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                             Theo dõi Hao hụt
                           </Typography>
                           <Button
@@ -533,23 +434,12 @@ const BatchManagement = () => {
                             Báo cáo cá chết
                           </Button>
                         </Stack>
-                        <TableContainer
-                          component={Paper}
-                          variant="outlined"
-                          sx={{ borderRadius: "8px" }}
-                        >
+                        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "8px" }}>
                           <Table size="small">
-                            <TableHead
-                              sx={{ bgcolor: theme.palette.action.hover }}
-                            >
+                            <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 600 }}>
-                                  Ngày ghi nhận
-                                </TableCell>
-                                <TableCell
-                                  align="right"
-                                  sx={{ fontWeight: 600 }}
-                                >
+                                <TableCell sx={{ fontWeight: 600 }}>Ngày ghi nhận</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600 }}>
                                   Số lượng chết
                                 </TableCell>
                               </TableRow>
@@ -557,22 +447,14 @@ const BatchManagement = () => {
                             <TableBody>
                               {mortalityLogs.length === 0 ? (
                                 <TableRow>
-                                  <TableCell
-                                    colSpan={3}
-                                    align="center"
-                                    sx={{ py: 3, color: "text.secondary" }}
-                                  >
+                                  <TableCell colSpan={3} align="center" sx={{ py: 3, color: "text.secondary" }}>
                                     Chưa có dữ liệu.
                                   </TableCell>
                                 </TableRow>
                               ) : (
                                 mortalityLogs.map((log) => (
                                   <TableRow key={log.id}>
-                                    <TableCell>
-                                      {dayjs(log.date).format(
-                                        "DD/MM/YYYY HH:mm",
-                                      )}
-                                    </TableCell>
+                                    <TableCell>{dayjs(log.date).format("DD/MM/YYYY HH:mm")}</TableCell>
                                     <TableCell
                                       align="right"
                                       sx={{
@@ -580,8 +462,7 @@ const BatchManagement = () => {
                                         color: theme.palette.error.main,
                                       }}
                                     >
-                                      - {log.quantity}{" "}
-                                      {selectedBatch.unitOfMeasure}
+                                      - {log.quantity} {selectedBatch.unitOfMeasure}
                                     </TableCell>
                                   </TableRow>
                                 ))
@@ -600,24 +481,12 @@ const BatchManagement = () => {
       </Box>
 
       {/* DIALOG CHO ĂN */}
-      <Dialog
-        open={openFeedDialog}
-        onClose={() => setOpenFeedDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
+      <Dialog open={openFeedDialog} onClose={() => setOpenFeedDialog(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Ghi nhận cho ăn</DialogTitle>
-        <DialogContent
-          dividers
-          sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}
-        >
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           <FormControl fullWidth size="small">
             <InputLabel>Loại thức ăn</InputLabel>
-            <Select
-              value={feedTypeIdInput}
-              label="Loại thức ăn"
-              onChange={(e) => setFeedTypeIdInput(e.target.value)}
-            >
+            <Select value={feedTypeIdInput} label="Loại thức ăn" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
               {feedTypes.length === 0 ? (
                 <MenuItem disabled value="">
                   Đang tải dữ liệu...
@@ -646,59 +515,33 @@ const BatchManagement = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setOpenFeedDialog(false)}>Hủy</Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveFeeding}
-            sx={{ boxShadow: "none" }}
-          >
+          <Button variant="contained" onClick={handleSaveFeeding} sx={{ boxShadow: "none" }}>
             Lưu dữ liệu
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* DIALOG CÁ CHẾT */}
-      <Dialog
-        open={openDeathDialog}
-        onClose={() => setOpenDeathDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.error.main }}>
-          Báo cáo hao hụt (Cá chết)
-        </DialogTitle>
-        <DialogContent
-          dividers
-          sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
-        >
+      <Dialog open={openDeathDialog} onClose={() => setOpenDeathDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.error.main }}>Báo cáo hao hụt (Cá chết)</DialogTitle>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
           <TextField
             fullWidth
             size="small"
             label="Số lượng chết"
             type="number"
             InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  {selectedBatch?.unitOfMeasure}
-                </InputAdornment>
-              ),
+              endAdornment: <InputAdornment position="end">{selectedBatch?.unitOfMeasure}</InputAdornment>,
             }}
             value={deathInput}
             onChange={(e) => setDeathInput(e.target.value)}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button
-            onClick={() => setOpenDeathDialog(false)}
-            sx={{ color: theme.palette.text.secondary }}
-          >
+          <Button onClick={() => setOpenDeathDialog(false)} sx={{ color: theme.palette.text.secondary }}>
             Hủy
           </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleSaveMortality}
-            sx={{ boxShadow: "none" }}
-          >
+          <Button variant="contained" color="error" onClick={handleSaveMortality} sx={{ boxShadow: "none" }}>
             Lưu báo cáo
           </Button>
         </DialogActions>
@@ -708,15 +551,7 @@ const BatchManagement = () => {
 };
 
 // --- CÁC COMPONENT PHỤ ---
-const BatchListItem = ({
-  data,
-  selected,
-  onClick,
-}: {
-  data: IOperatorFarmingBatch;
-  selected: boolean;
-  onClick: () => void;
-}) => {
+const BatchListItem = ({ data, selected, onClick }: { data: IOperatorFarmingBatch; selected: boolean; onClick: () => void }) => {
   const theme = useTheme();
   let statusLabel = "";
   let statusColor = "";
@@ -742,12 +577,8 @@ const BatchListItem = ({
     statusBg = theme.palette.error.light;
   }
 
-  const borderColor = selected
-    ? theme.palette.primary.main
-    : theme.palette.divider;
-  const bgColor = selected
-    ? alpha(theme.palette.primary.main, 0.08)
-    : theme.palette.background.paper;
+  const borderColor = selected ? theme.palette.primary.main : theme.palette.divider;
+  const bgColor = selected ? alpha(theme.palette.primary.main, 0.08) : theme.palette.background.paper;
 
   return (
     <Paper
@@ -763,12 +594,7 @@ const BatchListItem = ({
         "&:hover": { borderColor: theme.palette.primary.main },
       }}
     >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        mb={1.5}
-        alignItems="flex-start"
-      >
+      <Stack direction="row" justifyContent="space-between" mb={1.5} alignItems="flex-start">
         <Box>
           <Typography
             variant="subtitle1"
@@ -808,24 +634,14 @@ const BatchListItem = ({
       </Stack>
       <Stack spacing={0.5}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <SetMealIcon
-            sx={{ fontSize: 16, color: theme.palette.text.secondary }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: "0.8rem", fontWeight: 500 }}
-          >
+          <SetMealIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} />
+          <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 500 }}>
             Loài: {data.speciesName}
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <TimelineIcon
-            sx={{ fontSize: 16, color: theme.palette.text.secondary }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: "0.8rem", fontWeight: 500 }}
-          >
+          <TimelineIcon sx={{ fontSize: 16, color: theme.palette.text.secondary }} />
+          <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 500 }}>
             Giai đoạn: {data.stageName}
           </Typography>
         </Stack>
@@ -834,17 +650,7 @@ const BatchListItem = ({
   );
 };
 
-const KPICard = ({
-  icon,
-  label,
-  value,
-  desc,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  desc: string;
-}) => {
+const KPICard = ({ icon, label, value, desc }: { icon: ReactNode; label: string; value: string; desc: string }) => {
   const theme = useTheme();
   return (
     <Paper
@@ -860,23 +666,14 @@ const KPICard = ({
     >
       <Stack direction="row" alignItems="center" spacing={1}>
         {icon}
-        <Typography
-          variant="caption"
-          sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}
-        >
+        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
           {label}
         </Typography>
       </Stack>
-      <Typography
-        variant="h6"
-        sx={{ fontWeight: 700, color: theme.palette.text.primary }}
-      >
+      <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
         {value}
       </Typography>
-      <Typography
-        variant="caption"
-        sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
-      >
+      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
         {desc}
       </Typography>
     </Paper>
