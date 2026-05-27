@@ -3,20 +3,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import LabelIcon from "@mui/icons-material/Label";
 import PinDropIcon from "@mui/icons-material/PinDrop";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
 import useControlDeviceTypes from "../../../hooks/useControlDeviceTypes";
@@ -29,41 +16,17 @@ import { ControlDeviceTypeDialog } from "./TypeDialogs";
 const ControlDeviceFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: {
-    name: string;
-    pinCode?: number;
-    masterBoardId?: string | null;
-    controlDeviceTypeId?: string | null;
-    state?: boolean;
-    commandOn?: string;
-    commandOff?: string;
-  }) => Promise<void>;
+  onSave: (v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeId?: string | null; state?: boolean; commandOn?: string; commandOff?: string }) => Promise<void>;
   initial: ControlDevice | null;
   defaultMasterBoardId?: string | null;
   existingControls?: ControlDevice[]; // ĐÃ THÊM PROP NÀY
-}> = ({
-  open,
-  onClose,
-  onSave,
-  initial,
-  defaultMasterBoardId,
-  existingControls,
-}) => {
+}> = ({ open, onClose, onSave, initial, defaultMasterBoardId, existingControls }) => {
   const [name, setName] = useState(initial?.name ?? "");
-  const [pinCode, setPinCode] = useState(
-    initial?.pinCode != null ? String(initial.pinCode) : "",
-  );
-  const [controlDeviceTypeId, setControlDeviceTypeId] = useState<string | null>(
-    null,
-  );
+  const [pinCode, setPinCode] = useState(initial?.pinCode != null ? String(initial.pinCode) : "");
+  const [controlDeviceTypeId, setControlDeviceTypeId] = useState<string | null>(null);
   const [commandOn, setCommandOn] = useState(initial?.commandOn ?? "");
   const [commandOff, setCommandOff] = useState(initial?.commandOff ?? "");
-  const {
-    items: controlDeviceTypes,
-    createItem: createControlDeviceType,
-    updateItem: updateControlDeviceType,
-    deleteItem: deleteControlDeviceType,
-  } = useControlDeviceTypes();
+  const { items: controlDeviceTypes, createItem: createControlDeviceType, updateItem: updateControlDeviceType, deleteItem: deleteControlDeviceType } = useControlDeviceTypes();
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -76,9 +39,7 @@ const ControlDeviceFormDialog: React.FC<{
     setPinCode(initial?.pinCode != null ? String(initial.pinCode) : "");
     if (initial) {
       const byId = initial.controlDeviceTypeId ?? null;
-      const byName =
-        controlDeviceTypes.find((t) => t.name === initial.controlDeviceTypeName)
-          ?.id ?? null;
+      const byName = controlDeviceTypes.find((t) => t.name === initial.controlDeviceTypeName)?.id ?? null;
       setControlDeviceTypeId(byId ?? byName);
     } else {
       setControlDeviceTypeId(null);
@@ -92,11 +53,7 @@ const ControlDeviceFormDialog: React.FC<{
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth>
-        <DialogTitle>
-          {initial
-            ? "Chỉnh sửa thiết bị điều khiển"
-            : "Thêm thiết bị điều khiển"}
-        </DialogTitle>
+        <DialogTitle>{initial ? "Chỉnh sửa thiết bị điều khiển" : "Thêm thiết bị điều khiển"}</DialogTitle>
         <DialogContent>
           {formError && (
             <Typography color="error" sx={{ mb: 1 }}>
@@ -104,25 +61,27 @@ const ControlDeviceFormDialog: React.FC<{
             </Typography>
           )}
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label={
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <LabelIcon fontSize="small" />
-                  Tên
-                </span>
-              }
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              fullWidth
-              error={Boolean(fieldErrors.name)}
-              helperText={fieldErrors.name}
-            />
+            {initial ? (
+              <TextField
+                label={
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <LabelIcon fontSize="small" />
+                    Tên
+                  </span>
+                }
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                fullWidth
+                error={Boolean(fieldErrors.name)}
+                helperText={fieldErrors.name}
+              />
+            ) : null}
             <TextField
               label={
                 <span
@@ -171,20 +130,12 @@ const ControlDeviceFormDialog: React.FC<{
                 ))}
               </TextField>
               <Tooltip title="Thêm loại thiết bị mới">
-                <IconButton
-                  onClick={() => setCreateTypeDialogOpen(true)}
-                  size="small"
-                  sx={{ mt: 1, color: "primary.main" }}
-                >
+                <IconButton onClick={() => setCreateTypeDialogOpen(true)} size="small" sx={{ mt: 1, color: "primary.main" }}>
                   <AddIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Quản lý loại">
-                <IconButton
-                  onClick={() => setManageDialogOpen(true)}
-                  size="small"
-                  sx={{ mt: 1, color: "text.primary" }}
-                >
+                <IconButton onClick={() => setManageDialogOpen(true)} size="small" sx={{ mt: 1, color: "text.primary" }}>
                   <ListIcon />
                 </IconButton>
               </Tooltip>
@@ -239,33 +190,17 @@ const ControlDeviceFormDialog: React.FC<{
           <Button
             onClick={async () => {
               // --- VALIDATE FRONTEND CHỐNG TRÙNG LẶP ---
-              const currentBoardId =
-                defaultMasterBoardId || initial?.masterBoardId;
+              const currentBoardId = defaultMasterBoardId || initial?.masterBoardId;
               if (existingControls && currentBoardId) {
-                const isDuplicateName = existingControls.some(
-                  (c) =>
-                    c.masterBoardId === currentBoardId &&
-                    c.id !== initial?.id &&
-                    c.name.trim().toLowerCase() === name.trim().toLowerCase(),
-                );
+                const isDuplicateName = existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.name.trim().toLowerCase() === name.trim().toLowerCase());
 
                 const isDuplicateType =
-                  controlDeviceTypeId &&
-                  existingControls.some(
-                    (c) =>
-                      c.masterBoardId === currentBoardId &&
-                      c.id !== initial?.id &&
-                      c.controlDeviceTypeId === controlDeviceTypeId,
-                  );
+                  controlDeviceTypeId && existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.controlDeviceTypeId === controlDeviceTypeId);
 
                 if (isDuplicateName || isDuplicateType) {
                   const newErrs: Record<string, string> = {};
-                  if (isDuplicateName)
-                    newErrs.name =
-                      "Tên thiết bị đã tồn tại trên bảng mạch này.";
-                  if (isDuplicateType)
-                    newErrs.controlDeviceTypeId =
-                      "Loại thiết bị này đã tồn tại trên bảng mạch này.";
+                  if (isDuplicateName) newErrs.name = "Tên thiết bị đã tồn tại trên bảng mạch này.";
+                  if (isDuplicateType) newErrs.controlDeviceTypeId = "Loại thiết bị này đã tồn tại trên bảng mạch này.";
                   setFieldErrors(newErrs);
                   return; // Chặn gọi API
                 }
@@ -276,7 +211,7 @@ const ControlDeviceFormDialog: React.FC<{
               setFieldErrors({});
               try {
                 await onSave({
-                  name,
+                  name: initial ? name : "Thiết bị điều khiển (tự động)",
                   pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
                   masterBoardId: defaultMasterBoardId ?? undefined,
                   controlDeviceTypeId: controlDeviceTypeId ?? undefined,
@@ -286,9 +221,7 @@ const ControlDeviceFormDialog: React.FC<{
                 });
               } catch (e) {
                 const err = e as ApiError;
-                const errorData = err?.data as
-                  | Record<string, unknown>
-                  | undefined;
+                const errorData = err?.data as Record<string, unknown> | undefined;
 
                 if (errorData?.errors) {
                   const errs = errorData.errors as Record<string, string[]>;
@@ -298,42 +231,30 @@ const ControlDeviceFormDialog: React.FC<{
                     const msg = errs[k].join(" ");
                     if (key.includes("pin")) mapped.pinCode = msg;
                     else if (key.includes("name")) mapped.name = msg;
-                    else if (key.includes("type"))
-                      mapped.controlDeviceTypeId = msg;
+                    else if (key.includes("type")) mapped.controlDeviceTypeId = msg;
                     else mapped[k] = msg;
                   }
                   setFieldErrors(mapped);
-                } else if (
-                  errorData?.message &&
-                  typeof errorData.message === "string"
-                ) {
+                } else if (errorData?.message && typeof errorData.message === "string") {
                   const apiMessage = errorData.message;
                   const lowerMsg = apiMessage.toLowerCase();
 
-                  if (
-                    lowerMsg.includes("mã chân") ||
-                    lowerMsg.includes("pin")
-                  ) {
+                  if (lowerMsg.includes("mã chân") || lowerMsg.includes("pin")) {
                     setFieldErrors({ pinCode: apiMessage });
-                  } else if (
-                    lowerMsg.includes("tên") ||
-                    lowerMsg.includes("name")
-                  ) {
+                  } else if (lowerMsg.includes("tên") || lowerMsg.includes("name")) {
                     setFieldErrors({ name: apiMessage });
                   } else {
                     setFormError(apiMessage);
                   }
                 } else {
-                  setFormError(
-                    (err && err.message) || String(e) || "Lưu thất bại",
-                  );
+                  setFormError((err && err.message) || String(e) || "Lưu thất bại");
                 }
               } finally {
                 setSaving(false);
               }
             }}
             variant="contained"
-            disabled={!name || saving}
+            disabled={saving || (initial ? !name : false)}
           >
             Lưu
           </Button>
@@ -351,10 +272,7 @@ const ControlDeviceFormDialog: React.FC<{
         existingNames={controlDeviceTypes.map((t) => t.name)}
       />
 
-      <ManageTypesDialog<
-        ControlDeviceType,
-        Partial<{ name: string; description?: string }>
-      >
+      <ManageTypesDialog<ControlDeviceType, Partial<{ name: string; description?: string }>>
         open={manageDialogOpen}
         onClose={() => setManageDialogOpen(false)}
         title="Quản lý loại thiết bị"
@@ -366,9 +284,7 @@ const ControlDeviceFormDialog: React.FC<{
         onDeleted={(id) => {
           if (controlDeviceTypeId === id) {
             setControlDeviceTypeId(null);
-            toast.info(
-              "Loại vừa xóa đã được bỏ chọn. Vui lòng chọn loại khác.",
-            );
+            toast.info("Loại vừa xóa đã được bỏ chọn. Vui lòng chọn loại khác.");
           }
         }}
       />

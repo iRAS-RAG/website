@@ -3,17 +3,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PinDropIcon from "@mui/icons-material/PinDrop";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SettingsPowerIcon from "@mui/icons-material/SettingsPower";
-import {
-  Box,
-  Button,
-  Chip,
-  Divider,
-  Paper,
-  Switch,
-  Typography,
-  alpha,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, Chip, Divider, Paper, Switch, Typography, alpha, useTheme } from "@mui/material";
 import type { ControlDevice } from "../../../types/control-device";
 
 type Props = {
@@ -23,12 +13,7 @@ type Props = {
   onToggleState: (c: ControlDevice, newState: boolean) => void;
 };
 
-export default function ControlDeviceDetail({
-  control,
-  onEdit,
-  onDelete,
-  onToggleState,
-}: Props) {
+export default function ControlDeviceDetail({ control, onEdit, onDelete, onToggleState }: Props) {
   const theme = useTheme();
   const isOn = control.state ?? false;
 
@@ -45,10 +30,7 @@ export default function ControlDeviceDetail({
       >
         <Box>
           {/* Đưa Loại thiết bị lên làm Tiêu đề chính */}
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}
-          >
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
             {control.controlDeviceTypeName || "Thiết bị chưa phân loại"}
           </Typography>
 
@@ -63,32 +45,13 @@ export default function ControlDeviceDetail({
                 bgcolor: "action.hover",
               }}
             />
-            {/* Tên định danh bị hạ cấp xuống thành Text phụ */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontWeight: 500 }}
-            >
-              {control.name}
-            </Typography>
           </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => onEdit(control)}
-          >
+          <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(control)}>
             Sửa
           </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={() => onDelete(control)}
-          >
+          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(control)}>
             Xóa
           </Button>
         </Box>
@@ -117,20 +80,14 @@ export default function ControlDeviceDetail({
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            bgcolor: isOn
-              ? alpha(theme.palette.success.main, 0.05)
-              : alpha(theme.palette.action.disabled, 0.05),
+            bgcolor: isOn ? alpha(theme.palette.success.main, 0.05) : alpha(theme.palette.action.disabled, 0.05),
             borderColor: isOn ? "success.light" : "divider",
             gridColumn: { xs: "1 / -1", sm: "1 / 3", md: "1 / 2" },
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <SettingsPowerIcon color={isOn ? "success" : "action"} />
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
-              sx={{ fontWeight: 600, letterSpacing: 0.5 }}
-            >
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
               TRẠNG THÁI
             </Typography>
           </Box>
@@ -141,19 +98,10 @@ export default function ControlDeviceDetail({
               justifyContent: "space-between",
             }}
           >
-            <Typography
-              variant="h6"
-              color={isOn ? "success.main" : "text.secondary"}
-              sx={{ fontWeight: 700 }}
-            >
+            <Typography variant="h6" color={isOn ? "success.main" : "text.secondary"} sx={{ fontWeight: 700 }}>
               {isOn ? "ĐANG BẬT" : "ĐANG TẮT"}
             </Typography>
-            <Switch
-              checked={isOn}
-              onChange={(e) => onToggleState(control, e.target.checked)}
-              color="success"
-              sx={{ transform: "scale(1.2)" }}
-            />
+            <Switch checked={isOn} onChange={(e) => onToggleState(control, e.target.checked)} color="success" sx={{ transform: "scale(1.2)" }} />
           </Box>
         </Paper>
 
@@ -174,20 +122,13 @@ export default function ControlDeviceDetail({
             <PinDropIcon fontSize="small" />
             CỔNG KẾT NỐI (PIN)
           </Typography>
-          <Typography
-            variant="h5"
-            sx={{ fontFamily: "monospace", fontWeight: 600, mt: 1 }}
-          >
+          <Typography variant="h5" sx={{ fontFamily: "monospace", fontWeight: 600, mt: 1 }}>
             {control.pinCode ?? "—"}
           </Typography>
         </Paper>
 
         {/* Card 3: Cấu hình Lệnh (Command) */}
-        <Paper
-          elevation={0}
-          variant="outlined"
-          sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}
-        >
+        <Paper elevation={0} variant="outlined" sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
           <Box>
             <Typography
               variant="caption"
