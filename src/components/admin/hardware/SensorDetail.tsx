@@ -25,10 +25,7 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
       >
         <Box>
           {/* Đưa Loại cảm biến lên làm Tiêu đề chính */}
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}
-          >
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
             {sensor.sensorTypeName || "Cảm biến chưa phân loại"}
           </Typography>
 
@@ -43,32 +40,13 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
                 bgcolor: "action.hover",
               }}
             />
-            {/* Tên định danh bị hạ cấp xuống thành Text phụ */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontWeight: 500 }}
-            >
-              {sensor.name}
-            </Typography>
           </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => onEdit(sensor)}
-          >
+          <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(sensor)}>
             Sửa
           </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={() => onDelete(sensor)}
-          >
+          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(sensor)}>
             Xóa
           </Button>
         </Box>
@@ -105,10 +83,7 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
             <PinDropIcon fontSize="small" />
             CỔNG KẾT NỐI (PIN)
           </Typography>
-          <Typography
-            variant="h5"
-            sx={{ fontFamily: "monospace", fontWeight: 600, mt: 1 }}
-          >
+          <Typography variant="h5" sx={{ fontFamily: "monospace", fontWeight: 600, mt: 1 }}>
             {sensor.pinCode ?? "—"}
           </Typography>
         </Paper>
