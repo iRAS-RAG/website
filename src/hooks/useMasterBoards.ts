@@ -34,7 +34,7 @@ export default function useMasterBoards() {
     };
   }, []);
 
-  async function handleSaveMasterBoard(value: MasterBoardSaveInput, editingBoard?: MasterBoard | null) {
+  async function handleSaveMasterBoard(value: MasterBoardSaveInput, editingBoard?: MasterBoard | null): Promise<MasterBoard> {
     if (editingBoard) {
       const updated = await updateMasterBoard(editingBoard.id, {
         name: value.name,
@@ -43,7 +43,7 @@ export default function useMasterBoards() {
       });
       if (!updated) throw new Error("Update failed");
       setMasterBoards((prev) => prev.map((board) => (board.id === updated.id ? updated : board)));
-      return;
+      return updated;
     }
 
     const created = await createMasterBoard({
@@ -52,6 +52,21 @@ export default function useMasterBoards() {
       fishTankId: value.fishTankId ?? null,
     });
     setMasterBoards((prev) => [...prev, created]);
+    return created;
+  }
+
+  async function reloadMasterBoards(): Promise<MasterBoard[]> {
+    setLoading(true);
+    try {
+      const data = await getMasterBoards();
+      setMasterBoards(data);
+      return data;
+    } catch (error) {
+      console.error("Failed to reload masterboards:", error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDeleteMasterBoard(id?: string | null) {
@@ -65,5 +80,6 @@ export default function useMasterBoards() {
     masterBoards,
     handleSaveMasterBoard,
     handleDeleteMasterBoard,
+    reloadMasterBoards,
   } as const;
 }
