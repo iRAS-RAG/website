@@ -1,7 +1,7 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import PinDropIcon from "@mui/icons-material/PinDrop";
-import { Box, Button, Chip, Divider, Paper, Typography } from "@mui/material";
+import { Box, Button, Divider, Paper, Typography } from "@mui/material";
 import type { Sensor } from "../../../types/sensor";
 
 type Props = {
@@ -13,7 +13,6 @@ type Props = {
 export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
   return (
     <Box>
-      {/* Header & Actions */}
       {/* Header & Actions */}
       <Box
         sx={{
@@ -29,18 +28,7 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
             {sensor.sensorTypeName || "Cảm biến chưa phân loại"}
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            {/* Nhãn Pin */}
-            <Chip
-              label={`Pin: ${sensor.pinCode ?? "-"}`}
-              size="small"
-              sx={{
-                fontWeight: 600,
-                fontFamily: "monospace",
-                bgcolor: "action.hover",
-              }}
-            />
-          </Box>
+          {/* Pin badge removed from header */}
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(sensor)}>

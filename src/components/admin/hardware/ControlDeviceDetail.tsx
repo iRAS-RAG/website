@@ -3,7 +3,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PinDropIcon from "@mui/icons-material/PinDrop";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SettingsPowerIcon from "@mui/icons-material/SettingsPower";
-import { Box, Button, Chip, Divider, Paper, Switch, Typography, alpha, useTheme } from "@mui/material";
+import { Box, Button, Divider, Paper, Switch, Typography, alpha, useTheme } from "@mui/material";
 import type { ControlDevice } from "../../../types/control-device";
 
 type Props = {
@@ -34,18 +34,7 @@ export default function ControlDeviceDetail({ control, onEdit, onDelete, onToggl
             {control.controlDeviceTypeName || "Thiết bị chưa phân loại"}
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            {/* Nhãn Pin */}
-            <Chip
-              label={`Pin: ${control.pinCode ?? "-"}`}
-              size="small"
-              sx={{
-                fontWeight: 600,
-                fontFamily: "monospace",
-                bgcolor: "action.hover",
-              }}
-            />
-          </Box>
+          {/* Pin badge removed from header */}
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(control)}>

@@ -1,6 +1,6 @@
 import { Add as AddIcon, List as ListIcon } from "@mui/icons-material";
 import CategoryIcon from "@mui/icons-material/Category";
-import LabelIcon from "@mui/icons-material/Label";
+// LabelIcon removed — name field hidden
 import PinDropIcon from "@mui/icons-material/PinDrop";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
@@ -21,7 +21,6 @@ const ControlDeviceFormDialog: React.FC<{
   defaultMasterBoardId?: string | null;
   existingControls?: ControlDevice[]; // ĐÃ THÊM PROP NÀY
 }> = ({ open, onClose, onSave, initial, defaultMasterBoardId, existingControls }) => {
-  const [name, setName] = useState(initial?.name ?? "");
   const [pinCode, setPinCode] = useState(initial?.pinCode != null ? String(initial.pinCode) : "");
   const [controlDeviceTypeId, setControlDeviceTypeId] = useState<string | null>(null);
   const [commandOn, setCommandOn] = useState(initial?.commandOn ?? "");
@@ -33,9 +32,25 @@ const ControlDeviceFormDialog: React.FC<{
   const [createTypeDialogOpen, setCreateTypeDialogOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
   const toast = useToast();
+  const currentBoardId = defaultMasterBoardId ?? initial?.masterBoardId ?? null;
+
+  const usedControlTypeIds = React.useMemo(() => {
+    if (!existingControls || !currentBoardId) return new Set<string>();
+    const set = new Set<string>();
+    for (const c of existingControls) {
+      if (c.masterBoardId === currentBoardId && c.id !== initial?.id && c.controlDeviceTypeId) {
+        set.add(c.controlDeviceTypeId);
+      }
+    }
+    return set;
+  }, [existingControls, currentBoardId, initial?.id]);
+
+  const parsedPin = pinCode ? parseInt(pinCode, 10) : NaN;
+  const pinInUse = Boolean(
+    !Number.isNaN(parsedPin) && existingControls && currentBoardId && existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.pinCode === parsedPin),
+  );
 
   useEffect(() => {
-    setName(initial?.name ?? "");
     setPinCode(initial?.pinCode != null ? String(initial.pinCode) : "");
     if (initial) {
       const byId = initial.controlDeviceTypeId ?? null;
@@ -61,27 +76,7 @@ const ControlDeviceFormDialog: React.FC<{
             </Typography>
           )}
           <Stack spacing={2} sx={{ mt: 1 }}>
-            {initial ? (
-              <TextField
-                label={
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <LabelIcon fontSize="small" />
-                    Tên
-                  </span>
-                }
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
-                error={Boolean(fieldErrors.name)}
-                helperText={fieldErrors.name}
-              />
-            ) : null}
+            {/* name is hidden — app uses type only */}
             <TextField
               label={
                 <span
@@ -98,8 +93,8 @@ const ControlDeviceFormDialog: React.FC<{
               value={pinCode}
               onChange={(e) => setPinCode(e.target.value)}
               fullWidth
-              error={Boolean(fieldErrors.pinCode)}
-              helperText={fieldErrors.pinCode}
+              error={Boolean(fieldErrors.pinCode) || pinInUse}
+              helperText={fieldErrors.pinCode ?? (pinInUse ? "Mã pin đã được sử dụng trên bảng mạch này." : undefined)}
             />
             <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
               <TextField
@@ -124,7 +119,7 @@ const ControlDeviceFormDialog: React.FC<{
               >
                 <MenuItem value="">(Chọn loại)</MenuItem>
                 {controlDeviceTypes.map((t) => (
-                  <MenuItem key={t.id} value={t.id}>
+                  <MenuItem key={t.id} value={t.id} disabled={usedControlTypeIds.has(t.id)}>
                     {t.name}
                   </MenuItem>
                 ))}
@@ -192,16 +187,11 @@ const ControlDeviceFormDialog: React.FC<{
               // --- VALIDATE FRONTEND CHỐNG TRÙNG LẶP ---
               const currentBoardId = defaultMasterBoardId || initial?.masterBoardId;
               if (existingControls && currentBoardId) {
-                const isDuplicateName = existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.name.trim().toLowerCase() === name.trim().toLowerCase());
-
                 const isDuplicateType =
                   controlDeviceTypeId && existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.controlDeviceTypeId === controlDeviceTypeId);
 
-                if (isDuplicateName || isDuplicateType) {
-                  const newErrs: Record<string, string> = {};
-                  if (isDuplicateName) newErrs.name = "Tên thiết bị đã tồn tại trên bảng mạch này.";
-                  if (isDuplicateType) newErrs.controlDeviceTypeId = "Loại thiết bị này đã tồn tại trên bảng mạch này.";
-                  setFieldErrors(newErrs);
+                if (isDuplicateType) {
+                  setFieldErrors({ controlDeviceTypeId: "Loại thiết bị này đã tồn tại trên bảng mạch này." });
                   return; // Chặn gọi API
                 }
               }
@@ -211,7 +201,7 @@ const ControlDeviceFormDialog: React.FC<{
               setFieldErrors({});
               try {
                 await onSave({
-                  name: initial ? name : "Thiết bị điều khiển (tự động)",
+                  name: "Thiết bị điều khiển (tự động)",
                   pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
                   masterBoardId: defaultMasterBoardId ?? undefined,
                   controlDeviceTypeId: controlDeviceTypeId ?? undefined,
@@ -254,7 +244,7 @@ const ControlDeviceFormDialog: React.FC<{
               }
             }}
             variant="contained"
-            disabled={saving || (initial ? !name : false)}
+            disabled={saving || pinInUse}
           >
             Lưu
           </Button>
