@@ -58,7 +58,7 @@ const BatchManagement = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, ageDays, survivalRate, loading, refetch, refetchDetails } = useOperatorBatches();
+  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, loading, refetch, refetchDetails } = useOperatorBatches();
 
   const [tabValue, setTabValue] = useState(0);
 
@@ -335,7 +335,6 @@ const BatchManagement = () => {
                               gap: 2,
                             }}
                           >
-                            <KPICard icon={<CakeIcon sx={{ color: theme.palette.info.main }} />} label="Ngày tuổi" value={`${ageDays} ngày`} desc="Kể từ lúc thả giống" />
                             <KPICard
                               icon={<WaterIcon sx={{ color: theme.palette.primary.main }} />}
                               label="Dung tích bể"
