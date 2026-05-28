@@ -41,6 +41,7 @@ export interface IOperatorMortalityLog {
   batchId: string;
   batchName?: string;
   quantity: number;
+  lostWeightKg?: number; // Khối lượng cá chết (kg) — tên field từ backend
   date: string;
 }
 

@@ -35,10 +35,30 @@ export const operatorBatchesApi = {
       },
     }),
 
-  logMortality: async (batchId: string, quantity: number, date: string) =>
-    await apiFetch<unknown>(`/mortality-logs`, {
+  // Validate trước khi ghi nhận: trả về { isWithinRange, message }
+  validateMortality: async (
+    batchId: string,
+    quantity: number,
+    weight: number,
+    date: string,
+  ) =>
+    await apiFetch<{ isWithinRange: boolean; message: string }>(
+      `/batches/${batchId}/mortality/validate`,
+      {
+        method: "POST",
+        body: { quantity, lostWeightKg: weight, date },
+      },
+    ),
+
+  logMortality: async (
+    batchId: string,
+    quantity: number,
+    weight: number,
+    date: string,
+  ) =>
+    await apiFetch<unknown>(`/batches/${batchId}/mortality`, {
       method: "POST",
-      body: { batchId, quantity, date },
+      body: { quantity, lostWeightKg: weight, date },
     }),
 
   harvestBatch: async (batchId: string) =>
