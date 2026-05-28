@@ -46,6 +46,8 @@ import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 
 // API & HOOK
 import { isApiError } from "../../api/client";
+import { operatorBatchesApi } from "../../api/operatorBatchesApi";
+import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
 const isBatchActive = (status: unknown) => {
