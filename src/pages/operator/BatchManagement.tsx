@@ -84,7 +84,7 @@ const BatchManagement = () => {
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
-      toast.error("Vui lòng nhập khối lượng và chọn loại thức ăn!");
+      toast.error("Vui lòng nhập khối lượng và chọn loại cám!");
       return;
     }
     if (!selectedBatch) return;
@@ -424,7 +424,7 @@ const BatchManagement = () => {
                             <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
                               <TableRow>
                                 <TableCell sx={{ fontWeight: 600 }}>Thời gian</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Loại thức ăn</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>Loại cám</TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 600 }}>
                                   Khối lượng
                                 </TableCell>
@@ -554,8 +554,8 @@ const BatchManagement = () => {
         <DialogTitle sx={{ fontWeight: 700 }}>Ghi nhận cho ăn</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           <FormControl fullWidth size="small">
-            <InputLabel>Loại thức ăn</InputLabel>
-            <Select value={feedTypeIdInput} label="Loại thức ăn" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
+            <InputLabel>Loại cám</InputLabel>
+            <Select value={feedTypeIdInput} label="Loại cám" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
               {availableFeedTypes.length === 0 ? (
                 feedTypes.length === 0 ? (
                   <MenuItem disabled value="">
@@ -563,7 +563,7 @@ const BatchManagement = () => {
                   </MenuItem>
                 ) : (
                   <MenuItem disabled value="">
-                    Không có loại thức ăn phù hợp cho giai đoạn hiện tại
+                    Không có loại cám phù hợp cho giai đoạn hiện tại
                   </MenuItem>
                 )
               ) : (
@@ -579,7 +579,7 @@ const BatchManagement = () => {
           <TextField
             fullWidth
             size="small"
-            label="Khối lượng thức ăn"
+            label="Khối lượng cám"
             type="number"
             InputProps={{
               endAdornment: <InputAdornment position="end">kg</InputAdornment>,

@@ -1,12 +1,13 @@
-import { Box, Stack, List, ListItem, ListItemText, Paper, Typography } from "@mui/material";
+import { Box, List, ListItem, ListItemText, Paper, Stack, Typography } from "@mui/material";
 import React from "react";
 import useSupervisorMetrics from "../../hooks/useSupervisorMetrics";
 import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
 import TimeseriesChart from "../common/charts/TimeseriesChart";
+import FarmSummaryChart from "./FarmSummaryChart";
 
 function mapSeries(ts?: { series: { groupId?: string; groupName?: string; points: { timestamp: string; value: number }[] }[] } | null) {
   if (!ts || !ts.series) return [] as { name: string; points: { timestamp: string; value: number }[] }[];
-  return ts.series.map((s) => ({ name: s.groupName || s.groupId || "series", points: s.points }));
+  return ts.series.map((s) => ({ name: s.groupName || s.groupId || "Chuỗi", points: s.points }));
 }
 
 const MetricsPanel: React.FC = () => {
@@ -42,7 +43,11 @@ const MetricsPanel: React.FC = () => {
     <Box sx={{ mt: 4 }}>
       <Stack spacing={3}>
         <Box sx={{ width: "100%" }}>
-          <TimeseriesChart title="Lượng thức ăn (30 ngày gần đây)" series={feedSeries} height={520} />
+          <FarmSummaryChart />
+        </Box>
+
+        <Box sx={{ width: "100%" }}>
+          <TimeseriesChart title="Lượng cám (30 ngày gần đây)" series={feedSeries} height={520} />
         </Box>
 
         <Box sx={{ width: "100%" }}>
@@ -52,12 +57,12 @@ const MetricsPanel: React.FC = () => {
         <Box sx={{ width: "100%" }}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: "16px" }}>
             <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700 }}>
-              Các lô hàng hàng đầu (theo lượng thức ăn)
+              Các vụ nuôi hàng đầu (theo lượng cám)
             </Typography>
             <List dense>
               {(topBatches || []).map((b) => (
                 <ListItem key={b.batchId} divider>
-                  <ListItemText primary={b.batchName ?? b.batchId} secondary={`Thức ăn: ${b.totalFeedKg ?? "—"} kg • Hiện có: ${b.currentQuantity ?? "—"}`} />
+                  <ListItemText primary={b.batchName ?? b.batchId} secondary={`Cám: ${b.totalFeedKg ?? "—"} kg • Hiện có: ${b.currentQuantity ?? "—"}`} />
                 </ListItem>
               ))}
             </List>

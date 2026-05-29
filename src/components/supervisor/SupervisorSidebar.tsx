@@ -9,7 +9,7 @@ const menu: MenuItemType[] = [
   { text: "Tổng quan", icon: <DashboardIcon />, path: "/supervisor/dashboard" },
   { text: "Nhân viên", icon: <PeopleIcon />, path: "/supervisor/operators" },
   { text: "Vụ nuôi", icon: <AgricultureIcon />, path: "/supervisor/batches" },
-  { text: "Thức ăn", icon: <FastfoodIcon />, path: "/supervisor/feed-types" },
+  { text: "Cám", icon: <FastfoodIcon />, path: "/supervisor/feed-types" },
   { text: "Cấu hình loài", icon: <SettingsSuggestIcon />, path: "/supervisor/species-configs" },
 ];
 

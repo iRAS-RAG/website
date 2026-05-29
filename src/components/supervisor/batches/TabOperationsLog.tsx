@@ -46,7 +46,7 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
             <TableHead sx={{ bgcolor: "action.hover" }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>Thời gian</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Loại thức ăn</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Loại cám</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
                   Khối lượng
                 </TableCell>
