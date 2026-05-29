@@ -25,11 +25,7 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
 
   const currentAge = calculateAge(batch.startDate);
 
-  const initialQty = batch.initialQuantity ?? 0;
-  const currentQty = batch.currentQuantity ?? batch.initialQuantity;
-  const netChange = (currentQty ?? 0) - (initialQty ?? 0);
-  const netPercent = initialQty > 0 ? ((currentQty ?? 0) / initialQty - 1) * 100 : undefined;
-  const estimatedSurvivalPct = batch.estimatedHarvestCount != null && initialQty > 0 ? (batch.estimatedHarvestCount / initialQty) * 100 : undefined;
+  const currentQty = batch.currentQuantity ?? batch.initialQuantity ?? 0;
 
   const statusConfig = {
     ACTIVE: { color: "success" as const, icon: <CheckCircleIcon /> },
