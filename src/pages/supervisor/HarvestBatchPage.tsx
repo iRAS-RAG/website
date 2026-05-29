@@ -18,6 +18,7 @@ const HarvestBatchPage: React.FC = () => {
   const { batch, loading } = useBatchDetails(id || null);
 
   const [harvestDate, setHarvestDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [actualHarvestWeightKg, setActualHarvestWeightKg] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -80,7 +81,8 @@ const HarvestBatchPage: React.FC = () => {
     setSubmitting(true);
     try {
       const iso = new Date(harvestDate).toISOString();
-      await harvestBatch(id, { harvestDate: iso, force });
+      const weight = parseFloat(actualHarvestWeightKg);
+      await harvestBatch(id, { harvestDate: iso, force, actualHarvestWeightKg: weight });
       toast.success("Thu hoạch vụ nuôi thành công");
       navigate(`/supervisor/batches/${id}`);
     } catch (err) {
@@ -97,6 +99,11 @@ const HarvestBatchPage: React.FC = () => {
     e.preventDefault();
     if (!harvestDate) {
       toast.error("Vui lòng chọn ngày thu hoạch");
+      return;
+    }
+
+    if (!actualHarvestWeightKg || isNaN(Number(actualHarvestWeightKg))) {
+      toast.error("Vui lòng nhập trọng lượng thu hoạch hợp lệ");
       return;
     }
 
@@ -188,6 +195,18 @@ const HarvestBatchPage: React.FC = () => {
 
                       <Grid size={{ xs: 12, md: 6 }}>
                         <TextField fullWidth type="date" label="Ngày thu hoạch" value={harvestDate} onChange={(e) => setHarvestDate(e.target.value)} InputLabelProps={{ shrink: true }} required />
+                      </Grid>
+
+                      <Grid size={{ xs: 12, md: 6 }}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Trọng lượng thu hoạch (kg)"
+                          value={actualHarvestWeightKg}
+                          onChange={(e) => setActualHarvestWeightKg(e.target.value)}
+                          InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                          required
+                        />
                       </Grid>
 
                       <Grid size={{ xs: 12 }}>
