@@ -191,16 +191,25 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     onClose();
   };
 
-  const recommendedForSelectedSpecies = selectedSpecies ? recommendedInitials[selectedSpecies] : undefined;
+  const recommendedMax = selectedSpecies ? recommendedInitials[selectedSpecies] : undefined;
+  const recommendedSuggested = typeof recommendedMax === "number" && recommendedMax > 0 ? Math.ceil(recommendedMax / 2) : undefined;
+  const initialQuantityNumber = initialQuantity ? parseInt(initialQuantity, 10) : NaN;
+  const isInitialQuantityBelowMin = typeof recommendedSuggested === "number" && !isNaN(initialQuantityNumber) && initialQuantityNumber < recommendedSuggested;
+  const isInitialQuantityAboveMax = typeof recommendedMax === "number" && !isNaN(initialQuantityNumber) && initialQuantityNumber > recommendedMax;
+
   let initialQuantityHelper = errors.initialQuantity || "Số lượng cá giống";
   if (!errors.initialQuantity && selectedSpecies) {
-    if (recommendedLoading) initialQuantityHelper = "Đang lấy gợi ý...";
-    else {
-      const recText = recommendedForSelectedSpecies === null || recommendedForSelectedSpecies === undefined ? "N/A" : String(recommendedForSelectedSpecies);
-      initialQuantityHelper = `${recText} là mức khuyến nghị số lượng ban đầu tối thiểu cho loài này ở bể đã chọn nhằm đảm bảo hiệu suất tối thiểu`;
+    if (recommendedLoading) {
+      initialQuantityHelper = "Đang lấy gợi ý...";
+    } else if (typeof recommendedSuggested === "number" && typeof recommendedMax === "number") {
+      initialQuantityHelper = `Phạm vi hợp lệ: ${recommendedSuggested} - ${recommendedMax} con`;
+    } else if (typeof recommendedMax === "number") {
+      initialQuantityHelper = `Tối đa: ${recommendedMax} con`;
+    } else {
+      initialQuantityHelper = "Không có khuyến nghị cho loài này ở bể đã chọn";
     }
   }
-  const showExplanatoryHelperGreen = !errors.initialQuantity && !!selectedSpecies && !recommendedLoading;
+  const showExplanatoryHelperGreen = !errors.initialQuantity && !!selectedSpecies && !recommendedLoading && !isInitialQuantityBelowMin && !isInitialQuantityAboveMax;
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" disableEscapeKeyDown={submitting}>
@@ -295,7 +304,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 error={!!errors.initialQuantity}
                 helperText={initialQuantityHelper}
                 FormHelperTextProps={showExplanatoryHelperGreen ? { sx: { color: "success.main" } } : undefined}
-                inputProps={{ min: 1, step: 1 }}
+                inputProps={{ min: recommendedSuggested ?? 1, step: 1 }}
                 required
               />
 
@@ -347,7 +356,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={loading || submitting || !!errors.estimatedHarvestDate} // Disable nút lưu nếu ngày đang bị lỗi
+          disabled={loading || submitting || isInitialQuantityBelowMin || isInitialQuantityAboveMax || !!errors.estimatedHarvestDate} // Disable nếu ngày bị lỗi hoặc số lượng nằm ngoài phạm vi hợp lệ
           startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           sx={{
             bgcolor: "#2A85FF",
