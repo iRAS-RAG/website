@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../api/client";
+import { alertApi } from "../api/alerts";
+import { getBatches } from "../api/batches";
+import { getControlDevices } from "../api/control-devices";
+import type { Batch } from "../types/batch";
 
 export interface DashboardStats {
-  totalTanks: number;
-  totalBatches: number;
-  totalSensors: number;
+  openAlerts: number;
+  activeBatches: number;
+  runningDevices: number;
   totalDevices: number;
-  totalMaintenance: number;
 }
 
 interface ApiMeta {
@@ -16,66 +19,57 @@ interface ApiMeta {
 interface ApiPayload {
   meta?: ApiMeta;
   items?: unknown[];
+  data?: unknown[];
 }
 
 type FetchResponse = ApiPayload | unknown[];
 
+function extractCount(res: FetchResponse | unknown): number {
+  if (Array.isArray(res)) return res.length;
+  if (res && typeof res === "object") {
+    const r = res as ApiPayload;
+    if (r.meta && typeof r.meta.totalItems === "number") return r.meta.totalItems;
+    if (Array.isArray(r.items)) return r.items.length;
+    if (Array.isArray(r.data)) return r.data.length;
+  }
+  return 0;
+}
+
 export const useOperatorDashboard = (tankId?: string) => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalTanks: 0,
-    totalBatches: 0,
-    totalSensors: 0,
+    openAlerts: 0,
+    activeBatches: 0,
+    runningDevices: 0,
     totalDevices: 0,
-    totalMaintenance: 0,
   });
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAll = async () => {
       setLoading(true);
       try {
-        const safeGetCount = async (url: string): Promise<number> => {
-          try {
-            const res = await apiFetch<FetchResponse>(`${url}?page=1&pageSize=1`);
+        const [alertsRes, activeBatches, devices] = await Promise.all([
+          alertApi
+            .getAll({ page: 1, pageSize: 1, status: "OPEN", tankId })
+            .catch(() => null),
+          getBatches("ACTIVE").catch(() => [] as Batch[]),
+          getControlDevices().catch(() => []),
+        ]);
 
-            if (Array.isArray(res)) return res.length;
-            if (res && typeof res === "object") {
-              if (res.meta && typeof res.meta.totalItems === "number")
-                return res.meta.totalItems;
-              if (res.items && Array.isArray(res.items))
-                return res.items.length;
-            }
-            return 0;
-          } catch (err) {
-            console.error(`Lỗi tải API ${url}:`, err);
-            return 0;
-          }
-        };
+        const filteredBatches = tankId
+          ? activeBatches.filter((b) => b.fishTankId === tankId)
+          : activeBatches;
 
-        // Khi đã chọn bể cụ thể: lọc batch & sensor theo fishTankId
-        const batchesUrl = tankId
-          ? `/batches?fishTankId=${tankId}`
-          : `/batches`;
-        const sensorsUrl = tankId
-          ? `/hardwares/sensors?fishTankId=${tankId}`
-          : `/hardwares/sensors`;
-
-        const [tanks, batches, sensors, devices, maintenance] =
-          await Promise.all([
-            safeGetCount("/fish-tanks"),
-            safeGetCount(batchesUrl),
-            safeGetCount(sensorsUrl),
-            safeGetCount("/hardwares/control-devices"),
-            safeGetCount("/corrective-actions"),
-          ]);
+        const runningDevices = devices.filter((d) => d.state === true).length;
 
         setStats({
-          totalTanks: tanks,
-          totalBatches: batches,
-          totalSensors: sensors,
-          totalDevices: devices,
-          totalMaintenance: maintenance,
+          openAlerts: extractCount(alertsRes),
+          activeBatches: filteredBatches.length,
+          runningDevices,
+          totalDevices: devices.length,
         });
+        setBatches(filteredBatches);
       } catch (error) {
         console.error("Lỗi đồng bộ thống kê Dashboard:", error);
       } finally {
@@ -83,10 +77,13 @@ export const useOperatorDashboard = (tankId?: string) => {
       }
     };
 
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
+    fetchAll();
+    const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
-  }, [tankId]); // re-fetch khi đổi bể
+  }, [tankId]);
 
-  return { stats, loading };
+  return { stats, batches, loading };
 };
+
+// Giữ lại helper cũ để khỏi break các nơi khác đang import
+export { apiFetch };
