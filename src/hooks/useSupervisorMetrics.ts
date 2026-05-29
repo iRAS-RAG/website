@@ -6,16 +6,8 @@ const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 export function useSupervisorMetrics(farmIdParam?: string, opts?: { start?: string; end?: string; days?: number }) {
   const farmId = farmIdParam || DEFAULT_FARM_ID;
   const days = opts?.days ?? 30;
-
-  // Compute default start/end once on mount so they are stable across renders
-  const rangeRef = useRef<{ start: string; end: string } | null>(null);
-  if (rangeRef.current === null) {
-    const endDefault = opts?.end ?? new Date().toISOString();
-    const startDefault = opts?.start ?? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    rangeRef.current = { start: startDefault, end: endDefault };
-  }
-  const start = rangeRef.current.start;
-  const end = rangeRef.current.end;
+  const fixedStart = opts?.start;
+  const fixedEnd = opts?.end;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -31,6 +23,10 @@ export function useSupervisorMetrics(farmIdParam?: string, opts?: { start?: stri
     // Simple rate limit: avoid calling more than once per second
     if (now - lastFetchRef.current < 1000) return;
     lastFetchRef.current = now;
+
+    // Compute fresh window on every fetch so records created after mount are included
+    const end = fixedEnd ?? new Date().toISOString();
+    const start = fixedStart ?? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     setLoading(true);
     setError(null);
@@ -51,7 +47,7 @@ export function useSupervisorMetrics(farmIdParam?: string, opts?: { start?: stri
     } finally {
       setLoading(false);
     }
-  }, [farmId, start, end]);
+  }, [farmId, days, fixedStart, fixedEnd]);
 
   useEffect(() => {
     fetchAll();

@@ -8,6 +8,11 @@ const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/supervisor-metrics";
 export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeeding?: (payload: any) => void; onMortality?: (payload: any) => void }) {
   const connRef = useRef<HubConnection | null>(null);
   const [connected, setConnected] = useState(false);
+  const handlersRef = useRef(handlers);
+
+  useEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -18,11 +23,11 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
       const conn = new HubConnectionBuilder().withUrl(HUB_URL, opts).withAutomaticReconnect().build();
 
       conn.on("FeedingLogCreated", (payload) => {
-        handlers?.onFeeding?.(payload);
+        handlersRef.current?.onFeeding?.(payload);
       });
 
       conn.on("MortalityLogCreated", (payload) => {
-        handlers?.onMortality?.(payload);
+        handlersRef.current?.onMortality?.(payload);
       });
 
       conn.onreconnected(async () => {
@@ -52,13 +57,16 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
           }
         }
       })
-      .catch(async (err) => {
-        // try long polling fallback
+      .catch(async () => {
+        if (cancelled) return;
         try {
           const lp = buildAndRegister(HttpTransportType.LongPolling);
           connRef.current = lp;
           await lp.start();
-          if (cancelled) return;
+          if (cancelled) {
+            lp.stop().catch(() => {});
+            return;
+          }
           setConnected(true);
           if (farmId) {
             try {
@@ -74,11 +82,11 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
 
     return () => {
       cancelled = true;
-      connection.stop().catch(() => {});
+      connRef.current?.stop().catch(() => {});
       connRef.current = null;
       setConnected(false);
     };
-  }, [farmId, handlers]);
+  }, [farmId]);
 
   const joinFarmGroup = useCallback(async (id: string) => {
     const conn = connRef.current;
