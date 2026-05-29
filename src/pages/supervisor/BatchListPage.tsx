@@ -30,7 +30,7 @@ const chipStyles: Record<BatchStatus, { bgcolor: string; color: string }> = {
 const BatchListPage: React.FC = () => {
   const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<BatchStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<BatchStatus | "all">("ACTIVE");
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
 
   // Thêm State UI để điều khiển Search & Pagination
@@ -49,6 +49,12 @@ const BatchListPage: React.FC = () => {
   if (searchTerm) {
     filteredBatches = filteredBatches.filter((b) => b.name.toLowerCase().includes(searchTerm.toLowerCase()) || (b.speciesName && b.speciesName.toLowerCase().includes(searchTerm.toLowerCase())));
   }
+
+  filteredBatches.sort((a, b) => {
+    const aTime = a.estimatedHarvestDate ? Date.parse(a.estimatedHarvestDate) : Number.POSITIVE_INFINITY;
+    const bTime = b.estimatedHarvestDate ? Date.parse(b.estimatedHarvestDate) : Number.POSITIVE_INFINITY;
+    return aTime - bTime;
+  });
 
   // Phân trang dữ liệu
   const totalPages = Math.ceil(filteredBatches.length / pageSize) || 1;

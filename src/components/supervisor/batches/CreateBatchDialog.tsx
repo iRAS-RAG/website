@@ -1,6 +1,7 @@
 import SaveIcon from "@mui/icons-material/Save";
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getSpecies } from "../../../api/species";
 import { getTankRecommendedInitials, getTanks } from "../../../api/tanks";
 import useBatches from "../../../hooks/useBatches";
@@ -17,6 +18,7 @@ type CreateBatchDialogProps = {
 const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, onSuccess }) => {
   const toast = useToast();
   const { createBatch } = useBatches({ autoLoad: false });
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -132,8 +134,10 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
 
       if (newBatch) {
         toast.success("Tạo vụ nuôi thành công");
+        // Close dialog and navigate to the batch detail page
         onSuccess();
         onClose();
+        navigate(`/supervisor/batches/${newBatch.id}`);
       }
     } catch (error) {
       console.error("Failed to create batch:", error);
