@@ -76,21 +76,33 @@ export const useOperatorBatches = () => {
 
       setFeedingLogs(extractArray(feedRes) as IOperatorFeedingLog[]);
       setMortalityLogs(extractArray(mortRes) as IOperatorMortalityLog[]);
-      // Also fetch richer batch details (estimated harvest, currentQuantity, tankVolume)
+
       try {
         const detailed = await getBatchDetails(selectedBatch.id).catch(() => null);
         if (detailed) {
-          setSelectedBatch((prev) =>
-            prev
-              ? ({
-                  ...prev,
-                  currentQuantity: detailed.currentQuantity ?? prev.currentQuantity,
-                  tankVolume: detailed.tankVolume ?? prev.tankVolume,
-                  estimatedHarvestCount: detailed.estimatedHarvestCount ?? (prev as any).estimatedHarvestCount,
-                  estimatedHarvestWeightKg: detailed.estimatedHarvestWeightKg ?? (prev as any).estimatedHarvestWeightKg,
-                } as IOperatorFarmingBatch)
-              : prev,
-          );
+          setSelectedBatch((prev) => {
+            if (!prev) return prev;
+            const newCurrentQuantity = detailed.currentQuantity ?? prev.currentQuantity;
+            const newTankVolume = detailed.tankVolume ?? prev.tankVolume;
+            const newEstimatedHarvestCount = detailed.estimatedHarvestCount ?? (prev as any).estimatedHarvestCount;
+            const newEstimatedHarvestWeightKg = detailed.estimatedHarvestWeightKg ?? (prev as any).estimatedHarvestWeightKg;
+
+            const unchanged =
+              newCurrentQuantity === prev.currentQuantity &&
+              newTankVolume === prev.tankVolume &&
+              newEstimatedHarvestCount === (prev as any).estimatedHarvestCount &&
+              newEstimatedHarvestWeightKg === (prev as any).estimatedHarvestWeightKg;
+
+            if (unchanged) return prev;
+
+            return {
+              ...prev,
+              currentQuantity: newCurrentQuantity,
+              tankVolume: newTankVolume,
+              estimatedHarvestCount: newEstimatedHarvestCount,
+              estimatedHarvestWeightKg: newEstimatedHarvestWeightKg,
+            } as IOperatorFarmingBatch;
+          });
         }
       } catch (err) {
         console.warn("Failed to fetch detailed batch info:", err);
