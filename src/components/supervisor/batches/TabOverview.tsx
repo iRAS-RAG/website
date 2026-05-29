@@ -175,7 +175,6 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
           <KPICard icon={<WaterIcon sx={{ color: theme.palette.primary.main }} />} label="Dung tích bể" value={batch.tankVolume ? `${batch.tankVolume} m³` : "-- m³"} desc={batch.fishTankName || ""} />
           <KPICard icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />} label="Số lượng ban đầu" value={`${initialQty}`} desc="Số lượng lúc thả giống" />
-          <KPICard icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />} label="Số lượng hiện tại" value={`${currentQty}`} desc={`Đơn vị: ${batch.unitOfMeasure}`} />
           <KPICard
             icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
             label="Biến động"
@@ -191,9 +190,11 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
           <KPICard
             icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
             label="Dự kiến thu hoạch"
-            value={batch.estimatedHarvestCount != null ? `${batch.estimatedHarvestCount}` : "—"}
+            value={batch.estimatedHarvestCount != null ? `${batch.estimatedHarvestCount} con` : "—"}
             desc={batch.estimatedHarvestWeightKg != null ? `Tổng trọng lượng: ${batch.estimatedHarvestWeightKg.toFixed(2)} kg` : ""}
           />
+
+          <KPICard icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />} label="FCR" value={batch.fcr != null ? batch.fcr.toFixed(2) : "—"} desc="Feed conversion ratio" />
           <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
           <KPICard icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />} label="Tổng hao hụt (Cá chết)" value={`${totalDead} ${batch.unitOfMeasure}`} desc="Số lượng" />
         </Box>

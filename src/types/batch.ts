@@ -45,6 +45,7 @@ export type Batch = {
   unitOfMeasure: string;
   estimatedHarvestCount?: number;
   estimatedHarvestWeightKg?: number;
+  fcr?: number;
   survivalRate?: number; // percentage (calculated client-side)
   createdAt?: string;
   modifiedAt?: string | null;

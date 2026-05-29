@@ -42,6 +42,7 @@ function toBatch(item: Record<string, unknown>): Batch {
     unitOfMeasure: String(item.unitOfMeasure ?? "con"),
     estimatedHarvestCount: typeof item.estimatedHarvestCount === "number" ? (item.estimatedHarvestCount as number) : undefined,
     estimatedHarvestWeightKg: typeof item.estimatedHarvestWeightKg === "number" ? (item.estimatedHarvestWeightKg as number) : undefined,
+    fcr: typeof item.fcr === "number" ? (item.fcr as number) : undefined,
     tankVolume: typeof item.tankVolume === "number" ? (item.tankVolume as number) : typeof item.tank_volume === "number" ? (item.tank_volume as number) : undefined,
     survivalRate,
     createdAt: (item.createdAt as string) || undefined,
