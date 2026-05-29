@@ -59,7 +59,6 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
       })
       .catch(async () => {
         if (cancelled) return;
-        // try long polling fallback
         try {
           const lp = buildAndRegister(HttpTransportType.LongPolling);
           connRef.current = lp;
