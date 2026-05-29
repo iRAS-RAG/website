@@ -1,17 +1,30 @@
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import SearchIcon from "@mui/icons-material/Search";
-import { Box, InputBase, Paper, Typography, useTheme } from "@mui/material";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { Badge, Box, IconButton, InputBase, Menu, MenuItem, Paper, Typography, useTheme } from "@mui/material";
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
+type Notification = { type: "error" | "warning" | "success"; title: string; time: string };
 
 interface DashboardHeaderProps {
   title?: string;
   searchPlaceholder?: string;
+  badgeCount?: number;
+  notifications?: Notification[];
+  seeAllRoute?: string;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  title,
-  searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...",
-}) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute }) => {
+  const navigate = useNavigate();
   const theme = useTheme();
+
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+  const handleClose = () => setAnchorEl(null);
 
   return (
     <Box
@@ -42,13 +55,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <SearchIcon
-          sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 20 }}
-        />
-        <InputBase
-          placeholder={searchPlaceholder}
-          sx={{ flex: 1, fontSize: "0.875rem" }}
-        />
+        <SearchIcon sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 20 }} />
+        <InputBase placeholder={searchPlaceholder} sx={{ flex: 1, fontSize: "0.875rem" }} />
       </Paper>
 
       {/* Title centered if provided */}
@@ -58,6 +66,52 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             {title}
           </Typography>
         )}
+      </Box>
+
+      {/* Right: notifications */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <IconButton onClick={handleOpen} size="large" aria-label="notifications">
+          <Badge badgeContent={badgeCount} color="error">
+            <NotificationsIcon />
+          </Badge>
+        </IconButton>
+
+        <Menu anchorEl={anchorEl} open={open} onClose={handleClose} PaperProps={{ sx: { width: 320 } }}>
+          {notifications && notifications.length > 0 ? (
+            notifications.map((n, i) => (
+              <MenuItem key={i} onClick={handleClose} sx={{ alignItems: "flex-start" }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  {n.type === "error" ? (
+                    <ErrorIcon fontSize="small" color="error" />
+                  ) : n.type === "warning" ? (
+                    <WarningAmberIcon fontSize="small" color="warning" />
+                  ) : (
+                    <CheckCircleIcon fontSize="small" color="success" />
+                  )}
+                  <Box>
+                    <Typography variant="body2">{n.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {n.time}
+                    </Typography>
+                  </Box>
+                </Box>
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem disabled>Không có thông báo</MenuItem>
+          )}
+          {seeAllRoute && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                navigate(seeAllRoute);
+              }}
+              sx={{ justifyContent: "center" }}
+            >
+              Xem tất cả
+            </MenuItem>
+          )}
+        </Menu>
       </Box>
     </Box>
   );
