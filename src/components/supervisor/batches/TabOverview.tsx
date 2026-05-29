@@ -37,16 +37,14 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
 
   const theme = useTheme();
 
-  // Date formatter (dd-mm-yyyy) and chart data
   const formatDate = (iso?: string | null) => {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
     const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   };
 
-  // KPI data (fetch feeding/mortality logs similar to operator view)
   const [totalFeed, setTotalFeed] = useState<number>(0);
   const [totalDead, setTotalDead] = useState<number>(0);
 
@@ -84,59 +82,91 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
         <Card sx={{ mb: 4 }}>
           <CardContent>
             <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-              Kế hoạch giai đoạn
+              Kế hoạch
             </Typography>
+
             <Grid container spacing={2}>
               {[...stages]
                 .sort((a, b) => a.sequence - b.sequence)
-                .map((s) => (
-                  <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Card variant="outlined" sx={{ height: "100%" }}>
-                      <CardContent>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                          <Typography variant="subtitle2" fontWeight={600}>
-                            {`${s.sequence}. ${s.stageName}`}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {s.expectedDurationDays ? `${s.expectedDurationDays} ngày` : ""}
-                          </Typography>
-                        </Stack>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {`${formatDate(s.estimatedStartDate)} — ${formatDate(s.estimatedEndDate)}`}
-                        </Typography>
+                .map((s) => {
+                  const now = new Date();
+                  const parseDate = (d?: string | null) => (d ? new Date(d) : null);
+                  const start = parseDate(s.actualStartDate ?? s.estimatedStartDate ?? undefined);
+                  const end = parseDate(s.actualEndDate ?? s.estimatedEndDate ?? undefined);
+                  const isActive = !!start && (end ? now >= start && now < end : now >= start);
 
-                        <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: "wrap" }}>
-                          {s.feedTypeNames && s.feedTypeNames.length > 0 ? s.feedTypeNames.map((f) => <Chip key={f} label={f} size="small" sx={{ mr: 0.5, mb: 0.5 }} />) : null}
-                        </Stack>
+                  return (
+                    <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          height: "100%",
+                          ...(isActive ? { border: `1px solid ${theme.palette.success.main}`, backgroundColor: theme.palette.success.light } : {}),
+                        }}
+                      >
+                        <CardContent>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <Typography variant="subtitle2" fontWeight={600} sx={{ color: isActive ? theme.palette.success.dark : undefined }}>
+                                {`${s.sequence}. ${s.stageName}`}
+                              </Typography>
+                              {isActive ? <Chip label="Đang diễn ra" size="small" color="success" /> : null}
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary">
+                              {s.expectedDurationDays ? `${s.expectedDurationDays} ngày` : ""}
+                            </Typography>
+                          </Stack>
 
-                        <Stack direction="row" spacing={1} sx={{ mt: 1, gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Số lượng/100: <strong>{s.amountPer100Fish ?? "—"}</strong>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                            {`${formatDate(s.estimatedStartDate)} — ${formatDate(s.estimatedEndDate)}`}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Tần suất/ngày: <strong>{s.frequencyPerDay ?? "—"}</strong>
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Mật độ tối đa: <strong>{s.maxStockingDensity ?? "—"}</strong>
-                          </Typography>
-                        </Stack>
 
-                        <Stack direction="row" spacing={1} sx={{ mt: 1, gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Trọng lượng kỳ vọng: <strong>{s.expectedWeightKgPerFish != null ? `${s.expectedWeightKgPerFish} kg` : "—"}</strong>
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Tỷ lệ sống: <strong>{s.survivalRate != null ? `${(s.survivalRate * 100).toFixed(1)}%` : "—"}</strong>
-                          </Typography>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
+                          {s.feedTypeNames && s.feedTypeNames.length > 0 ? (
+                            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap", alignItems: "center" }}>
+                              <Typography variant="caption" color="text.secondary">
+                                Loại cám:
+                              </Typography>
+                              <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
+                                {s.feedTypeNames.map((f) => (
+                                  <Chip key={f} label={f} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                                ))}
+                              </Stack>
+                            </Stack>
+                          ) : null}
+
+                          <Stack direction="column" spacing={1} sx={{ mt: 1 }}>
+                            <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                              <Typography variant="caption" color="text.secondary">
+                                Dự kiến số lượng: <strong>{s.expectedCount != null ? `${s.expectedCount} con` : "—"}</strong>
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Tổng trọng lượng: <strong>{s.expectedTotalWeightKg != null ? `${s.expectedTotalWeightKg.toFixed(2)} kg` : "—"}</strong>
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                              <Typography variant="caption" color="text.secondary">
+                                Cám/ngày: <strong>{s.estimatedDailyFeedKg != null ? `${s.estimatedDailyFeedKg.toFixed(2)} kg/ngày` : "—"}</strong>
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Tần suất/ngày: <strong>{s.frequencyPerDay ?? "—"}</strong>
+                              </Typography>
+                              {s.amountPer100Fish != null ? (
+                                <Typography variant="caption" color="text.secondary">
+                                  Số lượng/100: <strong>{s.amountPer100Fish}</strong>
+                                </Typography>
+                              ) : null}
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
             </Grid>
           </CardContent>
         </Card>
       )}
+
       {/* Chỉ số Sinh học & Hạ tầng */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: theme.palette.text.primary }}>

@@ -15,6 +15,10 @@ export type PlannedStage = {
   frequencyPerDay?: number;
   maxStockingDensity?: number;
   feedTypeNames?: string[];
+  // Calculated per-batch stage values returned by /batches/{id}/stages
+  expectedCount?: number; // expected number of animals in this stage for this batch
+  expectedTotalWeightKg?: number; // expected total weight (kg) for this stage
+  estimatedDailyFeedKg?: number; // estimated daily feed (kg) for this stage
   expectedWeightKgPerFish?: number;
   survivalRate?: number; // fraction 0-1 or null
 };

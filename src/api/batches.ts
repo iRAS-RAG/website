@@ -91,6 +91,16 @@ function toPlannedStage(item: Record<string, unknown>): PlannedStage {
     frequencyPerDay: typeof item.frequencyPerDay === "number" ? (item.frequencyPerDay as number) : undefined,
     maxStockingDensity: typeof item.maxStockingDensity === "number" ? (item.maxStockingDensity as number) : undefined,
     feedTypeNames: Array.isArray(item.feedTypeNames) ? (item.feedTypeNames as unknown[]).map((f) => String(f)) : undefined,
+    // Per-batch calculated fields returned by /batches/{id}/stages
+    expectedCount: typeof item.expectedCount === "number" ? (item.expectedCount as number) : typeof item.expected_count === "number" ? (item.expected_count as number) : undefined,
+    expectedTotalWeightKg:
+      typeof item.expectedTotalWeightKg === "number"
+        ? (item.expectedTotalWeightKg as number)
+        : typeof item.expected_total_weight_kg === "number"
+          ? (item.expected_total_weight_kg as number)
+          : undefined,
+    estimatedDailyFeedKg:
+      typeof item.estimatedDailyFeedKg === "number" ? (item.estimatedDailyFeedKg as number) : typeof item.estimated_daily_feed_kg === "number" ? (item.estimated_daily_feed_kg as number) : undefined,
     expectedWeightKgPerFish: typeof item.expectedWeightKgPerFish === "number" ? (item.expectedWeightKgPerFish as number) : undefined,
     survivalRate: typeof item.survivalRate === "number" ? (item.survivalRate as number) : undefined,
   };
