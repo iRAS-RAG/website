@@ -2,16 +2,11 @@ import { Box, List, ListItem, ListItemText, Paper, Stack, Typography } from "@mu
 import React from "react";
 import useSupervisorMetrics from "../../hooks/useSupervisorMetrics";
 import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
-import TimeseriesChart from "../common/charts/TimeseriesChart";
 import FarmSummaryChart from "./FarmSummaryChart";
-
-function mapSeries(ts?: { series: { groupId?: string; groupName?: string; points: { timestamp: string; value: number }[] }[] } | null) {
-  if (!ts || !ts.series) return [] as { name: string; points: { timestamp: string; value: number }[] }[];
-  return ts.series.map((s) => ({ name: s.groupName || s.groupId || "Chuỗi", points: s.points }));
-}
+import FarmTimeseriesChart from "./FarmTimeseriesChart";
 
 const MetricsPanel: React.FC = () => {
-  const { feedTimeseries, mortalityTimeseries, topBatches, refetch } = useSupervisorMetrics();
+  const { topBatches, refetch } = useSupervisorMetrics();
 
   // Debounced refetch to avoid spamming backend on many signalR events
   const refetchTimer = React.useRef<number | null>(null);
@@ -36,8 +31,7 @@ const MetricsPanel: React.FC = () => {
     onMortality: scheduleRefetch,
   });
 
-  const feedSeries = mapSeries(feedTimeseries);
-  const mortalitySeries = mapSeries(mortalityTimeseries);
+  // farm timeseries charts fetch their own data via `useFarmTimeseries`
 
   return (
     <Box sx={{ mt: 4 }}>
@@ -47,11 +41,11 @@ const MetricsPanel: React.FC = () => {
         </Box>
 
         <Box sx={{ width: "100%" }}>
-          <TimeseriesChart title="Lượng cám (30 ngày gần đây)" series={feedSeries} height={520} />
+          <FarmTimeseriesChart defaultMetric="feed" height={520} />
         </Box>
 
         <Box sx={{ width: "100%" }}>
-          <TimeseriesChart title="Tử vong (30 ngày gần đây)" series={mortalitySeries} height={420} />
+          <FarmTimeseriesChart defaultMetric="mortality" height={420} />
         </Box>
 
         <Box sx={{ width: "100%" }}>
