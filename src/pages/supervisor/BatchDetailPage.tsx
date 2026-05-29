@@ -4,13 +4,14 @@ import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BatchHeader from "../../components/supervisor/batches/BatchHeader";
 import TabAlertHistory from "../../components/supervisor/batches/TabAlertHistory";
+import TabBatchHistory from "../../components/supervisor/batches/TabBatchHistory";
 import TabOperationsLog from "../../components/supervisor/batches/TabOperationsLog.tsx";
 import TabOverview from "../../components/supervisor/batches/TabOverview";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import { useBatchDetails } from "../../hooks/useBatches";
 
-type TabValue = "overview" | "operations" | "alerts";
+type TabValue = "overview" | "operations" | "alerts" | "history";
 
 const BatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -102,6 +103,7 @@ const BatchDetailPage: React.FC = () => {
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
               <Tab label="Tổng quan" value="overview" />
               <Tab label="Nhật ký vận hành" value="operations" />
+              <Tab label="Lịch sử" value="history" />
               <Tab label="Lịch sử cảnh báo" value="alerts" />
             </Tabs>
           </Box>
@@ -110,6 +112,7 @@ const BatchDetailPage: React.FC = () => {
           <Box sx={{ mt: 3 }}>
             {activeTab === "overview" && <TabOverview batch={batch} performance={performance} onLoadPerformance={loadPerformance} />}
             {activeTab === "operations" && <TabOperationsLog batch={batch} logs={logs} onCreateLog={createLog} />}
+            {activeTab === "history" && <TabBatchHistory batch={batch} />}
             {activeTab === "alerts" && (
               <TabAlertHistory
                 batchId={batch.id}
