@@ -28,7 +28,7 @@ import {
   useTheme,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 // Icons
 import AddIcon from "@mui/icons-material/Add";
@@ -79,6 +79,15 @@ const BatchManagement = () => {
   const [feedInput, setFeedInput] = useState("");
   const [feedTypeIdInput, setFeedTypeIdInput] = useState("");
 
+  // If the currently selected feed type is no longer allowed for the active stage, clear it
+  useEffect(() => {
+    if (!feedTypeIdInput) return;
+    const allowedIds = new Set((availableFeedTypes || []).map((f) => String(f.id)));
+    if (!allowedIds.has(feedTypeIdInput)) {
+      setFeedTypeIdInput("");
+    }
+  }, [availableFeedTypes, feedTypeIdInput]);
+
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
   const [deathWeightInput, setDeathWeightInput] = useState("");
@@ -88,7 +97,7 @@ const BatchManagement = () => {
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
-      toast.error("Vui lòng nhập khối lượng và chọn loại thức ăn!");
+      toast.error("Vui lòng nhập khối lượng và chọn loại cám!");
       return;
     }
     if (!selectedBatch) return;
@@ -789,18 +798,20 @@ const BatchManagement = () => {
           sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}
         >
           <FormControl fullWidth size="small">
-            <InputLabel>Loại thức ăn</InputLabel>
-            <Select
-              value={feedTypeIdInput}
-              label="Loại thức ăn"
-              onChange={(e) => setFeedTypeIdInput(e.target.value)}
-            >
-              {feedTypes.length === 0 ? (
-                <MenuItem disabled value="">
-                  Đang tải dữ liệu...
-                </MenuItem>
+            <InputLabel>Loại cám</InputLabel>
+            <Select value={feedTypeIdInput} label="Loại cám" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
+              {availableFeedTypes.length === 0 ? (
+                feedTypes.length === 0 ? (
+                  <MenuItem disabled value="">
+                    Đang tải dữ liệu...
+                  </MenuItem>
+                ) : (
+                  <MenuItem disabled value="">
+                    Không có loại cám phù hợp cho giai đoạn hiện tại
+                  </MenuItem>
+                )
               ) : (
-                feedTypes.map((type) => (
+                availableFeedTypes.map((type) => (
                   <MenuItem key={type.id} value={type.id}>
                     {type.name} ({type.proteinPercentage}% Đạm)
                   </MenuItem>
@@ -812,7 +823,7 @@ const BatchManagement = () => {
           <TextField
             fullWidth
             size="small"
-            label="Khối lượng thức ăn"
+            label="Khối lượng cám"
             type="number"
             InputProps={{
               endAdornment: <InputAdornment position="end">kg</InputAdornment>,

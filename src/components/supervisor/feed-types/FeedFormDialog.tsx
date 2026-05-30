@@ -35,7 +35,7 @@ const FeedFormDialog: React.FC<Props> = ({ open, initial = null, onClose, onSave
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa thức ăn" : "Thêm thức ăn"}</DialogTitle>
+      <DialogTitle>{initial ? "Chỉnh sửa cám" : "Thêm cám"}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField

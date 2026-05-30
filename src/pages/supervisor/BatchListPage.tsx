@@ -27,6 +27,16 @@ const chipStyles: Record<BatchStatus, { bgcolor: string; color: string }> = {
   TERMINATED: { bgcolor: "#FEF2F2", color: "#DC2626" },
 };
 
+const formatDateDDMMYYYY = (dateStr?: string) => {
+  if (!dateStr) return undefined;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return undefined;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 const BatchListPage: React.FC = () => {
   const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -153,38 +163,14 @@ const BatchListPage: React.FC = () => {
       },
     },
     {
-      field: "plannedStages",
-      label: "Các giai đoạn",
-      sortable: false,
-      render: (row) => {
-        const stages = row.plannedStages ?? [];
-        if (stages.length === 0)
-          return (
-            <Typography variant="body2" sx={{ color: "#64748B" }}>
-              —
-            </Typography>
-          );
-
-        const ordered = [...stages].sort((a, b) => a.sequence - b.sequence);
-
-        return (
-          <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
-            {ordered.map((s) => (
-              <Chip
-                key={s.id}
-                label={`${s.sequence}. ${s.stageName}`}
-                size="small"
-                sx={{
-                  bgcolor: "#F1F5F9",
-                  color: "#334155",
-                  fontWeight: 600,
-                  borderRadius: "6px",
-                }}
-              />
-            ))}
-          </Stack>
-        );
-      },
+      field: "actualHarvestDate",
+      label: "Ngày thu hoạch",
+      sortable: true,
+      render: (row) => (
+        <Typography variant="body2" sx={{ color: "#64748B" }}>
+          {row.actualHarvestDate ? (formatDateDDMMYYYY(row.actualHarvestDate) ?? "N/A") : "N/A"}
+        </Typography>
+      ),
     },
     {
       field: "survivalRate",

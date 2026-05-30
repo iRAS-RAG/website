@@ -1,10 +1,12 @@
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
-import { getBatch as getBatchDetails } from "../api/batches";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getBatch as getBatchDetails, getBatchStages } from "../api/batches";
 import { extractArray } from "../api/client";
 import { operatorBatchesApi } from "../api/operatorBatchesApi";
 
+import type { PlannedStage } from "../types/batch";
 import type { IFeedType, IOperatorFarmingBatch, IOperatorFeedingLog, IOperatorMortalityLog } from "../types/operatorBatch";
+import { filterFeedTypesForStage, getActiveStage } from "../utils/stageUtils";
 
 export const useOperatorBatches = () => {
   const [batches, setBatches] = useState<IOperatorFarmingBatch[]>([]);
@@ -13,6 +15,7 @@ export const useOperatorBatches = () => {
   const [feedingLogs, setFeedingLogs] = useState<IOperatorFeedingLog[]>([]);
   const [mortalityLogs, setMortalityLogs] = useState<IOperatorMortalityLog[]>([]);
   const [feedTypes, setFeedTypes] = useState<IFeedType[]>([]);
+  const [plannedStages, setPlannedStages] = useState<PlannedStage[] | undefined>(undefined);
 
   const [loading, setLoading] = useState(true);
 
@@ -124,10 +127,27 @@ export const useOperatorBatches = () => {
       } catch (err) {
         console.warn("Failed to fetch detailed batch info:", err);
       }
+
+      // Fetch planned stages for the selected batch (used to determine allowed feed types)
+      try {
+        const batchId = selectedBatch.id;
+        const stages = await getBatchStages(batchId).catch(() => [] as PlannedStage[]);
+        // avoid setting state for stale selection
+        if (selectedBatch && selectedBatch.id === batchId) {
+          setPlannedStages(stages);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch batch stages:", err);
+        setPlannedStages([]);
+      }
     } catch (error) {
       console.error("Lỗi tải chi tiết lô", error);
     }
   }, [selectedBatch]);
+
+  const activeStage = useMemo(() => getActiveStage(plannedStages, selectedBatch?.stageName), [plannedStages, selectedBatch?.stageName]);
+
+  const availableFeedTypes = useMemo(() => filterFeedTypesForStage(feedTypes, activeStage), [feedTypes, activeStage]);
 
   useEffect(() => {
     fetchBatchDetails();
@@ -154,5 +174,8 @@ export const useOperatorBatches = () => {
     loading,
     refetch: fetchMasterData,
     refetchDetails: fetchBatchDetails,
+    plannedStages,
+    activeStage,
+    availableFeedTypes,
   };
 };

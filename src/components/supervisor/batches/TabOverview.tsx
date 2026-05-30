@@ -148,7 +148,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
                                 Cám/ngày: <strong>{s.estimatedDailyFeedKg != null ? `${s.estimatedDailyFeedKg.toFixed(2)} kg/ngày` : "—"}</strong>
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                Tần suất/ngày: <strong>{s.frequencyPerDay ?? "—"}</strong>
+                                Tần suất/ngày: <strong>{s.frequencyPerDay ?? "—"} lần</strong>
                               </Typography>
                               {s.amountPer100Fish != null ? (
                                 <Typography variant="caption" color="text.secondary">
@@ -194,7 +194,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
             desc={batch.estimatedHarvestWeightKg != null ? `Tổng trọng lượng: ${batch.estimatedHarvestWeightKg.toFixed(2)} kg` : ""}
           />
 
-          <KPICard icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />} label="FCR" value={batch.fcr != null ? batch.fcr.toFixed(2) : "—"} desc="Feed conversion ratio" />
+          <KPICard icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />} label="FCR" value={batch.fcr != null ? batch.fcr.toFixed(2) : "—"} desc="Hệ số chuyển đổi thức ăn" />
           <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
           <KPICard icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />} label="Tổng hao hụt (Cá chết)" value={`${totalDead} ${batch.unitOfMeasure}`} desc="Số lượng" />
         </Box>
