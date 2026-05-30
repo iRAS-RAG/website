@@ -20,18 +20,20 @@ export const useOperatorBatches = () => {
     try {
       const [batchesRes, feedTypesRes] = await Promise.all([operatorBatchesApi.getBatches().catch(() => []), operatorBatchesApi.getFeedTypes().catch(() => [])]);
 
-      const batchesData = extractArray(batchesRes) as IOperatorFarmingBatch[];
+      // Sort: lô mới (startDate gần nhất) lên đầu; nếu thiếu startDate thì đẩy xuống cuối.
+      const batchesData = (extractArray(batchesRes) as IOperatorFarmingBatch[]).slice().sort((a, b) => {
+        const ta = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const tb = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return tb - ta;
+      });
       setBatches(batchesData);
 
-      // FIX BUG REDIRECT: Dùng callback của setState để luôn lấy được selectedBatch mới nhất
-      // Decide which batch should be selected (preserve previous selection if possible)
+      // KHÔNG auto-select batch đầu tiên — user phải chủ động chọn.
+      // Chỉ giữ lại selection nếu batch đó vẫn tồn tại sau refetch.
       setSelectedBatch((prevSelected) => {
-        if (!prevSelected && batchesData.length > 0) return batchesData[0];
-        if (prevSelected) {
-          const updated = batchesData.find((b) => b.id === prevSelected.id);
-          return updated || batchesData[0];
-        }
-        return null;
+        if (!prevSelected) return null;
+        const updated = batchesData.find((b) => b.id === prevSelected.id);
+        return updated || null;
       });
 
       // If we have a chosen batch id, attempt to fetch richer batch details and merge estimated fields
@@ -74,8 +76,23 @@ export const useOperatorBatches = () => {
     try {
       const [feedRes, mortRes] = await Promise.all([operatorBatchesApi.getFeedingLogs(selectedBatch.id).catch(() => []), operatorBatchesApi.getMortalityLogs(selectedBatch.id).catch(() => [])]);
 
-      setFeedingLogs(extractArray(feedRes) as IOperatorFeedingLog[]);
-      setMortalityLogs(extractArray(mortRes) as IOperatorMortalityLog[]);
+      // Sort DESC: log mới nhất (createdDate / date gần nhất) luôn ở đầu
+      const feedingArr = (extractArray(feedRes) as IOperatorFeedingLog[])
+        .slice()
+        .sort((a, b) => {
+          const ta = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+          const tb = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+          return tb - ta;
+        });
+      const mortalityArr = (extractArray(mortRes) as IOperatorMortalityLog[])
+        .slice()
+        .sort((a, b) => {
+          const ta = a.date ? new Date(a.date).getTime() : 0;
+          const tb = b.date ? new Date(b.date).getTime() : 0;
+          return tb - ta;
+        });
+      setFeedingLogs(feedingArr);
+      setMortalityLogs(mortalityArr);
 
       try {
         const detailed = await getBatchDetails(selectedBatch.id).catch(() => null);

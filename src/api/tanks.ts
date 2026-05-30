@@ -1,6 +1,8 @@
 import type { LatestDataResponse, SensorLogResponse } from "../types/sensor";
 import type { Tank } from "../types/tank";
+import type { MasterBoard } from "../types/masterboard";
 import { apiFetch, extractArray } from "./client";
+import { getMasterBoards, getMasterBoardsByTank } from "./masterboards";
 
 function toTank(item: Record<string, unknown>): Tank {
   return {
@@ -20,6 +22,41 @@ export async function getTanks(): Promise<Tank[]> {
   const res = await apiFetch<unknown>("/fish-tanks");
   const items = extractArray(res);
   return items.map((i) => toTank(i as Record<string, unknown>));
+}
+
+/**
+ * Lấy danh sách MasterBoard gắn với 1 bể cụ thể.
+ * Dùng filter `fishTankId` BE đã hỗ trợ sẵn → 1 request duy nhất.
+ */
+export async function getTankMasterBoards(
+  tankId: string,
+): Promise<MasterBoard[]> {
+  return getMasterBoardsByTank(tankId);
+}
+
+/**
+ * Lấy danh sách bể + nạp kèm masterBoards cho mỗi bể.
+ * Tối ưu: 1 call `/fish-tanks` + 1 call `/hardwares/masterboards` rồi join client-side,
+ * KHÔNG gọi N+1 request cho từng bể.
+ */
+export async function getTanksWithMasterBoards(): Promise<Tank[]> {
+  const [tanks, boards] = await Promise.all([
+    getTanks(),
+    getMasterBoards().catch(() => [] as MasterBoard[]),
+  ]);
+
+  const boardsByTank = new Map<string, MasterBoard[]>();
+  for (const b of boards) {
+    if (!b.fishTankId) continue;
+    const list = boardsByTank.get(b.fishTankId) ?? [];
+    list.push(b);
+    boardsByTank.set(b.fishTankId, list);
+  }
+
+  return tanks.map((t) => ({
+    ...t,
+    masterBoards: boardsByTank.get(t.id) ?? [],
+  }));
 }
 
 export async function createTank(payload: Partial<Tank>): Promise<Tank | null> {
