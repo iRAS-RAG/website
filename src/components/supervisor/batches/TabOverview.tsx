@@ -174,11 +174,11 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
           <KPICard icon={<WaterIcon sx={{ color: theme.palette.primary.main }} />} label="Dung tích bể" value={batch.tankVolume ? `${batch.tankVolume} m³` : "-- m³"} desc={batch.fishTankName || ""} />
-          <KPICard icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />} label="Số lượng ban đầu" value={`${initialQty}`} desc="Số lượng lúc thả giống" />
+          <KPICard icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />} label="Số lượng ban đầu" value={`${initialQty} con`} desc="Số lượng lúc thả giống" />
           <KPICard
             icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
             label="Biến động"
-            value={`${netChange >= 0 ? "+" : ""}${netChange}`}
+            value={`${netChange >= 0 ? "+" : ""}${netChange} con`}
             desc={netPercent != null ? `${netPercent >= 0 ? "+" : ""}${netPercent.toFixed(1)}% so với ban đầu` : "—"}
           />
           <KPICard

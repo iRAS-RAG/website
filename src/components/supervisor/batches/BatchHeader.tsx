@@ -75,7 +75,7 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
                 Số lượng hiện tại
               </Typography>
               <Typography variant="body1" fontWeight={600}>
-                {currentQty}
+                {currentQty} con
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
