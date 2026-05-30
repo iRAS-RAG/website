@@ -185,7 +185,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
             icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
             label="Tỷ lệ sống dự kiến (thu hoạch)"
             value={estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"}
-            desc={batch.estimatedHarvestCount != null ? `Dự kiến số: ${batch.estimatedHarvestCount}` : ""}
+            desc={batch.estimatedHarvestCount != null ? `Dự kiến số: ${batch.estimatedHarvestCount} con` : ""}
           />
           <KPICard
             icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
