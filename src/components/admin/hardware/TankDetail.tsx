@@ -7,7 +7,16 @@ import OpacityIcon from "@mui/icons-material/Opacity";
 import ScienceIcon from "@mui/icons-material/Science";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
-import { Box, Button, Chip, Divider, Paper, Typography, alpha, useTheme } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Paper,
+  Typography,
+  alpha,
+  useTheme,
+} from "@mui/material";
 import type { MasterBoard } from "../../../types/masterboard";
 import type { Sensor } from "../../../types/sensor";
 import type { Tank } from "../../../types/tank";
@@ -25,29 +34,84 @@ const getSensorIcon = (typeName?: string) => {
   const t = typeName?.toLowerCase() || "";
   if (t.includes("nhiệt độ")) return <ThermostatIcon color="error" />;
   if (t.includes("ph")) return <ScienceIcon color="success" />;
-  if (t.includes("oxy") || t.includes("tds")) return <OpacityIcon color="primary" />;
+  if (t.includes("oxy") || t.includes("tds"))
+    return <OpacityIcon color="primary" />;
   return <ThermostatIcon color="action" />;
 };
 
-export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: Props) {
+export default function TankDetail({
+  tank,
+  boards,
+  sensors,
+  onEdit,
+  onDelete,
+}: Props) {
   const theme = useTheme();
 
   // Tính thể tích dựa trên bán kính (m) và mức nước (m): V = π * r^2 * h
-  const volumeM3 = typeof tank.radius === "number" && typeof tank.height === "number" ? Math.PI * tank.radius * tank.radius * tank.height : undefined;
+  const volumeM3 =
+    typeof tank.radius === "number" && typeof tank.height === "number"
+      ? Math.PI * tank.radius * tank.radius * tank.height
+      : undefined;
 
   // Lọc ra danh sách các cảm biến thuộc về bể cá này
-  const tankSensors = sensors.filter((s) => boards.some((b) => b.id === s.masterBoardId));
+  const tankSensors = sensors.filter((s) =>
+    boards.some((b) => b.id === s.masterBoardId),
+  );
 
   return (
     <Box>
-      {/* Header: only action buttons (stats shown in THÔNG SỐ KỸ THUẬT below) */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1, mb: 2 }}>
-        <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(tank)}>
-          Sửa
-        </Button>
-        <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => onDelete(tank)}>
-          Xóa
-        </Button>
+      {/* Header: tên bể + badge + action buttons (đồng nhất với MasterBoardDetail) */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+            {tank.name}
+          </Typography>
+          <Chip
+            icon={<OpacityIcon fontSize="small" />}
+            label="Bể nuôi"
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ fontWeight: 500 }}
+          />
+          {tank.farmName && (
+            <Typography
+              variant="caption"
+              sx={{ display: "block", color: "text.secondary", mt: 0.75 }}
+            >
+              Trang trại: {tank.farmName}
+            </Typography>
+          )}
+        </Box>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(tank)}
+          >
+            Sửa
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => onDelete(tank)}
+          >
+            Xóa
+          </Button>
+        </Box>
       </Box>
 
       <Divider sx={{ mb: 3 }} />
@@ -64,7 +128,11 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
         {/* Removed ĐỊNH DANH panel per request (no tank/farm name shown) */}
 
         {/* Nhóm 2: Thông số kỹ thuật */}
-        <Paper elevation={0} variant="outlined" sx={{ p: 2, gridColumn: "1 / -1" }}>
+        <Paper
+          elevation={0}
+          variant="outlined"
+          sx={{ p: 2, gridColumn: "1 / -1" }}
+        >
           <Typography
             variant="caption"
             sx={{
@@ -80,13 +148,20 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(3, minmax(160px, 1fr))" },
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(3, minmax(160px, 1fr))",
+              },
               gap: 3,
               alignItems: "center",
             }}
           >
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
                 <HeightIcon fontSize="small" /> MỨC NƯỚC (m)
               </Typography>
               <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 700 }}>
@@ -95,7 +170,11 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
             </Box>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
                 <StraightenIcon fontSize="small" /> BÁN KÍNH (m)
               </Typography>
               <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 700 }}>
@@ -104,7 +183,11 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
             </Box>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
                 <OpacityIcon fontSize="small" /> THỂ TÍCH
               </Typography>
               {volumeM3 != null ? (
@@ -154,7 +237,9 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
             </Typography>
           ) : (
             boards.map((board, index) => {
-              const bSensors = tankSensors.filter((s) => s.masterBoardId === board.id);
+              const bSensors = tankSensors.filter(
+                (s) => s.masterBoardId === board.id,
+              );
               return (
                 <Box
                   key={board.id}
@@ -178,7 +263,11 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
                   </Typography>
 
                   {bSensors.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" sx={{ pl: 3.5 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ pl: 3.5 }}
+                    >
                       Chưa có cảm biến kết nối.
                     </Typography>
                   ) : (
@@ -227,7 +316,7 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
                                 {s.sensorTypeName || "Cảm biến chưa phân loại"}
                               </Typography>
                               {/* Tên định danh bị hạ cấp xuống Text phụ */}
-                              <Typography
+                              {/* <Typography
                                 sx={{
                                   fontSize: "0.75rem",
                                   color: "text.secondary",
@@ -235,7 +324,7 @@ export default function TankDetail({ tank, boards, sensors, onEdit, onDelete }: 
                                 }}
                               >
                                 {s.name}
-                              </Typography>
+                              </Typography> */}
                             </Box>
                           </Box>
 

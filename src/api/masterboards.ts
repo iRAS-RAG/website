@@ -7,11 +7,25 @@ function toMasterBoard(item: Record<string, unknown>): MasterBoard {
     name: String(item.name ?? ""),
     macAddress:
       (item.macAddress as string) || (item.mac_address as string) || undefined,
+    fishTankId:
+      (item.fishTankId as string) ||
+      (item.fish_tank_id as string) ||
+      undefined,
     fishTankName:
       (item.fishTankName as string) ||
       (item.fish_tank_name as string) ||
       undefined,
   };
+}
+
+export async function getMasterBoardsByTank(
+  tankId: string,
+): Promise<MasterBoard[]> {
+  const res = await apiFetch<unknown>(
+    `/hardwares/masterboards?fishTankId=${encodeURIComponent(tankId)}`,
+  );
+  const items = extractArray(res);
+  return items.map((i) => toMasterBoard(i as Record<string, unknown>));
 }
 
 export async function getMasterBoards(): Promise<MasterBoard[]> {
@@ -65,6 +79,7 @@ export async function deleteMasterBoard(id: string): Promise<boolean> {
 
 export default {
   getMasterBoards,
+  getMasterBoardsByTank,
   createMasterBoard,
   updateMasterBoard,
   deleteMasterBoard,
