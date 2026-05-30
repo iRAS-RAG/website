@@ -64,8 +64,8 @@ export default function FarmTimeseriesControls({ start, end, groupBy = "none", m
       <FormControl size="small" sx={{ minWidth: 160 }}>
         <InputLabel id="metric-label">Chỉ số</InputLabel>
         <Select labelId="metric-label" value={localMetric} label="Chỉ số" onChange={(e) => setLocalMetric(String(e.target.value))}>
-          <MenuItem value="feed">Cám</MenuItem>
-          <MenuItem value="mortality">Tử vong</MenuItem>
+          <MenuItem value="feed">Cám (kg)</MenuItem>
+          <MenuItem value="mortality">Tử vong (con)</MenuItem>
         </Select>
       </FormControl>
 

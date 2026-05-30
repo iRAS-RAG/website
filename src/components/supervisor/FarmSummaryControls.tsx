@@ -54,8 +54,8 @@ export default function FarmSummaryControls({ start, end, groupBy = "none", metr
         <InputLabel id="metric-label">Chỉ số</InputLabel>
         <Select labelId="metric-label" value={localMetric} label="Chỉ số" onChange={(e) => setLocalMetric(String(e.target.value))}>
           <MenuItem value="totalFeedKg">Tổng cám (kg)</MenuItem>
-          <MenuItem value="totalDeaths">Tổng tử vong</MenuItem>
-          <MenuItem value="currentQuantity">Số lượng hiện tại</MenuItem>
+          <MenuItem value="totalDeaths">Tổng tử vong (con)</MenuItem>
+          <MenuItem value="currentQuantity">Số lượng hiện tại (con)</MenuItem>
           <MenuItem value="fcr">FCR</MenuItem>
         </Select>
       </FormControl>

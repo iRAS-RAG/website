@@ -131,7 +131,7 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
 
               <Box sx={{ flex: "1 1 25%", minWidth: 220 }}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Typography variant="caption">Tổng tử vong</Typography>
+                  <Typography variant="caption">Tổng tử vong (con)</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     {formatNumber(summary.totalDeathsCount, 0)}
                   </Typography>
@@ -140,7 +140,7 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
 
               <Box sx={{ flex: "1 1 25%", minWidth: 220 }}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Typography variant="caption">Số lượng hiện có</Typography>
+                  <Typography variant="caption">Số lượng hiện có (con)</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     {formatNumber(summary.totalCurrentQuantity, 0)}
                   </Typography>
