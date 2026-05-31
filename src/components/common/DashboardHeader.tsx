@@ -1,13 +1,16 @@
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloseIcon from "@mui/icons-material/Close";
 import ErrorIcon from "@mui/icons-material/Error";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SearchIcon from "@mui/icons-material/Search";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { Badge, Box, IconButton, InputBase, Menu, MenuItem, Paper, Typography, useTheme } from "@mui/material";
+import { Badge, Box, Fade, IconButton, InputBase, Menu, MenuItem, Paper, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
 type Notification = { type: "error" | "warning" | "success"; title: string; time: string };
+
+export type AlertPopup = { key: number; type: "error" | "warning" | "success"; title: string };
 
 interface DashboardHeaderProps {
   title?: string;
@@ -15,9 +18,12 @@ interface DashboardHeaderProps {
   badgeCount?: number;
   notifications?: Notification[];
   seeAllRoute?: string;
+  showNotifications?: boolean;
+  alertPopup?: AlertPopup | null;
+  onAlertPopupDismiss?: () => void;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute }) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute, showNotifications = true, alertPopup, onAlertPopupDismiss }) => {
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -70,13 +76,57 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlacehol
 
       {/* Right: notifications */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <IconButton onClick={handleOpen} size="large" aria-label="notifications">
-          <Badge badgeContent={badgeCount} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
+        {showNotifications && (
+          <Box sx={{ position: "relative" }}>
+            <IconButton onClick={handleOpen} size="large" aria-label="notifications">
+              <Badge badgeContent={badgeCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
 
-        <Menu anchorEl={anchorEl} open={open} onClose={handleClose} PaperProps={{ sx: { width: 320 } }}>
+            {alertPopup && (
+              <Fade key={alertPopup.key} in timeout={300}>
+                <Paper
+                  elevation={4}
+                  onClick={onAlertPopupDismiss}
+                  sx={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    width: 300,
+                    p: 1.5,
+                    zIndex: 1400,
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    border: `1px solid ${
+                      alertPopup.type === "error"
+                        ? theme.palette.error.light
+                        : alertPopup.type === "warning"
+                          ? theme.palette.warning.light
+                          : theme.palette.success.light
+                    }`,
+                  }}
+                >
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                    {alertPopup.type === "error" ? (
+                      <ErrorIcon fontSize="small" color="error" sx={{ mt: 0.25 }} />
+                    ) : alertPopup.type === "warning" ? (
+                      <WarningAmberIcon fontSize="small" color="warning" sx={{ mt: 0.25 }} />
+                    ) : (
+                      <CheckCircleIcon fontSize="small" color="success" sx={{ mt: 0.25 }} />
+                    )}
+                    <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
+                      {alertPopup.title}
+                    </Typography>
+                    <CloseIcon fontSize="small" sx={{ color: "text.secondary", mt: 0.25 }} />
+                  </Box>
+                </Paper>
+              </Fade>
+            )}
+          </Box>
+        )}
+
+        {showNotifications && <Menu anchorEl={anchorEl} open={open} onClose={handleClose} PaperProps={{ sx: { width: 320 } }}>
           {notifications && notifications.length > 0 ? (
             notifications.map((n, i) => (
               <MenuItem key={i} onClick={handleClose} sx={{ alignItems: "flex-start" }}>
@@ -111,7 +161,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlacehol
               Xem tất cả
             </MenuItem>
           )}
-        </Menu>
+        </Menu>}
       </Box>
     </Box>
   );
