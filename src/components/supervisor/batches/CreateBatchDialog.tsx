@@ -9,6 +9,28 @@ import type { Species } from "../../../types/species";
 import type { Tank } from "../../../types/tank";
 import { useToast } from "../../common/toastContext";
 
+// Helpers
+const formatDateDDMMYYYY = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const getAutoSuggestedName = (speciesName?: string, dateStr?: string) => {
+  const formatted = formatDateDDMMYYYY(dateStr || "");
+  if (speciesName) {
+    const nameLower = speciesName.trim().toLowerCase();
+    return `Vụ nuôi ${nameLower} ${formatted}`;
+  }
+  return `Vụ nuôi ${formatted}`;
+};
+
 type CreateBatchDialogProps = {
   open: boolean;
   onClose: () => void;
@@ -29,6 +51,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [selectedTank, setSelectedTank] = useState("");
   const [initialQuantity, setInitialQuantity] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [isBatchNameEdited, setIsBatchNameEdited] = useState(false);
 
   const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
@@ -37,48 +60,46 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [recommendedLoading, setRecommendedLoading] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      resetForm();
-      loadData();
-    }
-  }, [open]);
+    if (!open) return;
 
-  // No estimated harvest date validation required anymore; backend plans stages
-
-  const resetForm = () => {
     const today = new Date();
-    const timestamp = today.toISOString().split("T")[0].replace(/-/g, "");
+    const isoDate = today.toISOString().split("T")[0];
 
-    setBatchName(`BATCH-${timestamp}`);
-    setStartDate(today.toISOString().split("T")[0]);
+    // Reset form values (auto-suggested name + defaults)
+    setStartDate(isoDate);
+    setBatchName(getAutoSuggestedName(undefined, isoDate));
+    setIsBatchNameEdited(false);
     setSelectedSpecies("");
     setSelectedTank("");
     setInitialQuantity("");
     setErrors({});
-  };
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [configsData, tanksData] = await Promise.all([
-        getSpecies().catch((err) => {
-          console.error("Lỗi lấy danh sách loài:", err);
-          return [];
-        }),
-        getTanks().catch((err) => {
-          console.error("Lỗi lấy danh sách bể:", err);
-          return [];
-        }),
-      ]);
+    // Load species and tanks
+    (async () => {
+      setLoading(true);
+      try {
+        const [configsData, tanksData] = await Promise.all([
+          getSpecies().catch((err) => {
+            console.error("Lỗi lấy danh sách loài:", err);
+            return [];
+          }),
+          getTanks().catch((err) => {
+            console.error("Lỗi lấy danh sách bể:", err);
+            return [];
+          }),
+        ]);
 
-      setSpeciesList(configsData || []);
-      setTanks(tanksData || []);
-    } catch (error) {
-      console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setSpeciesList(configsData || []);
+        setTanks(tanksData || []);
+      } catch (error) {
+        console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [open]);
+
+  // No estimated harvest date validation required anymore; backend plans stages
 
   const fetchRecommendedInitialsForTank = async (tankId: string) => {
     if (!tankId) {
@@ -96,6 +117,16 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
       setRecommendedLoading(false);
     }
   };
+
+  // Auto-update the batch name when species or start date changes,
+  // but only if the user hasn't manually edited the name.
+  useEffect(() => {
+    if (isBatchNameEdited) return;
+    const species = speciesList.find((s) => s.id === selectedSpecies);
+    const speciesName = species ? species.name : undefined;
+    const autoName = getAutoSuggestedName(speciesName, startDate);
+    setBatchName(autoName);
+  }, [selectedSpecies, startDate, speciesList, isBatchNameEdited]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -229,7 +260,10 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
               fullWidth
               label="Tên/Mã vụ nuôi"
               value={batchName}
-              onChange={(e) => setBatchName(e.target.value)}
+              onChange={(e) => {
+                setBatchName(e.target.value);
+                setIsBatchNameEdited(true);
+              }}
               error={!!errors.batchName}
               helperText={errors.batchName || "Tự động sinh hoặc nhập tên tùy chỉnh"}
               required

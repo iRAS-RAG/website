@@ -1,10 +1,12 @@
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
-import { getBatch as getBatchDetails } from "../api/batches";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getBatch as getBatchDetails, getBatchStages } from "../api/batches";
 import { extractArray } from "../api/client";
 import { operatorBatchesApi } from "../api/operatorBatchesApi";
 
+import type { PlannedStage } from "../types/batch";
 import type { IFeedType, IOperatorFarmingBatch, IOperatorFeedingLog, IOperatorMortalityLog } from "../types/operatorBatch";
+import { filterFeedTypesForStage, getActiveStage } from "../utils/stageUtils";
 
 export const useOperatorBatches = () => {
   const [batches, setBatches] = useState<IOperatorFarmingBatch[]>([]);
@@ -13,6 +15,7 @@ export const useOperatorBatches = () => {
   const [feedingLogs, setFeedingLogs] = useState<IOperatorFeedingLog[]>([]);
   const [mortalityLogs, setMortalityLogs] = useState<IOperatorMortalityLog[]>([]);
   const [feedTypes, setFeedTypes] = useState<IFeedType[]>([]);
+  const [plannedStages, setPlannedStages] = useState<PlannedStage[] | undefined>(undefined);
 
   const [loading, setLoading] = useState(true);
 
@@ -20,18 +23,20 @@ export const useOperatorBatches = () => {
     try {
       const [batchesRes, feedTypesRes] = await Promise.all([operatorBatchesApi.getBatches().catch(() => []), operatorBatchesApi.getFeedTypes().catch(() => [])]);
 
-      const batchesData = extractArray(batchesRes) as IOperatorFarmingBatch[];
+      // Sort: lô mới (startDate gần nhất) lên đầu; nếu thiếu startDate thì đẩy xuống cuối.
+      const batchesData = (extractArray(batchesRes) as IOperatorFarmingBatch[]).slice().sort((a, b) => {
+        const ta = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const tb = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return tb - ta;
+      });
       setBatches(batchesData);
 
-      // FIX BUG REDIRECT: Dùng callback của setState để luôn lấy được selectedBatch mới nhất
-      // Decide which batch should be selected (preserve previous selection if possible)
+      // KHÔNG auto-select batch đầu tiên — user phải chủ động chọn.
+      // Chỉ giữ lại selection nếu batch đó vẫn tồn tại sau refetch.
       setSelectedBatch((prevSelected) => {
-        if (!prevSelected && batchesData.length > 0) return batchesData[0];
-        if (prevSelected) {
-          const updated = batchesData.find((b) => b.id === prevSelected.id);
-          return updated || batchesData[0];
-        }
-        return null;
+        if (!prevSelected) return null;
+        const updated = batchesData.find((b) => b.id === prevSelected.id);
+        return updated || null;
       });
 
       // If we have a chosen batch id, attempt to fetch richer batch details and merge estimated fields
@@ -74,8 +79,23 @@ export const useOperatorBatches = () => {
     try {
       const [feedRes, mortRes] = await Promise.all([operatorBatchesApi.getFeedingLogs(selectedBatch.id).catch(() => []), operatorBatchesApi.getMortalityLogs(selectedBatch.id).catch(() => [])]);
 
-      setFeedingLogs(extractArray(feedRes) as IOperatorFeedingLog[]);
-      setMortalityLogs(extractArray(mortRes) as IOperatorMortalityLog[]);
+      // Sort DESC: log mới nhất (createdDate / date gần nhất) luôn ở đầu
+      const feedingArr = (extractArray(feedRes) as IOperatorFeedingLog[])
+        .slice()
+        .sort((a, b) => {
+          const ta = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+          const tb = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+          return tb - ta;
+        });
+      const mortalityArr = (extractArray(mortRes) as IOperatorMortalityLog[])
+        .slice()
+        .sort((a, b) => {
+          const ta = a.date ? new Date(a.date).getTime() : 0;
+          const tb = b.date ? new Date(b.date).getTime() : 0;
+          return tb - ta;
+        });
+      setFeedingLogs(feedingArr);
+      setMortalityLogs(mortalityArr);
 
       try {
         const detailed = await getBatchDetails(selectedBatch.id).catch(() => null);
@@ -107,10 +127,27 @@ export const useOperatorBatches = () => {
       } catch (err) {
         console.warn("Failed to fetch detailed batch info:", err);
       }
+
+      // Fetch planned stages for the selected batch (used to determine allowed feed types)
+      try {
+        const batchId = selectedBatch.id;
+        const stages = await getBatchStages(batchId).catch(() => [] as PlannedStage[]);
+        // avoid setting state for stale selection
+        if (selectedBatch && selectedBatch.id === batchId) {
+          setPlannedStages(stages);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch batch stages:", err);
+        setPlannedStages([]);
+      }
     } catch (error) {
       console.error("Lỗi tải chi tiết lô", error);
     }
   }, [selectedBatch]);
+
+  const activeStage = useMemo(() => getActiveStage(plannedStages, selectedBatch?.stageName), [plannedStages, selectedBatch?.stageName]);
+
+  const availableFeedTypes = useMemo(() => filterFeedTypesForStage(feedTypes, activeStage), [feedTypes, activeStage]);
 
   useEffect(() => {
     fetchBatchDetails();
@@ -137,5 +174,8 @@ export const useOperatorBatches = () => {
     loading,
     refetch: fetchMasterData,
     refetchDetails: fetchBatchDetails,
+    plannedStages,
+    activeStage,
+    availableFeedTypes,
   };
 };

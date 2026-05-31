@@ -16,15 +16,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import type { Role } from "../../api/auth";
-import {
-  clearCurrentUser,
-  currentUser,
-  login,
-  setCurrentUser,
-} from "../../api/auth";
+import { currentUser, login, setCurrentUser } from "../../api/auth";
 import * as jwt from "../../api/jwt";
 import bg from "../../assets/backgrounds.png";
 import { useToast } from "../../components/common/toastContext";
@@ -39,7 +34,24 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const isLoggedIn = Boolean(currentUser.id);
+  const dashboardPath = (r: Role | null): string => {
+    if (r === "Admin") return "/admin/dashboard";
+    if (r === "Supervisor") return "/supervisor/dashboard";
+    if (r === "Operator") return "/operator/dashboard";
+    return "/";
+  };
+
+  // Nếu đã đăng nhập với token còn hạn → tự chuyển thẳng vào dashboard,
+  // không cần user phải bấm "Đăng xuất" trước. Token hết hạn sẽ được
+  // jwt.getAccessToken() tự dọn dẹp → currentUser.id rỗng → hiển thị form bình thường.
+  useEffect(() => {
+    const access = jwt.getAccessToken();
+    if (access && currentUser.id) {
+      navigate(dashboardPath(currentUser.role), { replace: true });
+    }
+    // chỉ chạy 1 lần khi mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
@@ -108,12 +120,6 @@ const LoginPage = () => {
       toast.error(msg);
     }
   };
-
-  function handleLogout() {
-    jwt.clearTokens();
-    clearCurrentUser();
-    navigate("/");
-  }
 
   // ==========================================
   // CUSTOM STYLE CHO Ô INPUT (MODERN SaaS STYLE)
@@ -263,48 +269,28 @@ const LoginPage = () => {
             />
 
             {/* 6. LOGIN BUTTON (Chỉnh borderRadius: "12px") */}
-            {isLoggedIn ? (
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={handleLogout}
-                sx={{
-                  py: 1.5,
-                  borderRadius: "12px",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                  color: "#64748B",
-                  borderColor: "#E2E8F0",
-                  "&:hover": { borderColor: "#94A3B8", bgcolor: "#F8FAFC" },
-                }}
-              >
-                Đăng xuất
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                sx={{
-                  py: 1.8, // Tăng padding dọc một chút
-                  borderRadius: "12px", // Chỉnh lại góc bo chuyên nghiệp hơn
-                  bgcolor: "#2A85FF",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                  boxShadow: "0 4px 14px 0 rgba(42, 133, 255, 0.2)", // Làm dịu bóng đổ
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  "&:hover": {
-                    bgcolor: "#1F6FDB",
-                    transform: "translateY(-1px)", // Giảm độ nẩy hover xuống 1px
-                    boxShadow: "0 6px 20px rgba(42, 133, 255, 0.3)",
-                  },
-                }}
-              >
-                Đăng nhập hệ thống
-              </Button>
-            )}
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{
+                py: 1.8, // Tăng padding dọc một chút
+                borderRadius: "12px", // Chỉnh lại góc bo chuyên nghiệp hơn
+                bgcolor: "#2A85FF",
+                fontWeight: 600,
+                textTransform: "none",
+                fontSize: "1rem",
+                boxShadow: "0 4px 14px 0 rgba(42, 133, 255, 0.2)", // Làm dịu bóng đổ
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                "&:hover": {
+                  bgcolor: "#1F6FDB",
+                  transform: "translateY(-1px)", // Giảm độ nẩy hover xuống 1px
+                  boxShadow: "0 6px 20px rgba(42, 133, 255, 0.3)",
+                },
+              }}
+            >
+              Đăng nhập hệ thống
+            </Button>
           </Stack>
 
           {/* 7. FOOTER */}

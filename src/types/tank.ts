@@ -1,3 +1,5 @@
+import type { MasterBoard } from "./masterboard";
+
 export type Tank = {
   id: string;
   name: string;
@@ -7,4 +9,5 @@ export type Tank = {
   farmName?: string;
   topicCode?: string;
   cameraUrl?: string;
+  masterBoards?: MasterBoard[];
 };

@@ -571,10 +571,26 @@ const RealTimeSensors = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.text.primary, pb: 1 }}>Xác nhận {deviceToToggle?.state ? "tắt" : "bật"} thiết bị</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.text.primary, pb: 1 }}>
+          {deviceToToggle?.state ? "Xác nhận TẮT thiết bị" : "Xác nhận BẬT thiết bị"}
+        </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: theme.palette.text.secondary, mb: 2 }}>
-            Bạn sắp{" "}
+            Thiết bị{" "}
+            <Box component="span" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+              {deviceToToggle?.controlDeviceTypeName}
+            </Box>
+            {selectedTank ? ` tại ${selectedTank.name}` : ""} hiện đang{" "}
+            <Box
+              component="span"
+              sx={{
+                fontWeight: 700,
+                color: deviceToToggle?.state ? theme.palette.success.main : theme.palette.text.secondary,
+              }}
+            >
+              {deviceToToggle?.state ? "BẬT" : "TẮT"}
+            </Box>
+            . Sau khi xác nhận, thiết bị sẽ chuyển sang trạng thái{" "}
             <Box
               component="span"
               sx={{
@@ -583,12 +599,8 @@ const RealTimeSensors = () => {
               }}
             >
               {deviceToToggle?.state ? "TẮT" : "BẬT"}
-            </Box>{" "}
-            thiết bị{" "}
-            <Box component="span" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-              {deviceToToggle?.controlDeviceTypeName}
             </Box>
-            {selectedTank ? ` tại ${selectedTank.name}` : ""}.
+            .
           </Typography>
           <Box
             sx={{

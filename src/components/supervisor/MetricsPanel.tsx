@@ -1,16 +1,12 @@
-import { Box, Stack, List, ListItem, ListItemText, Paper, Typography } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import React from "react";
 import useSupervisorMetrics from "../../hooks/useSupervisorMetrics";
 import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
-import TimeseriesChart from "../common/charts/TimeseriesChart";
-
-function mapSeries(ts?: { series: { groupId?: string; groupName?: string; points: { timestamp: string; value: number }[] }[] } | null) {
-  if (!ts || !ts.series) return [] as { name: string; points: { timestamp: string; value: number }[] }[];
-  return ts.series.map((s) => ({ name: s.groupName || s.groupId || "series", points: s.points }));
-}
+import FarmSummaryChart from "./FarmSummaryChart";
+import FarmTimeseriesChart from "./FarmTimeseriesChart";
 
 const MetricsPanel: React.FC = () => {
-  const { feedTimeseries, mortalityTimeseries, topBatches, refetch } = useSupervisorMetrics();
+  const { refetch } = useSupervisorMetrics();
 
   // Debounced refetch to avoid spamming backend on many signalR events
   const refetchTimer = React.useRef<number | null>(null);
@@ -35,33 +31,17 @@ const MetricsPanel: React.FC = () => {
     onMortality: scheduleRefetch,
   });
 
-  const feedSeries = mapSeries(feedTimeseries);
-  const mortalitySeries = mapSeries(mortalityTimeseries);
+  // farm timeseries charts fetch their own data via `useFarmTimeseries`
 
   return (
     <Box sx={{ mt: 4 }}>
       <Stack spacing={3}>
         <Box sx={{ width: "100%" }}>
-          <TimeseriesChart title="Lượng thức ăn (30 ngày gần đây)" series={feedSeries} height={520} />
+          <FarmSummaryChart />
         </Box>
 
         <Box sx={{ width: "100%" }}>
-          <TimeseriesChart title="Tử vong (30 ngày gần đây)" series={mortalitySeries} height={420} />
-        </Box>
-
-        <Box sx={{ width: "100%" }}>
-          <Paper variant="outlined" sx={{ p: 3, borderRadius: "16px" }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700 }}>
-              Các lô hàng hàng đầu (theo lượng thức ăn)
-            </Typography>
-            <List dense>
-              {(topBatches || []).map((b) => (
-                <ListItem key={b.batchId} divider>
-                  <ListItemText primary={b.batchName ?? b.batchId} secondary={`Thức ăn: ${b.totalFeedKg ?? "—"} kg • Hiện có: ${b.currentQuantity ?? "—"}`} />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
+          <FarmTimeseriesChart defaultMetric="feed" height={520} />
         </Box>
       </Stack>
     </Box>

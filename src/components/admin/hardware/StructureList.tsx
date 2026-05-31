@@ -108,8 +108,10 @@ export default function StructureList({
           {tanks.map((tank) => {
             const isTankSelected =
               selected.type === "tank" && selected.id === tank.id;
-            const boards = masterBoards.filter(
-              (b) => b.fishTankName === tank.name,
+            // Ưu tiên lọc theo fishTankId (chính xác); fallback theo tên
+            // cho dữ liệu cũ chưa có fishTankId.
+            const boards = masterBoards.filter((b) =>
+              b.fishTankId ? b.fishTankId === tank.id : b.fishTankName === tank.name,
             );
             const isTankExpanded = !!expandedTanks[tank.id];
 

@@ -28,7 +28,7 @@ import {
   useTheme,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 // Icons
 import AddIcon from "@mui/icons-material/Add";
@@ -40,6 +40,7 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import WarningIcon from "@mui/icons-material/Warning";
 import WaterIcon from "@mui/icons-material/Water";
+import { OperatorHeader } from "../../components/operator/OperatorHeader";
 
 import { useToast } from "../../components/common/toastContext";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
@@ -58,13 +59,22 @@ const BatchManagement = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, loading, refetch, refetchDetails } = useOperatorBatches();
+  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, loading, refetch, refetchDetails, availableFeedTypes } = useOperatorBatches();
 
   const [tabValue, setTabValue] = useState(0);
 
   const [openFeedDialog, setOpenFeedDialog] = useState(false);
   const [feedInput, setFeedInput] = useState("");
   const [feedTypeIdInput, setFeedTypeIdInput] = useState("");
+
+  // If the currently selected feed type is no longer allowed for the active stage, clear it
+  useEffect(() => {
+    if (!feedTypeIdInput) return;
+    const allowedIds = new Set((availableFeedTypes || []).map((f) => String(f.id)));
+    if (!allowedIds.has(feedTypeIdInput)) {
+      setFeedTypeIdInput("");
+    }
+  }, [availableFeedTypes, feedTypeIdInput]);
 
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
   const [deathInput, setDeathInput] = useState("");
@@ -75,7 +85,7 @@ const BatchManagement = () => {
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
-      toast.error("Vui lòng nhập khối lượng và chọn loại thức ăn!");
+      toast.error("Vui lòng nhập khối lượng và chọn loại cám!");
       return;
     }
     if (!selectedBatch) return;
@@ -200,6 +210,7 @@ const BatchManagement = () => {
           minWidth: 0,
         }}
       >
+        <OperatorHeader />
         <Box
           sx={{
             display: "flex",
@@ -262,7 +273,53 @@ const BatchManagement = () => {
               </Box>
             </Box>
 
-            {/* CỘT CHI TIẾT BÊN PHẢI */}
+            {/* CỘT CHI TIẾT BÊN PHẢI — placeholder khi chưa chọn lô */}
+            {!selectedBatch && (
+              <Box
+                sx={{
+                  flex: 6.5,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <Paper
+                  elevation={0}
+                  sx={{
+                    flexGrow: 1,
+                    borderRadius: "16px",
+                    border: `1px dashed ${theme.palette.divider}`,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1.5,
+                    p: 6,
+                    bgcolor: alpha(theme.palette.primary.main, 0.02),
+                  }}
+                >
+                  <Inventory2OutlinedIcon
+                    sx={{
+                      fontSize: 56,
+                      color: theme.palette.text.secondary,
+                      opacity: 0.4,
+                    }}
+                  />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+                    Chưa có lô nào được chọn
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: theme.palette.text.secondary,
+                      textAlign: "center",
+                      maxWidth: 360,
+                    }}
+                  >
+                    Vui lòng chọn một lô nuôi ở danh sách bên trái để xem chi tiết, lịch sử cho ăn và ghi nhận hao hụt.
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
             {selectedBatch && (
               <Box sx={{ flex: 6.5, display: "flex", flexDirection: "column" }}>
                 <Paper
@@ -545,14 +602,20 @@ const BatchManagement = () => {
         <DialogTitle sx={{ fontWeight: 700 }}>Ghi nhận cho ăn</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           <FormControl fullWidth size="small">
-            <InputLabel>Loại thức ăn</InputLabel>
-            <Select value={feedTypeIdInput} label="Loại thức ăn" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
-              {feedTypes.length === 0 ? (
-                <MenuItem disabled value="">
-                  Đang tải dữ liệu...
-                </MenuItem>
+            <InputLabel>Loại cám</InputLabel>
+            <Select value={feedTypeIdInput} label="Loại cám" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
+              {availableFeedTypes.length === 0 ? (
+                feedTypes.length === 0 ? (
+                  <MenuItem disabled value="">
+                    Đang tải dữ liệu...
+                  </MenuItem>
+                ) : (
+                  <MenuItem disabled value="">
+                    Không có loại cám phù hợp cho giai đoạn hiện tại
+                  </MenuItem>
+                )
               ) : (
-                feedTypes.map((type) => (
+                availableFeedTypes.map((type) => (
                   <MenuItem key={type.id} value={type.id}>
                     {type.name} ({type.proteinPercentage}% Đạm)
                   </MenuItem>
@@ -564,7 +627,7 @@ const BatchManagement = () => {
           <TextField
             fullWidth
             size="small"
-            label="Khối lượng thức ăn"
+            label="Khối lượng cám"
             type="number"
             InputProps={{
               endAdornment: <InputAdornment position="end">kg</InputAdornment>,

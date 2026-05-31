@@ -417,10 +417,10 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
                 <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
                   <FormControl fullWidth>
-                    <InputLabel id={`feedtype-label-${st.id}`}>{labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại thức ăn")}</InputLabel>
+                    <InputLabel id={`feedtype-label-${st.id}`}>{labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}</InputLabel>
                     <Select
                       labelId={`feedtype-label-${st.id}`}
-                      label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại thức ăn")}
+                      label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}
                       multiple
                       value={(st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds : st.feedType ? [st.feedType] : []) as string[]}
                       onChange={(e) => {
@@ -481,7 +481,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
 
                 <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
                   <TextField
-                    label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Lượng thức ăn (kg/100 cá)")}
+                    label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Lượng cám (kg/100 cá)")}
                     type="number"
                     fullWidth
                     value={st.feedPer100}
