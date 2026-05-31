@@ -22,6 +22,7 @@ import { AlertDetailModal } from "../../components/operator/AlertDetailModal";
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useAlerts } from "../../hooks/useAlerts";
+import { useAlertSignalR } from "../../hooks/useAlertSignalR";
 import type { IAlert } from "../../types/alert";
 
 // Icons
@@ -75,7 +76,21 @@ const AlertCenter = () => {
     page,
     setPage,
     totalCount,
+    refetch,
   } = useAlerts(1, 10);
+
+  useAlertSignalR({ onAlertCreated: () => refetch() });
+
+  const activePriority = (status: unknown) => {
+    const s = String(status).toUpperCase();
+    return s === "OPEN" || s === "ACKNOWLEDGED" ? 0 : 1;
+  };
+
+  const sortedAlerts = [...alerts].sort((a, b) => {
+    const pd = activePriority(a.status) - activePriority(b.status);
+    if (pd !== 0) return pd;
+    return new Date(b.raisedAt).getTime() - new Date(a.raisedAt).getTime();
+  });
 
   // Tính toán số lượng cho Summary Cards
   const openCount = alerts.filter(
@@ -232,7 +247,7 @@ const AlertCenter = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {alerts.map((row) => (
+                  {sortedAlerts.map((row) => (
                     <TableRow
                       key={row.id}
                       hover
