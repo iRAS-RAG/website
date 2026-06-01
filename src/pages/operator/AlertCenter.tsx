@@ -13,15 +13,23 @@ import {
   Typography,
   useTheme,
   CircularProgress,
+  Tooltip,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
   type Palette,
   type PaletteColor,
+  type SelectChangeEvent,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { AlertDetailModal } from "../../components/operator/AlertDetailModal";
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useAlerts } from "../../hooks/useAlerts";
+import { alertApi } from "../../api/alerts";
 import { useAlertSignalR } from "../../hooks/useAlertSignalR";
 import type { IAlert } from "../../types/alert";
 
@@ -32,6 +40,8 @@ import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import type { JSX } from "react";
 
 // Định nghĩa dữ liệu truyền vào Modal (Đã xóa trường level)
@@ -45,7 +55,8 @@ export interface AlertData {
   tank: string;
   tankId: string;
   staff: string;
-  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua";
+  hasCorrectiveAction: boolean;
 }
 
 interface SummaryCardProps {
@@ -58,15 +69,22 @@ interface SummaryCardProps {
 // Hàm hỗ trợ map trạng thái từ Backend (Số/Chuỗi) sang UI Text
 const getStatusLabel = (
   status: unknown,
-): "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" => {
+): "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua" => {
   const s = String(status).toUpperCase();
   if (s === "ACKNOWLEDGED") return "Đang xử lý";
   if (s === "RESOLVED") return "Đóng sự cố";
-  return "Chờ xử lý"; // Mặc định cho trạng thái "OPEN"
+  if (s === "DISMISSED") return "Đã bỏ qua";
+  return "Chờ xử lý";
 };
 
 const AlertCenter = () => {
   const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  const filterStatuses = statusFilter === "ALL" ? undefined : [statusFilter];
 
   // 1. GỌI HOOK LẤY DỮ LIỆU THẬT
   const {
@@ -76,37 +94,29 @@ const AlertCenter = () => {
     page,
     setPage,
     totalCount,
+    statusCounts,
     refetch,
-  } = useAlerts(1, 10);
+  } = useAlerts(1, 10, filterStatuses);
 
   useAlertSignalR({ onAlertCreated: () => refetch() });
 
-  const activePriority = (status: unknown) => {
-    const s = String(status).toUpperCase();
-    return s === "OPEN" || s === "ACKNOWLEDGED" ? 0 : 1;
+  const handleStatusFilterChange = (e: SelectChangeEvent) => {
+    setStatusFilter(e.target.value);
+    setPage(1);
   };
-
-  const sortedAlerts = [...alerts].sort((a, b) => {
-    const pd = activePriority(a.status) - activePriority(b.status);
-    if (pd !== 0) return pd;
-    return new Date(b.raisedAt).getTime() - new Date(a.raisedAt).getTime();
-  });
-
-  // Tính toán số lượng cho Summary Cards
-  const openCount = alerts.filter(
-    (a) => String(a.status).toUpperCase() === "OPEN",
-  ).length;
-
-  const ackCount = alerts.filter(
-    (a) => String(a.status).toUpperCase() === "ACKNOWLEDGED",
-  ).length;
-
-  const resolvedCount = alerts.filter(
-    (a) => String(a.status).toUpperCase() === "RESOLVED",
-  ).length;
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertData | null>(null);
+
+  const openAlertId: string | undefined = (location.state as { openAlertId?: string } | null)?.openAlertId;
+
+  useEffect(() => {
+    if (!openAlertId) return;
+    navigate(location.pathname, { replace: true, state: {} });
+    alertApi.getById(openAlertId).then((alert: IAlert) => {
+      handleOpenDetail(alert);
+    }).catch(() => {});
+  }, [openAlertId]);
 
   const handleOpenDetail = (alert: IAlert) => {
     setSelectedAlert({
@@ -120,6 +130,7 @@ const AlertCenter = () => {
       tankId: alert.fishTankId,
       staff: "Chưa phân công",
       status: getStatusLabel(alert.status),
+      hasCorrectiveAction: alert.hasCorrectiveAction,
     });
     setDetailOpen(true);
   };
@@ -173,29 +184,47 @@ const AlertCenter = () => {
           >
             <SummaryCard
               label="Tổng cảnh báo"
-              value={totalCount.toString()}
+              value={statusCounts.total.toString()}
               icon={<NotificationsActiveIcon />}
               color="primary"
             />
             <SummaryCard
               label="Chờ xử lý"
-              value={openCount.toString()}
+              value={statusCounts.open.toString()}
               icon={<ErrorOutlineIcon />}
-              color="error" // Màu đỏ báo động cần xử lý ngay
+              color="error"
             />
             <SummaryCard
               label="Đang xử lý"
-              value={ackCount.toString()}
+              value={statusCounts.acknowledged.toString()}
               icon={<PendingActionsIcon />}
-              color="warning" // Màu cam cho tiến trình đang chạy
+              color="warning"
             />
             <SummaryCard
               label="Đóng sự cố"
-              value={resolvedCount.toString()}
+              value={statusCounts.resolved.toString()}
               icon={<CheckCircleOutlineIcon />}
-              color="success" // Màu xanh lá khi hoàn tất
+              color="success"
             />
           </Box>
+
+          {/* FILTER BAR */}
+          <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3, mb: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Trạng thái</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Trạng thái"
+                onChange={handleStatusFilterChange}
+              >
+                <MenuItem value="ALL">Tất cả</MenuItem>
+                <MenuItem value="OPEN">Chờ xử lý</MenuItem>
+                <MenuItem value="ACKNOWLEDGED">Đang xử lý</MenuItem>
+                <MenuItem value="RESOLVED">Đóng sự cố</MenuItem>
+                <MenuItem value="DISMISSED">Đã bỏ qua</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
 
           {/* ALERT LOG TABLE */}
           <TableContainer
@@ -205,7 +234,6 @@ const AlertCenter = () => {
               borderRadius: "12px",
               border: `1px solid ${theme.palette.divider}`,
               overflow: "hidden",
-              mt: 3,
             }}
           >
             {loading ? (
@@ -247,7 +275,7 @@ const AlertCenter = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sortedAlerts.map((row) => (
+                  {alerts.map((row) => (
                     <TableRow
                       key={row.id}
                       hover
@@ -329,7 +357,24 @@ const AlertCenter = () => {
 
                       {/* Trạng thái */}
                       <TableCell>
-                        <StatusChip status={getStatusLabel(row.status)} />
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <StatusChip status={getStatusLabel(row.status)} />
+                          {getStatusLabel(row.status) !== "Đã bỏ qua" && (
+                            <Tooltip
+                              title={
+                                row.hasCorrectiveAction
+                                  ? "Đã có nhật kí bảo trì"
+                                  : "Chưa có nhật kí bảo trì"
+                              }
+                            >
+                              {row.hasCorrectiveAction ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: "success.main" }} />
+                              ) : (
+                                <BuildCircleIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                              )}
+                            </Tooltip>
+                          )}
+                        </Stack>
                       </TableCell>
 
                       {/* Hành động */}
@@ -424,6 +469,7 @@ const AlertCenter = () => {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         data={selectedAlert}
+        onStatusChange={refetch}
       />
     </Box>
   );
@@ -484,7 +530,7 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
 const StatusChip = ({
   status,
 }: {
-  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua";
 }) => {
   const theme = useTheme();
   const getStyle = () => {
@@ -503,6 +549,11 @@ const StatusChip = ({
         return {
           bgcolor: theme.palette.success.light,
           color: theme.palette.success.main,
+        };
+      case "Đã bỏ qua":
+        return {
+          bgcolor: theme.palette.grey[200],
+          color: theme.palette.text.secondary,
         };
       default:
         return {
