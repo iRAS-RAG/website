@@ -1,4 +1,6 @@
 import { createTheme } from "@mui/material/styles";
+import { viVN } from "@mui/x-date-pickers/locales";
+import "@mui/x-date-pickers/themeAugmentation";
 
 /* =========================================================
    🎨 COLOR SYSTEM — iRAS-RAG Brand Identity
@@ -18,57 +20,67 @@ const NEUTRAL_TEXT_SECONDARY = "#6B7280";
 const NEUTRAL_BORDER = "#D1D5DB";
 const NEUTRAL_BG = "#F4F7FA";
 
-export const theme = createTheme({
-  palette: {
-    primary: { main: COLOR_PRIMARY, light: COLOR_PRIMARY_LIGHT },
-    secondary: { main: COLOR_SECONDARY },
-    warning: { main: COLOR_WARNING, light: COLOR_WARNING_LIGHT },
-    error: { main: COLOR_DANGER, light: COLOR_DANGER_LIGHT },
-    success: { main: COLOR_SUCCESS, light: COLOR_SUCCESS_LIGHT },
-    background: {
-      default: NEUTRAL_BG,
-      paper: "#FFFFFF",
+export const theme = createTheme(
+  {
+    palette: {
+      primary: { main: COLOR_PRIMARY, light: COLOR_PRIMARY_LIGHT },
+      secondary: { main: COLOR_SECONDARY },
+      warning: { main: COLOR_WARNING, light: COLOR_WARNING_LIGHT },
+      error: { main: COLOR_DANGER, light: COLOR_DANGER_LIGHT },
+      success: { main: COLOR_SUCCESS, light: COLOR_SUCCESS_LIGHT },
+      background: {
+        default: NEUTRAL_BG,
+        paper: "#FFFFFF",
+      },
+      text: {
+        primary: NEUTRAL_TEXT,
+        secondary: NEUTRAL_TEXT_SECONDARY,
+      },
+      divider: NEUTRAL_BORDER,
     },
-    text: {
-      primary: NEUTRAL_TEXT,
-      secondary: NEUTRAL_TEXT_SECONDARY,
+
+    typography: {
+      fontFamily: "'Be Vietnam Pro', sans-serif",
+      h1: { fontWeight: 800, fontSize: "2.5rem" },
+      h2: { fontWeight: 700, fontSize: "2rem" },
+      h3: { fontWeight: 600, fontSize: "1.25rem" },
+      body1: { fontSize: "1rem", lineHeight: 1.6 },
+      body2: { fontSize: "0.875rem" },
+      caption: { fontSize: "0.75rem", color: NEUTRAL_TEXT_SECONDARY },
     },
-    divider: NEUTRAL_BORDER,
-  },
 
-  typography: {
-    fontFamily: "'Be Vietnam Pro', sans-serif",
-    h1: { fontWeight: 800, fontSize: "2.5rem" },
-    h2: { fontWeight: 700, fontSize: "2rem" },
-    h3: { fontWeight: 600, fontSize: "1.25rem" },
-    body1: { fontSize: "1rem", lineHeight: 1.6 },
-    body2: { fontSize: "0.875rem" },
-    caption: { fontSize: "0.75rem", color: NEUTRAL_TEXT_SECONDARY },
-  },
-
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 8,
-          textTransform: "none",
-          fontWeight: 600,
-          padding: "10px 20px",
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            textTransform: "none",
+            fontWeight: 600,
+            padding: "10px 20px",
+          },
+          containedPrimary: {
+            boxShadow: "0 4px 12px rgba(42,133,255,0.25)",
+            "&:hover": { backgroundColor: "#1F6FDB" },
+          },
         },
-        containedPrimary: {
-          boxShadow: "0 4px 12px rgba(42,133,255,0.25)",
-          "&:hover": { backgroundColor: "#1F6FDB" },
+      },
+      MuiPickersCalendarHeader: {
+        styleOverrides: {
+          label: {
+            textTransform: "capitalize",
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            borderRadius: 12,
+            boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.05)",
+            border: `1px solid ${NEUTRAL_BORDER}`,
+          },
         },
       },
     },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.05)",
-          border: `1px solid ${NEUTRAL_BORDER}`,
-        },
-      },
-    },
   },
-});
+  viVN,
+);

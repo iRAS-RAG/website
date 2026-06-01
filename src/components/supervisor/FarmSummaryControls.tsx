@@ -1,5 +1,6 @@
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import React from "react";
+import LocalizedDateField from "../common/LocalizedDateField";
 
 interface Props {
   start?: string;
@@ -38,8 +39,8 @@ export default function FarmSummaryControls({ start, end, groupBy = "none", metr
 
   return (
     <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-      <TextField label="Từ ngày" type="date" value={localStart} onChange={(e) => setLocalStart(e.target.value)} InputLabelProps={{ shrink: true }} size="small" />
-      <TextField label="Đến ngày" type="date" value={localEnd} onChange={(e) => setLocalEnd(e.target.value)} InputLabelProps={{ shrink: true }} size="small" />
+      <LocalizedDateField label="Từ ngày" value={localStart} onChange={setLocalStart} size="small" />
+      <LocalizedDateField label="Đến ngày" value={localEnd} onChange={setLocalEnd} size="small" />
 
       <FormControl size="small" sx={{ minWidth: 140 }}>
         <InputLabel id="groupby-label">Nhóm theo</InputLabel>

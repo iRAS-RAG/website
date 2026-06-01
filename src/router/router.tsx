@@ -12,14 +12,12 @@ import SupervisorDashboard from "../pages/supervisor/SupervisorDashboard";
 
 import AIAdvisory from "../pages/operator/AIAdvisory";
 import AlertCenter from "../pages/operator/AlertCenter";
+import TankManagement from "../pages/operator/BatchManagement";
 import MaintenanceLog from "../pages/operator/MaintenanceLog";
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import RealTimeSensors from "../pages/operator/RealTimeSensors";
-import TankManagement from "../pages/operator/BatchManagement";
 import BatchDetailPage from "../pages/supervisor/BatchDetailPage";
 import BatchListPage from "../pages/supervisor/BatchListPage";
-import CompareBatchesPage from "../pages/supervisor/CompareBatchesPage";
-import CreateBatchPage from "../pages/supervisor/CreateBatchPage";
 import HarvestBatchPage from "../pages/supervisor/HarvestBatchPage";
 import OperatorManagement from "../pages/supervisor/OperatorManagement";
 import ProtectedRoute from "./ProtectedRoute";
@@ -93,14 +91,6 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/batches/create"
-        element={
-          <ProtectedRoute check={isSupervisor}>
-            <CreateBatchPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/supervisor/batches/:id"
         element={
           <ProtectedRoute check={isSupervisor}>
@@ -113,14 +103,6 @@ const AppRouter = () => {
         element={
           <ProtectedRoute check={isSupervisor}>
             <HarvestBatchPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/supervisor/batches/compare"
-        element={
-          <ProtectedRoute check={isSupervisor}>
-            <CompareBatchesPage />
           </ProtectedRoute>
         }
       />

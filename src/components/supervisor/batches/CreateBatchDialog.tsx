@@ -7,6 +7,7 @@ import { getTankRecommendedInitials, getTanks } from "../../../api/tanks";
 import useBatches from "../../../hooks/useBatches";
 import type { Species } from "../../../types/species";
 import type { Tank } from "../../../types/tank";
+import LocalizedDateField from "../../common/LocalizedDateField.tsx";
 import { useToast } from "../../common/toastContext";
 
 // Helpers
@@ -370,18 +371,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 flexDirection: { xs: "column", sm: "row" },
               }}
             >
-              <TextField
-                fullWidth
-                sx={{ flex: 1 }}
-                type="date"
-                label="Ngày bắt đầu"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                error={!!errors.startDate}
-                helperText={errors.startDate}
-                InputLabelProps={{ shrink: true }}
-                required
-              />
+              <LocalizedDateField label="Ngày bắt đầu" value={startDate} onChange={setStartDate} error={!!errors.startDate} helperText={errors.startDate} required sx={{ flex: 1 }} />
               {/* Estimated harvest date is no longer required; backend plans stages */}
             </Box>
           </Box>

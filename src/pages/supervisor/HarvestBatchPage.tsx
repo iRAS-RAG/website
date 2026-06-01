@@ -4,6 +4,7 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, Dialog
 import dayjs from "dayjs";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import LocalizedDateField from "../../components/common/LocalizedDateField";
 import { useToast } from "../../components/common/toastContext";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
@@ -194,7 +195,7 @@ const HarvestBatchPage: React.FC = () => {
                       </Grid>
 
                       <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth type="date" label="Ngày thu hoạch" value={harvestDate} onChange={(e) => setHarvestDate(e.target.value)} InputLabelProps={{ shrink: true }} required />
+                        <LocalizedDateField label="Ngày thu hoạch" value={harvestDate} onChange={setHarvestDate} required />
                       </Grid>
 
                       <Grid size={{ xs: 12, md: 6 }}>

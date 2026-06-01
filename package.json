@@ -15,6 +15,7 @@
     "@microsoft/signalr": "^10.0.0",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
+    "@mui/x-date-pickers": "^9.3.0",
     "axios": "^1.13.4",
     "dayjs": "^1.11.20",
     "react": "^19.2.0",
