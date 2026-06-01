@@ -37,6 +37,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
@@ -53,11 +54,15 @@ interface IAlertOption {
   sensorTypeName: string;
   fishTankName: string;
   raisedAt: string;
+  hasCorrectiveAction: boolean;
+  status: string;
 }
 
 const MaintenanceLog: React.FC = () => {
   const theme = useTheme();
   const toast = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // 1. Lấy danh sách Nhật ký
   const { data: logs, loading, error, refetch } = useCorrectiveActions();
@@ -114,7 +119,7 @@ const MaintenanceLog: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // LOGIC LỌC DROPDOWN: Chỉ hiện những Alert chưa được tạo nhật ký (hoặc alert đang được edit)
+  // LOGIC LỌC DROPDOWN: Chỉ hiện những Alert chưa có hành động khắc phục (hoặc alert đang được edit)
   const availableAlerts = useMemo(() => {
     return alertsList.filter((alert) => {
       // Nếu đang ở chế độ sửa, cho phép giữ lại Alert của bản ghi đang sửa
@@ -124,13 +129,20 @@ const MaintenanceLog: React.FC = () => {
       ) {
         return true;
       }
-      // Kiểm tra xem alert.id đã tồn tại trong danh sách logs chưa
-      const isAlreadyLogged = logs.some(
-        (log) => log.alertId.toLowerCase() === alert.id.toLowerCase(),
-      );
-      return !isAlreadyLogged;
+      return !alert.hasCorrectiveAction && String(alert.status).toUpperCase() !== "DISMISSED";
     });
-  }, [alertsList, logs, isEditMode, formData.alertId]);
+  }, [alertsList, isEditMode, formData.alertId]);
+
+  // Auto-open create modal when navigated from AlertDetailModal
+  const navState = location.state as { openCreate?: boolean; alertId?: string } | null;
+  useEffect(() => {
+    if (!navState?.openCreate || !navState.alertId) return;
+    setIsEditMode(false);
+    setEditingId(null);
+    setFormData({ alertId: navState.alertId, actionTaken: "", notes: "" });
+    setIsModalOpen(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [navState?.openCreate, navState?.alertId]);
 
   // Handlers mở modal Thêm/Sửa
   const handleOpenAddModal = () => {
