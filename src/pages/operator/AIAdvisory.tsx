@@ -4,9 +4,11 @@ import {
   Button,
   Chip,
   CircularProgress,
+  IconButton,
   Paper,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -15,6 +17,8 @@ import { useLocation } from "react-router-dom";
 
 // Icons
 import SendIcon from "@mui/icons-material/Send";
+import ThumbDownAltOutlinedIcon from "@mui/icons-material/ThumbDownAltOutlined";
+import ThumbUpAltOutlinedIcon from "@mui/icons-material/ThumbUpAltOutlined";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -43,6 +47,9 @@ interface Exchange {
   isOffTopic: boolean;
   citations: string[];
   error: boolean;
+  intent: string | null;
+  feedbackSubmitted: boolean;
+  isHelpful: boolean | null;
 }
 
 // Loại bỏ cú pháp Markdown phổ biến trong câu trả lời của AI để hiển thị
@@ -70,7 +77,6 @@ const AIAdvisory: React.FC = () => {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  // SỬA Ở ĐÂY: Đổi từ Object đơn thành Mảng (Array) để lưu nhiều câu chat
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
 
   useEffect(() => {
@@ -107,20 +113,57 @@ const AIAdvisory: React.FC = () => {
 
   const handleSelectTank = (tank: Tank) => {
     setSelectedTank(tank);
-    setExchanges([]); // Xóa lịch sử khi đổi bể
+    setExchanges([]);
     setMessage("");
   };
 
   const handleChangeTank = () => {
     setSelectedTank(null);
-    setExchanges([]); // Xóa lịch sử khi thoát bể
+    setExchanges([]);
     setMessage("");
   };
 
-  // Cập nhật hàm handleSend để thêm (append) vào mảng thay vì ghi đè
+  // Gửi đánh giá hữu ích / không hữu ích cho một exchange theo index
+  const handleFeedback = async (index: number, helpful: boolean) => {
+    const ex = exchanges[index];
+    if (!ex || ex.feedbackSubmitted || !selectedTank || !ex.answer) return;
+
+    // Cập nhật UI ngay lập tức (optimistic update)
+    setExchanges((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        feedbackSubmitted: true,
+        isHelpful: helpful,
+      };
+      return updated;
+    });
+
+    try {
+      await advisoryApi.submitFeedback({
+        tankId: selectedTank.id,
+        response: ex.answer,
+        helpful,
+        intent: ex.intent,
+        question: ex.question,
+      });
+    } catch (err) {
+      console.error("Lỗi gửi feedback:", err);
+    }
+  };
+
   const handleSend = async () => {
     const question = message.trim();
     if (!selectedTank || !question || sending) return;
+
+    // Đánh giá ngầm: nếu câu trả lời cuối chưa được đánh giá thì tự gửi helpful=true
+    const lastIndex = exchanges.length - 1;
+    if (lastIndex >= 0) {
+      const lastEx = exchanges[lastIndex];
+      if (lastEx && !lastEx.error && !lastEx.feedbackSubmitted && lastEx.answer) {
+        handleFeedback(lastIndex, true);
+      }
+    }
 
     setMessage("");
     setSending(true);
@@ -134,24 +177,27 @@ const AIAdvisory: React.FC = () => {
         isOffTopic: false,
         citations: [],
         error: false,
+        intent: null,
+        feedbackSubmitted: false,
+        isHelpful: null,
       },
     ]);
 
     try {
       const res = await advisoryApi.chat(selectedTank.id, question);
 
-      // Khi có kết quả, update lại câu trả lời vào phần tử cuối cùng của mảng
       setExchanges((prev) => {
         const newExchanges = [...prev];
-        const lastIndex = newExchanges.length - 1;
-        newExchanges[lastIndex] = {
-          ...newExchanges[lastIndex],
+        const idx = newExchanges.length - 1;
+        newExchanges[idx] = {
+          ...newExchanges[idx],
           answer:
             res?.answer?.trim() ||
             "Hệ thống chưa trả về câu trả lời. Vui lòng thử lại.",
           isOffTopic: !!res?.isOffTopic,
           citations: res?.citations ?? [],
           error: false,
+          intent: res?.intent ?? null,
         };
         return newExchanges;
       });
@@ -176,9 +222,9 @@ const AIAdvisory: React.FC = () => {
       toast.error(reason);
       setExchanges((prev) => {
         const newExchanges = [...prev];
-        const lastIndex = newExchanges.length - 1;
-        newExchanges[lastIndex] = {
-          ...newExchanges[lastIndex],
+        const idx = newExchanges.length - 1;
+        newExchanges[idx] = {
+          ...newExchanges[idx],
           answer: reason,
           error: true,
         };
@@ -552,6 +598,69 @@ const AIAdvisory: React.FC = () => {
                                 </>
                               )}
                             </Paper>
+
+                            {/* NÚT ĐÁNH GIÁ FEEDBACK */}
+                            {!isWaitingForAPI && !ex.error && (
+                              <Stack
+                                direction="row"
+                                justifyContent="flex-end"
+                                spacing={0.75}
+                                sx={{ mt: 1 }}
+                              >
+                                <Button
+                                  size="small"
+                                  startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize: "15px !important" }} />}
+                                  onClick={() => handleFeedback(index, true)}
+                                  disabled={ex.feedbackSubmitted}
+                                  sx={{
+                                    textTransform: "none",
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    px: 1.25,
+                                    py: 0.4,
+                                    minWidth: 0,
+                                    borderRadius: "6px",
+                                    color:
+                                      ex.feedbackSubmitted && ex.isHelpful === true
+                                        ? "success.main"
+                                        : "text.secondary",
+                                    "&:hover": {
+                                      color: "success.main",
+                                      bgcolor: "rgba(46, 125, 50, 0.08)",
+                                    },
+                                    transition: "color 0.2s, background-color 0.2s",
+                                  }}
+                                >
+                                  Hữu ích
+                                </Button>
+                                <Button
+                                  size="small"
+                                  startIcon={<ThumbDownAltOutlinedIcon sx={{ fontSize: "15px !important" }} />}
+                                  onClick={() => handleFeedback(index, false)}
+                                  disabled={ex.feedbackSubmitted}
+                                  sx={{
+                                    textTransform: "none",
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    px: 1.25,
+                                    py: 0.4,
+                                    minWidth: 0,
+                                    borderRadius: "6px",
+                                    color:
+                                      ex.feedbackSubmitted && ex.isHelpful === false
+                                        ? "error.main"
+                                        : "text.secondary",
+                                    "&:hover": {
+                                      color: "error.main",
+                                      bgcolor: "rgba(211, 47, 47, 0.08)",
+                                    },
+                                    transition: "color 0.2s, background-color 0.2s",
+                                  }}
+                                >
+                                  Không hữu ích
+                                </Button>
+                              </Stack>
+                            )}
                           </Box>
                         </Stack>
                       </Box>
