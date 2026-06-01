@@ -1,4 +1,4 @@
-import { apiFetch, extractArray } from "./client";
+import { apiFetch } from "./client";
 import type {
   AuditLog,
   AuditLogListResponse,
@@ -9,20 +9,18 @@ function toAuditLog(item: Record<string, unknown>): AuditLog {
   return {
     id: String(item.id ?? ""),
     userId: String(item.userId ?? item.user_id ?? ""),
-    firstName: (item.firstName as string) || (item.first_name as string) || undefined,
-    lastName: (item.lastName as string) || (item.last_name as string) || undefined,
+    firstName: (item.firstName as string) || undefined,
+    lastName: (item.lastName as string) || undefined,
+    fullName: (item.fullName as string) || undefined,
     email: String(item.email ?? ""),
+    role: (item.role as string) || undefined,
     action: String(item.action ?? ""),
     entityType: String(item.entityType ?? item.entity_type ?? ""),
     entityId: String(item.entityId ?? item.entity_id ?? ""),
     oldValue:
-      item.oldValue === null
-        ? null
-        : (item.oldValue as string) || (item.old_value as string) || undefined,
+      item.oldValue === null ? null : (item.oldValue as string) || undefined,
     newValue:
-      item.newValue === null
-        ? null
-        : (item.newValue as string) || (item.new_value as string) || undefined,
+      item.newValue === null ? null : (item.newValue as string) || undefined,
     timestamp: String(item.timestamp ?? ""),
   };
 }
@@ -38,6 +36,7 @@ function buildQuery(params?: AuditLogQueryParams): string {
   if (params.entityId) sp.append("entityId", params.entityId);
   if (params.fromDate) sp.append("fromDate", params.fromDate);
   if (params.toDate) sp.append("toDate", params.toDate);
+  if (params.searchQuery) sp.append("searchQuery", params.searchQuery);
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -58,7 +57,7 @@ export const auditLogApi = {
       rawItems = res;
     } else if (res && typeof res === "object") {
       const r = res as RawAuditResp;
-      rawItems = r.items ?? r.data ?? extractArray(res);
+      rawItems = r.items ?? r.data ?? [];
       meta = r.meta;
     }
 
