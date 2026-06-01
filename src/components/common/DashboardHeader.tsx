@@ -8,7 +8,7 @@ import { Badge, Box, Fade, IconButton, InputBase, Menu, MenuItem, Paper, Typogra
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-type Notification = { type: "error" | "warning" | "success"; title: string; time: string };
+type Notification = { id?: string; type: "error" | "warning" | "success"; title: string; time: string };
 
 export type AlertPopup = { key: number; type: "error" | "warning" | "success"; title: string };
 
@@ -21,9 +21,10 @@ interface DashboardHeaderProps {
   showNotifications?: boolean;
   alertPopup?: AlertPopup | null;
   onAlertPopupDismiss?: () => void;
+  onNotificationClick?: (id?: string) => void;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute, showNotifications = true, alertPopup, onAlertPopupDismiss }) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute, showNotifications = true, alertPopup, onAlertPopupDismiss, onNotificationClick }) => {
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -129,7 +130,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlacehol
         {showNotifications && <Menu anchorEl={anchorEl} open={open} onClose={handleClose} PaperProps={{ sx: { width: 320 } }}>
           {notifications && notifications.length > 0 ? (
             notifications.map((n, i) => (
-              <MenuItem key={i} onClick={handleClose} sx={{ alignItems: "flex-start" }}>
+              <MenuItem key={i} onClick={() => { handleClose(); onNotificationClick?.(n.id); }} sx={{ alignItems: "flex-start", cursor: onNotificationClick && n.id ? "pointer" : "default" }}>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                   {n.type === "error" ? (
                     <ErrorIcon fontSize="small" color="error" />

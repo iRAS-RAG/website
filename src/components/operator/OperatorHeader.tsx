@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import DashboardHeader, { type AlertPopup } from "../common/DashboardHeader";
 import { apiFetch } from "../../api/client";
 import { useAlertSignalR, type AlertPush } from "../../hooks/useAlertSignalR";
+import { useNavigate } from "react-router-dom";
 
 type NotificationType = "error" | "warning" | "success";
 
@@ -52,6 +53,7 @@ export const OperatorHeader: React.FC = () => {
   const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
   const liveNotifsRef = useRef<Notification[]>([]);
   const popupKeyRef = useRef(0);
+  const navigate = useNavigate();
 
   useAlertSignalR({
     onReceiveAlert: (push: AlertPush) => {
@@ -74,12 +76,20 @@ export const OperatorHeader: React.FC = () => {
   useEffect(() => {
     const fetchLatestAlerts = async () => {
       try {
-        const res = await apiFetch<AlertsResponse>("/alerts?page=1&pageSize=5");
+        const res = await apiFetch<AlertsResponse>("/alerts?page=1&pageSize=5&statuses=Open&statuses=Acknowledged");
 
-        const items = res?.data || res?.items || [];
-        const total = res?.meta?.totalItems || items.length || 0;
+        const items = (res?.data || res?.items || []).sort((a, b) => {
+          const pa = a.status === "OPEN" || a.status === "ACKNOWLEDGED" ? 0 : 1;
+          const pb = b.status === "OPEN" || b.status === "ACKNOWLEDGED" ? 0 : 1;
+          if (pa !== pb) return pa - pb;
+          return new Date(b.raisedAt || b.createdAt || 0).getTime() - new Date(a.raisedAt || a.createdAt || 0).getTime();
+        });
 
-        setBadgeCount(total);
+        const activeCount = items.filter(
+          (a) => a.status === "OPEN" || a.status === "ACKNOWLEDGED",
+        ).length;
+
+        setBadgeCount(activeCount);
 
         const fetchedNotifs: Notification[] = items.map((alert: AlertItem) => {
           let notifType: NotificationType = "error";
@@ -133,6 +143,9 @@ export const OperatorHeader: React.FC = () => {
       seeAllRoute="/operator/alerts"
       alertPopup={alertPopup}
       onAlertPopupDismiss={() => setAlertPopup(null)}
+      onNotificationClick={(id) => {
+        if (id) navigate("/operator/alerts", { state: { openAlertId: id } });
+      }}
     />
   );
 };
