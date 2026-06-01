@@ -19,7 +19,9 @@ import { alertApi } from "../../api/alerts";
 import CloseIcon from "@mui/icons-material/Close";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
-import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 
 // 1. CẬP NHẬT INTERFACE: Xóa level, sửa status
 export interface AlertData {
@@ -299,77 +301,87 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
         <Divider sx={{ mb: 3 }} />
 
-        {/* NÚT HÀNH ĐỘNG */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          {/* Status transition buttons */}
-          <Stack direction="row" spacing={1}>
-            {data.status === "Chờ xử lý" && (
-              <>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={() => setPendingStatus("Acknowledged")}
-                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600, boxShadow: "none" }}
-                >
-                  Tiếp nhận
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  onClick={() => setPendingStatus("Dismissed")}
-                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
-                >
-                  Bỏ qua
-                </Button>
-              </>
-            )}
-            {data.status === "Đang xử lý" && (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={() => setPendingStatus("Dismissed")}
-                sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
-              >
-                Bỏ qua
-              </Button>
-            )}
-            {(data.status === "Đóng sự cố" || data.status === "Đã bỏ qua") && (
-              <Chip
-                label={data.status === "Đóng sự cố" ? "Sự cố đã được đóng" : "Đã bỏ qua"}
-                color={data.status === "Đóng sự cố" ? "success" : "default"}
-                variant="outlined"
-                sx={{ fontWeight: 700, borderRadius: "8px", borderStyle: "dashed", height: 36 }}
-              />
-            )}
-          </Stack>
+        {/* Terminal status chip */}
+        {(data.status === "Đóng sự cố" || data.status === "Đã bỏ qua") && (
+          <Box sx={{ mb: 2 }}>
+            <Chip
+              label={data.status === "Đóng sự cố" ? "Sự cố đã được đóng" : "Đã bỏ qua"}
+              color={data.status === "Đóng sự cố" ? "success" : "default"}
+              variant="outlined"
+              sx={{ fontWeight: 700, borderRadius: "8px", borderStyle: "dashed", height: 36 }}
+            />
+          </Box>
+        )}
 
-          {/* Action buttons */}
+        {/* NÚT HÀNH ĐỘNG */}
+        <Stack direction="row" spacing={1.5}>
+          {data.status === "Chờ xử lý" && (
+            <Button
+              variant="contained"
+              onClick={() => setPendingStatus("Acknowledged")}
+              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, boxShadow: "none", p: 0 }}
+            >
+              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                  <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />
+                </Box>
+                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                  Tiếp nhận
+                </Box>
+              </Box>
+            </Button>
+          )}
+          {(data.status === "Chờ xử lý" || data.status === "Đang xử lý") && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => setPendingStatus("Dismissed")}
+              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+            >
+              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                  <DeleteOutlineIcon sx={{ fontSize: 20 }} />
+                </Box>
+                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                  Bỏ qua
+                </Box>
+              </Box>
+            </Button>
+          )}
           {data.status !== "Đã bỏ qua" && (
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                color="warning"
-                startIcon={<BuildOutlinedIcon />}
-                onClick={handleGoToCorrectiveAction}
-                disabled={data.hasCorrectiveAction}
-                sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
-              >
-                Hành động khắc phục
-              </Button>
-              {data.status !== "Đóng sự cố" && (
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<SmartToyOutlinedIcon />}
-                  onClick={handleConsultAI}
-                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
-                >
-                  Tham vấn AI Advisor
-                </Button>
-              )}
-            </Stack>
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={handleGoToCorrectiveAction}
+              disabled={data.hasCorrectiveAction}
+              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+            >
+              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                  <AssignmentOutlinedIcon sx={{ fontSize: 20 }} />
+                </Box>
+                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                  Nhật kí bảo trì
+                </Box>
+              </Box>
+            </Button>
+          )}
+          {data.status !== "Đóng sự cố" && data.status !== "Đã bỏ qua" && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleConsultAI}
+              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+            >
+              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                  <SmartToyOutlinedIcon sx={{ fontSize: 20 }} />
+                </Box>
+                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                  Tham vấn AI
+                </Box>
+              </Box>
+            </Button>
           )}
         </Stack>
       </DialogContent>
