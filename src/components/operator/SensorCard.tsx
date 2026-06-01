@@ -6,7 +6,6 @@ interface SensorCardProps {
   label: string;
   value: string;
   unit: string;
-  trend: string;
   status: string;
   statusColor: "success" | "warning" | "error";
   icon: React.ElementType;
@@ -18,7 +17,6 @@ export const SensorCard: React.FC<SensorCardProps> = ({
   label,
   value,
   unit,
-  trend,
   status,
   statusColor,
   icon: Icon,
@@ -34,10 +32,6 @@ export const SensorCard: React.FC<SensorCardProps> = ({
   };
 
   const colors = colorMap[statusColor];
-  const trendColor =
-    statusColor === "success"
-      ? theme.palette.success.main
-      : theme.palette.error.main;
 
   return (
     <Paper
@@ -152,12 +146,6 @@ export const SensorCard: React.FC<SensorCardProps> = ({
             {unit}
           </Typography>
         </Stack>
-        <Typography
-          variant="caption"
-          sx={{ color: trendColor, fontWeight: 600, mt: 0.5, display: "block" }}
-        >
-          {trend}
-        </Typography>
       </Box>
     </Paper>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -54,6 +54,14 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   const navigate = useNavigate();
   const [pendingStatus, setPendingStatus] = useState<"Acknowledged" | "Dismissed" | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Local status override: used to stay open and show new buttons after "Tiếp nhận"
+  const [localStatus, setLocalStatus] = useState<AlertData["status"] | null>(null);
+  const currentStatus = localStatus ?? data?.status;
+
+  // Reset local status when modal opens with a different alert
+  useEffect(() => {
+    setLocalStatus(null);
+  }, [data?.id]);
 
   // Task 1: chuyển sang trang AI Advisor với prompt mở đầu điền sẵn
   const handleConsultAI = () => {
@@ -86,12 +94,19 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
     try {
       await alertApi.updateStatus(String(data.id), pendingStatus);
       onStatusChange?.();
-      onClose();
+      if (pendingStatus === "Acknowledged") {
+        // Stay open, show "Đã xử lý" + "Tham vấn AI"
+        setLocalStatus("Đang xử lý");
+        setPendingStatus(null);
+      } else {
+        // Dismissed — close
+        onClose();
+      }
     } catch (err) {
       console.error("Lỗi khi cập nhật trạng thái:", err);
+      setPendingStatus(null);
     } finally {
       setSubmitting(false);
-      setPendingStatus(null);
     }
   };
 
@@ -232,13 +247,13 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               variant="body2"
               sx={{
                 fontWeight: 700,
-                ...(data.status === "Đang xử lý" && { color: theme.palette.primary.main }),
-                ...(data.status === "Chờ xử lý" && { color: theme.palette.warning.main }),
-                ...(data.status === "Đóng sự cố" && { color: theme.palette.success.main }),
-                ...(data.status === "Đã bỏ qua" && { color: theme.palette.text.secondary }),
+                ...(currentStatus === "Đang xử lý" && { color: theme.palette.primary.main }),
+                ...(currentStatus === "Chờ xử lý" && { color: theme.palette.warning.main }),
+                ...(currentStatus === "Đóng sự cố" && { color: theme.palette.success.main }),
+                ...(currentStatus === "Đã bỏ qua" && { color: theme.palette.text.secondary }),
               }}
             >
-              {data.status}
+              {currentStatus}
             </Typography>
           </Box>
         </Stack>
@@ -330,72 +345,75 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
 {/* NÚT HÀNH ĐỘNG */}
         <Stack direction="row" spacing={1.5}>
-          {data.status === "Chờ xử lý" && (
-            <Button
-              variant="contained"
-              onClick={() => setPendingStatus("Acknowledged")}
-              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, boxShadow: "none", p: 0 }}
-            >
-              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
-                  <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />
+          {/* "Chờ xử lý": Tiếp nhận + Bỏ qua */}
+          {currentStatus === "Chờ xử lý" && (
+            <>
+              <Button
+                variant="contained"
+                onClick={() => setPendingStatus("Acknowledged")}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, boxShadow: "none", p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Tiếp nhận
+                  </Box>
                 </Box>
-                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
-                  Tiếp nhận
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => setPendingStatus("Dismissed")}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <DeleteOutlineIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Bỏ qua
+                  </Box>
                 </Box>
-              </Box>
-            </Button>
+              </Button>
+            </>
           )}
-          {(data.status === "Chờ xử lý" || data.status === "Đang xử lý") && (
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => setPendingStatus("Dismissed")}
-              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
-            >
-              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
-                  <DeleteOutlineIcon sx={{ fontSize: 20 }} />
+
+          {/* "Đang xử lý": Đã xử lý + Tham vấn AI */}
+          {currentStatus === "Đang xử lý" && (
+            <>
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={handleGoToCorrectiveAction}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <AssignmentOutlinedIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Đã xử lý
+                  </Box>
                 </Box>
-                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
-                  Bỏ qua
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleConsultAI}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <SmartToyOutlinedIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Tham vấn AI
+                  </Box>
                 </Box>
-              </Box>
-            </Button>
-          )}
-          {data.status !== "Đã bỏ qua" && !data.hasCorrectiveAction && (
-            <Button
-              variant="outlined"
-              color="warning"
-              onClick={handleGoToCorrectiveAction}
-              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
-            >
-              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
-                  <AssignmentOutlinedIcon sx={{ fontSize: 20 }} />
-                </Box>
-                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
-                  Nhật kí bảo trì
-                </Box>
-              </Box>
-            </Button>
-          )}
-          {data.status !== "Đóng sự cố" && data.status !== "Đã bỏ qua" && (
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleConsultAI}
-              sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
-            >
-              <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
-                <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
-                  <SmartToyOutlinedIcon sx={{ fontSize: 20 }} />
-                </Box>
-                <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
-                  Tham vấn AI
-                </Box>
-              </Box>
-            </Button>
+              </Button>
+            </>
           )}
         </Stack>
       </DialogContent>

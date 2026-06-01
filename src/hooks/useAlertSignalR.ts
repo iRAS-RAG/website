@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { API_BASE } from "../api/client";
 import { getAccessToken } from "../api/jwt";
 
-const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/telemetry";
+const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/alerts";
 
 export interface AlertPush {
   alertId: string;
