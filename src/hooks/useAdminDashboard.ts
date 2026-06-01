@@ -35,7 +35,7 @@ function countItems(res: unknown): number {
 
 async function fetchUsersRobust(): Promise<User[]> {
   try {
-    const res = await apiFetch<unknown>("/users?page=1&pageSize=1000");
+    const res = await apiFetch<unknown>("/users?page=1&pageSize=100");
     const rawItems = extractArray(res);
     return rawItems.map((i) => toUiUser(i as Record<string, unknown>));
   } catch (err) {
