@@ -22,12 +22,14 @@ export interface IAlert {
   unitOfMeasure: string;
   minThreshold: number;
   maxThreshold: number;
+  hasCorrectiveAction: boolean;
 }
 
 export interface IAlertListRequest {
   page?: number;
   pageSize?: number;
-  status?: AlertStatus;
-  // Optional server-side filters
-  tankId?: string; // will be sent as `TankId` query param
+  statuses?: AlertStatus[];
+  tankId?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 }

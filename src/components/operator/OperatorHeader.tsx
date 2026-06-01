@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from "react";
-import DashboardHeader from "../common/DashboardHeader";
-// Sử dụng apiFetch đã được cấu hình sẵn trong project của bạn
+import React, { useEffect, useRef, useState } from "react";
+import DashboardHeader, { type AlertPopup } from "../common/DashboardHeader";
 import { apiFetch } from "../../api/client";
+import { useAlertSignalR, type AlertPush } from "../../hooks/useAlertSignalR";
+import { useNavigate } from "react-router-dom";
 
 type NotificationType = "error" | "warning" | "success";
 
 type Notification = {
+  id?: string;
   type: NotificationType;
   title: string;
   time: string;
 };
 
-// 1. KHAI BÁO INTERFACE CHO DỮ LIỆU CẢNH BÁO TỪ API ĐỂ XÓA LỖI 'any'
 interface AlertItem {
+  id?: string;
   status: string;
   fishTankName?: string;
   sensorTypeName?: string;
@@ -48,38 +50,67 @@ const getTimeAgo = (dateString?: string) => {
 export const OperatorHeader: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [badgeCount, setBadgeCount] = useState<number>(0);
+  const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
+  const liveNotifsRef = useRef<Notification[]>([]);
+  const popupKeyRef = useRef(0);
+  const navigate = useNavigate();
+
+  useAlertSignalR({
+    onReceiveAlert: (push: AlertPush) => {
+      const bellTitle = `${push.tankName}: Cảnh báo ${push.sensorTypeName || "Cảm biến"}`;
+      const popupTitle = `${push.tankName} — ${push.sensorTypeName || "Cảm biến"}: ${push.triggerValue} (ngưỡng ${push.minValue}–${push.maxValue})`;
+      const newNotif: Notification = {
+        id: push.alertId,
+        type: "error",
+        title: bellTitle,
+        time: "Vừa xong",
+      };
+      liveNotifsRef.current = [newNotif, ...liveNotifsRef.current].slice(0, 5);
+      setNotifications((prev) => [newNotif, ...prev].slice(0, 10));
+      setBadgeCount((prev) => prev + 1);
+      popupKeyRef.current += 1;
+      setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle });
+    },
+  });
 
   useEffect(() => {
     const fetchLatestAlerts = async () => {
       try {
-        // Sử dụng Interface AlertsResponse thay vì <any>
-        const res = await apiFetch<AlertsResponse>("/alerts?page=1&pageSize=5");
+        const res = await apiFetch<AlertsResponse>("/alerts?page=1&pageSize=5&statuses=Open&statuses=Acknowledged");
 
-        // Bóc tách dữ liệu an toàn
-        const items = res?.data || res?.items || [];
-        const total = res?.meta?.totalItems || items.length || 0;
+        const items = (res?.data || res?.items || []).sort((a, b) => {
+          const pa = a.status === "OPEN" || a.status === "ACKNOWLEDGED" ? 0 : 1;
+          const pb = b.status === "OPEN" || b.status === "ACKNOWLEDGED" ? 0 : 1;
+          if (pa !== pb) return pa - pb;
+          return new Date(b.raisedAt || b.createdAt || 0).getTime() - new Date(a.raisedAt || a.createdAt || 0).getTime();
+        });
 
-        setBadgeCount(total);
+        const activeCount = items.filter(
+          (a) => a.status === "OPEN" || a.status === "ACKNOWLEDGED",
+        ).length;
 
-        // Sử dụng AlertItem thay vì alert: any
-        const mappedNotifs: Notification[] = items.map((alert: AlertItem) => {
+        setBadgeCount(activeCount);
+
+        const fetchedNotifs: Notification[] = items.map((alert: AlertItem) => {
           let notifType: NotificationType = "error";
-
-          // OPEN = Lỗi (Đỏ), ACKNOWLEDGED = Đang xử lý (Vàng), RESOLVED = Đã giải quyết (Xanh)
           if (alert.status === "ACKNOWLEDGED") notifType = "warning";
           else if (alert.status === "RESOLVED") notifType = "success";
 
-          const tankName = alert.fishTankName || "Hệ thống";
-          const sensorName = alert.sensorTypeName || "Cảm biến";
-
           return {
+            id: alert.id,
             type: notifType,
-            title: ` ${tankName}: Cảnh báo ${sensorName}`,
+            title: `${alert.fishTankName || "Hệ thống"}: Cảnh báo ${alert.sensorTypeName || "Cảm biến"}`,
             time: getTimeAgo(alert.raisedAt || alert.createdAt),
           };
         });
 
-        setNotifications(mappedNotifs);
+        const liveIds = new Set(liveNotifsRef.current.map((n) => n.id).filter(Boolean));
+        const merged = [
+          ...liveNotifsRef.current,
+          ...fetchedNotifs.filter((n) => !n.id || !liveIds.has(n.id)),
+        ].slice(0, 10);
+
+        setNotifications(merged);
       } catch (error) {
         console.error("Lỗi khi tải cảnh báo trên Header:", error);
       }
@@ -87,7 +118,6 @@ export const OperatorHeader: React.FC = () => {
 
     fetchLatestAlerts();
 
-    // Tự động làm mới thông báo mỗi 60 giây
     const interval = setInterval(fetchLatestAlerts, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -111,6 +141,11 @@ export const OperatorHeader: React.FC = () => {
             ]
       }
       seeAllRoute="/operator/alerts"
+      alertPopup={alertPopup}
+      onAlertPopupDismiss={() => setAlertPopup(null)}
+      onNotificationClick={(id) => {
+        if (id) navigate("/operator/alerts", { state: { openAlertId: id } });
+      }}
     />
   );
 };
