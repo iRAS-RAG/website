@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Box,
   Typography,
   Stack,
@@ -10,21 +11,15 @@ import {
   Chip,
   Button,
   Divider,
+  CircularProgress,
   useTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { alertApi } from "../../api/alerts";
 import CloseIcon from "@mui/icons-material/Close";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from "recharts";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 
 // 1. CẬP NHẬT INTERFACE: Xóa level, sửa status
 export interface AlertData {
@@ -37,31 +32,27 @@ export interface AlertData {
   tank: string;
   tankId: string;
   staff: string;
-  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua";
+  hasCorrectiveAction: boolean;
 }
-
-const shortTermData = [
-  { time: "08:00", value: 6.5 },
-  { time: "08:30", value: 6.2 },
-  { time: "09:00", value: 5.9 },
-  { time: "09:30", value: 5.4 },
-  { time: "10:00", value: 4.8 },
-  { time: "10:30", value: 4.2 },
-];
 
 interface AlertDetailModalProps {
   open: boolean;
   onClose: () => void;
   data: AlertData | null;
+  onStatusChange?: () => void;
 }
 
 export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   open,
   onClose,
   data,
+  onStatusChange,
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const [pendingStatus, setPendingStatus] = useState<"Acknowledged" | "Dismissed" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Task 1: chuyển sang trang AI Advisor với prompt mở đầu điền sẵn
   const handleConsultAI = () => {
@@ -80,6 +71,29 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
     onClose();
   };
 
+  const handleGoToCorrectiveAction = () => {
+    if (!data) return;
+    navigate("/operator/maintenance", {
+      state: { openCreate: true, alertId: String(data.id) },
+    });
+    onClose();
+  };
+
+  const handleStatusConfirm = async () => {
+    if (!data || !pendingStatus) return;
+    setSubmitting(true);
+    try {
+      await alertApi.updateStatus(String(data.id), pendingStatus);
+      onStatusChange?.();
+      onClose();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật trạng thái:", err);
+    } finally {
+      setSubmitting(false);
+      setPendingStatus(null);
+    }
+  };
+
   if (!data) return null;
 
   // Cố định một màu đỏ cho tất cả các cảnh báo (thay vì phụ thuộc vào Level)
@@ -90,6 +104,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   };
 
   return (
+    <>
     <Dialog
       open={open}
       onClose={onClose}
@@ -232,7 +247,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               color="text.secondary"
               sx={{ fontWeight: 700 }}
             >
-              GIÁ TRỊ HIỆN TẠI
+              GIÁ TRỊ VƯỢT NGƯỠNG BAN ĐẦU
             </Typography>
             <Typography
               variant="h4"
@@ -282,87 +297,114 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </Box>
         </Stack>
 
-        {/* Biểu đồ */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-          Xu hướng gần đây
-        </Typography>
-        <Box sx={{ height: 200, mb: 3 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={shortTermData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#E2E8F0"
-              />
-              <XAxis
-                dataKey="time"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                domain={[0, "auto"]}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={alertTheme.main}
-                strokeWidth={3}
-                dot={{ r: 4, fill: alertTheme.main }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-
         <Divider sx={{ mb: 3 }} />
 
-        {/* NÚT HÀNH ĐỘNG CẬP NHẬT */}
-        <Stack
-          direction="row"
-          justifyContent="flex-end" // Đẩy toàn bộ cụm nút sang phải
-          alignItems="center"
-        >
-          <Stack direction="row" spacing={1.5}>
-            {data.status !== "Đóng sự cố" ? (
+        {/* NÚT HÀNH ĐỘNG */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          {/* Status transition buttons */}
+          <Stack direction="row" spacing={1}>
+            {data.status === "Chờ xử lý" && (
+              <>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => setPendingStatus("Acknowledged")}
+                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600, boxShadow: "none" }}
+                >
+                  Tiếp nhận
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={() => setPendingStatus("Dismissed")}
+                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+                >
+                  Bỏ qua
+                </Button>
+              </>
+            )}
+            {data.status === "Đang xử lý" && (
               <Button
                 variant="outlined"
-                color="primary"
-                startIcon={<SmartToyOutlinedIcon />}
-                onClick={handleConsultAI}
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                }}
+                color="error"
+                size="small"
+                onClick={() => setPendingStatus("Dismissed")}
+                sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
               >
-                Tham vấn AI Advisor
+                Bỏ qua
               </Button>
-            ) : (
+            )}
+            {(data.status === "Đóng sự cố" || data.status === "Đã bỏ qua") && (
               <Chip
-                label="Sự cố đã được đóng"
-                color="success"
+                label={data.status === "Đóng sự cố" ? "Sự cố đã được đóng" : "Đã bỏ qua"}
+                color={data.status === "Đóng sự cố" ? "success" : "default"}
                 variant="outlined"
-                sx={{
-                  fontWeight: 700,
-                  borderRadius: "8px",
-                  borderStyle: "dashed",
-                  height: 36,
-                }}
+                sx={{ fontWeight: 700, borderRadius: "8px", borderStyle: "dashed", height: 36 }}
               />
             )}
           </Stack>
+
+          {/* Action buttons */}
+          {data.status !== "Đã bỏ qua" && (
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                color="warning"
+                startIcon={<BuildOutlinedIcon />}
+                onClick={handleGoToCorrectiveAction}
+                disabled={data.hasCorrectiveAction}
+                sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+              >
+                Hành động khắc phục
+              </Button>
+              {data.status !== "Đóng sự cố" && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<SmartToyOutlinedIcon />}
+                  onClick={handleConsultAI}
+                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+                >
+                  Tham vấn AI Advisor
+                </Button>
+              )}
+            </Stack>
+          )}
         </Stack>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation dialog */}
+    <Dialog open={pendingStatus !== null} onClose={() => setPendingStatus(null)} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Xác nhận thay đổi trạng thái</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2">
+          {pendingStatus === "Acknowledged"
+            ? "Bạn có chắc muốn tiếp nhận cảnh báo này? Trạng thái sẽ chuyển sang Đang xử lý."
+            : "Bạn có chắc muốn bỏ qua cảnh báo này? Đây là thao tác không thể hoàn tác."}
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button
+          onClick={() => setPendingStatus(null)}
+          disabled={submitting}
+          sx={{ textTransform: "none" }}
+        >
+          Huỷ
+        </Button>
+        <Button
+          variant="contained"
+          color={pendingStatus === "Dismissed" ? "error" : "primary"}
+          disabled={submitting}
+          onClick={handleStatusConfirm}
+          startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : null}
+          sx={{ textTransform: "none", fontWeight: 600, boxShadow: "none" }}
+        >
+          {submitting ? "Đang xử lý..." : "Xác nhận"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
