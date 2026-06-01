@@ -4,8 +4,6 @@ import { toUiUser } from "../api/users";
 import { documentApi } from "../api/documents";
 import { getControlDevices } from "../api/control-devices";
 import { getSensors } from "../api/sensors";
-import { auditLogApi } from "../api/audit-logs";
-import type { AuditLog } from "../types/audit-log";
 import type { User } from "../types/user";
 
 export interface AdminDashboardStats {
@@ -35,29 +33,15 @@ function countItems(res: unknown): number {
   return 0;
 }
 
-// Fetch users theo cách bền vững: hỗ trợ cả response dạng array thuần và
-// dạng paginated wrapper `{items, meta}` mà /users của BE thực tế trả về.
 async function fetchUsersRobust(): Promise<User[]> {
   try {
-    const res = await apiFetch<unknown>("/users?page=1&pageSize=1000");
+    const res = await apiFetch<unknown>("/users?page=1&pageSize=100");
     const rawItems = extractArray(res);
     return rawItems.map((i) => toUiUser(i as Record<string, unknown>));
   } catch (err) {
     console.error("Lỗi tải danh sách user:", err);
     return [];
   }
-}
-
-function startOfTodayIso(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function endOfTodayIso(): string {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
 }
 
 export const useAdminDashboard = () => {
@@ -70,31 +54,18 @@ export const useAdminDashboard = () => {
     runningDevices: 0,
     totalSensors: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     const fetchAll = async () => {
       try {
-        const [users, docs, devices, sensors, todayLogs, recentLogs] =
-          await Promise.all([
-            fetchUsersRobust(),
-            documentApi.getDocuments({ page: 1, pageSize: 1 }).catch(() => null),
-            getControlDevices().catch(() => []),
-            getSensors().catch(() => []),
-            auditLogApi
-              .getAll({
-                page: 1,
-                pageSize: 100,
-                fromDate: startOfTodayIso(),
-                toDate: endOfTodayIso(),
-              })
-              .catch(() => ({ items: [] })),
-            auditLogApi
-              .getAll({ page: 1, pageSize: 10 })
-              .catch(() => ({ items: [] })),
-          ]);
+        const [users, docs, devices, sensors] = await Promise.all([
+          fetchUsersRobust(),
+          documentApi.getDocuments({ page: 1, pageSize: 1 }).catch(() => null),
+          getControlDevices().catch(() => []),
+          getSensors().catch(() => []),
+        ]);
 
         if (!mounted) return;
 
@@ -104,22 +75,17 @@ export const useAdminDashboard = () => {
           usersByRole[role] = (usersByRole[role] ?? 0) + 1;
         }
 
-        const uniqueActiveUsers = new Set(
-          todayLogs.items.map((l) => l.userId).filter(Boolean),
-        );
-
         const runningDevices = devices.filter((d) => d.state === true).length;
 
         setStats({
           totalUsers: users.length,
           usersByRole,
-          activeUsersToday: uniqueActiveUsers.size,
+          activeUsersToday: 0, // Không dùng nữa — field giữ lại để không break interface
           totalDocuments: countItems(docs),
           totalDevices: devices.length,
           runningDevices,
           totalSensors: sensors.length,
         });
-        setRecentActivity(recentLogs.items);
       } catch (err) {
         console.error("Lỗi tải Admin dashboard:", err);
       } finally {
@@ -135,5 +101,5 @@ export const useAdminDashboard = () => {
     };
   }, []);
 
-  return { stats, recentActivity, loading };
+  return { stats, loading };
 };
