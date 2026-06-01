@@ -8,9 +8,11 @@ export const alertApi = {
     const query = new URLSearchParams();
     if (params.page) query.append("page", params.page.toString());
     if (params.pageSize) query.append("pageSize", params.pageSize.toString());
-    if (params.status !== undefined) query.append("status", params.status.toString());
+    if (params.statuses?.length) params.statuses.forEach((s) => query.append("statuses", s.toString()));
     // server expects TankId query param for filtering by tank
     if (params.tankId) query.append("TankId", params.tankId);
+    if (params.sortBy) query.append("sortBy", params.sortBy);
+    if (params.sortDir) query.append("sortDir", params.sortDir);
 
     const url = `/alerts?${query.toString()}`;
     return await apiFetch<unknown>(url, { method: "GET" });
@@ -26,6 +28,13 @@ export const alertApi = {
     return await apiFetch<{ message: string }>(`/alerts/${id}`, {
       method: "PUT",
       body: data,
+    });
+  },
+
+  updateStatus: async (id: string, status: "Acknowledged" | "Dismissed") => {
+    return await apiFetch<{ message: string }>(`/alerts/${id}/status`, {
+      method: "PATCH",
+      body: { status },
     });
   },
 
