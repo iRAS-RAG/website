@@ -8,7 +8,6 @@ import {
   Typography,
   Stack,
   IconButton,
-  Chip,
   Button,
   Divider,
   CircularProgress,
@@ -192,26 +191,54 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </Box>
         </Stack>
 
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
-          <Box>
+        <Stack direction="row" spacing={2} mb={2}>
+          <Box
+            sx={{
+              flex: 1,
+              p: 1.5,
+              bgcolor: "#F8FAFC",
+              borderRadius: "12px",
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{
-                fontWeight: 700,
-                fontSize: "10px",
-                textTransform: "uppercase",
-              }}
+              sx={{ fontWeight: 700, fontSize: "10px", textTransform: "uppercase" }}
             >
               Cảm biến
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {data.sensorCode}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              flex: 1,
+              p: 1.5,
+              bgcolor: "#F8FAFC",
+              borderRadius: "12px",
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 700, fontSize: "10px", textTransform: "uppercase" }}
+            >
+              Trạng thái
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                ...(data.status === "Đang xử lý" && { color: theme.palette.primary.main }),
+                ...(data.status === "Chờ xử lý" && { color: theme.palette.warning.main }),
+                ...(data.status === "Đóng sự cố" && { color: theme.palette.success.main }),
+                ...(data.status === "Đã bỏ qua" && { color: theme.palette.text.secondary }),
+              }}
+            >
+              {data.status}
             </Typography>
           </Box>
         </Stack>
@@ -301,19 +328,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
         <Divider sx={{ mb: 3 }} />
 
-        {/* Terminal status chip */}
-        {(data.status === "Đóng sự cố" || data.status === "Đã bỏ qua") && (
-          <Box sx={{ mb: 2 }}>
-            <Chip
-              label={data.status === "Đóng sự cố" ? "Sự cố đã được đóng" : "Đã bỏ qua"}
-              color={data.status === "Đóng sự cố" ? "success" : "default"}
-              variant="outlined"
-              sx={{ fontWeight: 700, borderRadius: "8px", borderStyle: "dashed", height: 36 }}
-            />
-          </Box>
-        )}
-
-        {/* NÚT HÀNH ĐỘNG */}
+{/* NÚT HÀNH ĐỘNG */}
         <Stack direction="row" spacing={1.5}>
           {data.status === "Chờ xử lý" && (
             <Button
@@ -348,12 +363,11 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               </Box>
             </Button>
           )}
-          {data.status !== "Đã bỏ qua" && (
+          {data.status !== "Đã bỏ qua" && !data.hasCorrectiveAction && (
             <Button
               variant="outlined"
               color="warning"
               onClick={handleGoToCorrectiveAction}
-              disabled={data.hasCorrectiveAction}
               sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
             >
               <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
