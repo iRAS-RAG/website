@@ -54,7 +54,7 @@ export const RecentAlertsList = ({
         const res = await alertApi.getAll({
           page: 1,
           pageSize: limit,
-          status: "OPEN",
+          statuses: ["OPEN"],
           tankId,
         });
         if (!mounted) return;
