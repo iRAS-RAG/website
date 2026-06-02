@@ -227,12 +227,10 @@ export async function startBatch(id: string): Promise<Batch | null> {
 /**
  * Mark a batch as terminated
  */
-export async function terminateBatch(id: string, reason: string): Promise<Batch | null> {
+export async function terminateBatch(id: string): Promise<Batch | null> {
   try {
-    const body = { status: "TERMINATED", pausedReason: reason };
-    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}`, {
-      method: "PUT",
-      body,
+    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}/terminate`, {
+      method: "POST",
     });
     if (!res) return null;
     return toBatch(res);

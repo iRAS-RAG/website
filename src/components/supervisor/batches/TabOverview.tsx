@@ -75,9 +75,9 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
   const netPercent = initialQty > 0 ? ((currentQty ?? 0) / initialQty - 1) * 100 : undefined;
   const estimatedSurvivalPct = batch.estimatedHarvestCount != null && initialQty > 0 ? (batch.estimatedHarvestCount / initialQty) * 100 : undefined;
 
-  const isHarvested = batch.status === "HARVESTED";
+  const isFinished = batch.status === "HARVESTED" || batch.status === "TERMINATED";
   const actualHarvestCount = batch.actualHarvestCount ?? batch.currentQuantity;
-  const actualSurvivalPct = isHarvested && initialQty > 0 && actualHarvestCount != null ? (actualHarvestCount / initialQty) * 100 : undefined;
+  const actualSurvivalPct = isFinished && initialQty > 0 && actualHarvestCount != null ? (actualHarvestCount / initialQty) * 100 : undefined;
 
   return (
     <Box>
@@ -97,7 +97,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
                   const parseDate = (d?: string | null) => (d ? new Date(d) : null);
                   const start = parseDate(s.actualStartDate ?? s.estimatedStartDate ?? undefined);
                   const end = parseDate(s.actualEndDate ?? s.estimatedEndDate ?? undefined);
-                  const isActive = batch.status !== "HARVESTED" && !!start && (end ? now >= start && now < end : now >= start);
+                  const isActive = !isFinished && !!start && (end ? now >= start && now < end : now >= start);
 
                   return (
                     <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -187,19 +187,19 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
           />
           <KPICard
             icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
-            label={isHarvested ? "Tỷ lệ sống thực tế" : "Tỷ lệ sống dự kiến (thu hoạch)"}
-            value={isHarvested ? (actualSurvivalPct != null ? `${actualSurvivalPct.toFixed(1)}%` : "—") : estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"}
-            desc={isHarvested ? (actualHarvestCount != null ? `Thực tế: ${actualHarvestCount} con` : "") : batch.estimatedHarvestCount != null ? `Dự kiến số: ${batch.estimatedHarvestCount} con` : ""}
+            label={isFinished ? "Tỷ lệ sống thực tế" : "Tỷ lệ sống dự kiến (thu hoạch)"}
+            value={isFinished ? (actualSurvivalPct != null ? `${actualSurvivalPct.toFixed(1)}%` : "—") : estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"}
+            desc={isFinished ? (actualHarvestCount != null ? `Thực tế: ${actualHarvestCount} con` : "") : batch.estimatedHarvestCount != null ? `Dự kiến số: ${batch.estimatedHarvestCount} con` : ""}
           />
           <KPICard
             icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
-            label={isHarvested ? "Kết quả thu hoạch" : "Dự kiến thu hoạch"}
-            value={isHarvested ? (actualHarvestCount != null ? `${actualHarvestCount} con` : "—") : batch.estimatedHarvestCount != null ? `${batch.estimatedHarvestCount} con` : "—"}
+            label={isFinished ? "Kết quả thực tế" : "Dự kiến thu hoạch"}
+            value={isFinished ? (actualHarvestCount != null ? `${actualHarvestCount} con` : "—") : batch.estimatedHarvestCount != null ? `${batch.estimatedHarvestCount} con` : "—"}
             desc={
-              isHarvested
+              isFinished
                 ? batch.actualHarvestWeightKg != null
                   ? `Tổng trọng lượng: ${batch.actualHarvestWeightKg.toFixed(2)} kg`
-                  : ""
+                  : `Hao hụt: ${totalDead} ${batch.unitOfMeasure}`
                 : batch.estimatedHarvestWeightKg != null
                   ? `Tổng trọng lượng: ${batch.estimatedHarvestWeightKg.toFixed(2)} kg`
                   : ""

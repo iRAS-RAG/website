@@ -111,9 +111,9 @@ export default function useBatches(options: UseBatchesOptions = {}) {
   };
 
   // Mark batch as terminated
-  const terminateBatch = async (id: string, reason: string): Promise<Batch | null> => {
+  const terminateBatch = async (id: string): Promise<Batch | null> => {
     try {
-      const terminated = await apiTerminateBatch(id, reason);
+      const terminated = await apiTerminateBatch(id);
       if (terminated) {
         setBatches((prev) => prev.map((b) => (b.id === id ? terminated : b)));
       }
