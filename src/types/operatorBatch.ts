@@ -22,6 +22,9 @@ export interface IOperatorFarmingBatch {
   tankVolume?: number;
   estimatedHarvestCount?: number;
   estimatedHarvestWeightKg?: number;
+  actualHarvestCount?: number;
+  actualHarvestWeightKg?: number;
+  fcr?: number;
   createdAt?: string;
   modifiedAt?: string | null;
 }

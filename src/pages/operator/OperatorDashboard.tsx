@@ -1,238 +1,287 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Avatar,
   Box,
   CircularProgress,
   FormControl,
-  InputLabel,
+  InputAdornment,
   MenuItem,
+  Pagination,
   Paper,
   Select,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { TankPulseCard } from "../../components/operator/TankPulseCard";
 import { RecentAlertsList } from "../../components/operator/RecentAlertsList";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 
-import { useOperatorDashboard } from "../../hooks/useOperatorDashboard";
+import { useOperatorDashboard, type DayFilter } from "../../hooks/useOperatorDashboard";
 import { getTanks } from "../../api/tanks";
 import type { Tank } from "../../types/tank";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-interface KpiCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  color: string;
-  onClick?: () => void;
+const DAY_OPTIONS: { value: DayFilter; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "today", label: "Hôm nay" },
+  { value: "7", label: "7 ngày" },
+  { value: "30", label: "30 ngày" },
+];
+
+// ─── Pie chart tooltip ────────────────────────────────────────────────────────
+
+interface TooltipPayloadItem {
+  payload: { name: string; value: number; color: string };
 }
 
-// ─── KPI Card ────────────────────────────────────────────────────────────────
+const CustomTooltip = ({
+  active,
+  payload,
+  total,
+}: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  total: number;
+}) => {
+  if (!active || !payload?.length) return null;
+  const { name, value, color } = payload[0].payload;
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+  return (
+    <Paper
+      elevation={3}
+      sx={{ p: 1.5, borderRadius: "10px", minWidth: 140, border: "1px solid #E2E8F0" }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+        <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: color, flexShrink: 0 }} />
+        <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E293B" }}>
+          {name}
+        </Typography>
+      </Stack>
+      <Typography sx={{ fontSize: "0.78rem", color: "#64748B" }}>
+        {value} ({pct}%)
+      </Typography>
+    </Paper>
+  );
+};
 
-const KpiCard = ({
+// ─── Pie chart card ───────────────────────────────────────────────────────────
+
+interface PieSlice {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface PieChartCardProps {
+  title: string;
+  data: PieSlice[];
+  total: number;
+  totalLabel: string;
+  dayFilter?: DayFilter;
+  onDayFilterChange?: (v: DayFilter) => void;
+}
+
+const EMPTY_SLICE: PieSlice[] = [{ name: "Không có dữ liệu", value: 1, color: "#E2E8F0" }];
+
+const PieChartCard: React.FC<PieChartCardProps> = ({
   title,
-  value,
-  subtitle,
-  icon: Icon,
-  color,
-  onClick,
-}: KpiCardProps) => (
-  <Paper
-    elevation={0}
-    onClick={onClick}
-    sx={{
-      p: 2.5,
-      borderRadius: "14px",
-      border: "1px solid #E2E8F0",
-      borderTop: `4px solid ${color}`,
-      cursor: onClick ? "pointer" : "default",
-      transition: "transform 0.15s, box-shadow 0.15s",
-      bgcolor: "#fff",
-      "&:hover": onClick
-        ? {
-            transform: "translateY(-2px)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          }
-        : undefined,
-    }}
-  >
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <Box>
-        <Typography
-          sx={{
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            color: "#64748B",
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            mb: 0.5,
-          }}
-        >
+  data,
+  total,
+  totalLabel,
+  dayFilter,
+  onDayFilterChange,
+}) => {
+  const hasData = total > 0;
+  const chartData = hasData ? data.filter((d) => d.value > 0) : EMPTY_SLICE;
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.5,
+        borderRadius: "14px",
+        border: "1px solid #E2E8F0",
+        bgcolor: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+      }}
+    >
+      {/* Header */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>
           {title}
         </Typography>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 800, color: "#0F172A", lineHeight: 1 }}
-        >
-          {value}
-        </Typography>
-        {subtitle && (
-          <Typography
-            variant="caption"
-            sx={{ color: "#94A3B8", mt: 0.5, display: "block" }}
-          >
-            {subtitle}
-          </Typography>
+        {dayFilter !== undefined && onDayFilterChange && (
+          <FormControl size="small" sx={{ minWidth: 110 }}>
+            <Select
+              value={dayFilter}
+              onChange={(e) => onDayFilterChange(e.target.value as DayFilter)}
+              sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.75, px: 1.5 } }}
+            >
+              {DAY_OPTIONS.map((o) => (
+                <MenuItem key={o.value} value={o.value} sx={{ fontSize: "0.8rem" }}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         )}
+      </Stack>
+
+      {/* Pie chart */}
+      <Box sx={{ height: 180 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              innerRadius="45%"
+              outerRadius="72%"
+              paddingAngle={hasData ? 2 : 0}
+              dataKey="value"
+              stroke="none"
+            >
+              {chartData.map((entry, i) => (
+                <Cell key={i} fill={entry.color} />
+              ))}
+            </Pie>
+            {hasData && (
+              <Tooltip
+                content={<CustomTooltip total={total} />}
+                wrapperStyle={{ outline: "none" }}
+              />
+            )}
+          </PieChart>
+        </ResponsiveContainer>
       </Box>
-      <Avatar
-        sx={{
-          bgcolor: `${color}15`,
-          color: color,
-          width: 48,
-          height: 48,
-          borderRadius: "12px",
-        }}
-      >
-        <Icon />
-      </Avatar>
-    </Stack>
-  </Paper>
-);
+
+      {/* Summary rows */}
+      <Stack spacing={0.75}>
+        {/* Total row */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center"
+          sx={{ pb: 0.75, borderBottom: "1px solid #F1F5F9" }}>
+          <Typography sx={{ fontSize: "0.78rem", color: "#64748B", fontWeight: 600 }}>
+            {totalLabel}
+          </Typography>
+          <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "#0F172A" }}>
+            {total}
+          </Typography>
+        </Stack>
+        {/* Each slice */}
+        {data.map((slice) => (
+          <Stack key={slice.name} direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: slice.color, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: "0.75rem", color: "#64748B" }}>{slice.name}</Typography>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#1E293B" }}>
+                {slice.value}
+              </Typography>
+              {total > 0 && (
+                <Typography sx={{ fontSize: "0.68rem", color: "#94A3B8" }}>
+                  ({((slice.value / total) * 100).toFixed(0)}%)
+                </Typography>
+              )}
+            </Stack>
+          </Stack>
+        ))}
+      </Stack>
+    </Paper>
+  );
+};
 
 // ─── OperatorDashboard ───────────────────────────────────────────────────────
 
 const OperatorDashboard = () => {
-  const [selectedTankId, setSelectedTankId] = useState<string>("");
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [tanksLoading, setTanksLoading] = useState(true);
+
+  const [alertDays, setAlertDays] = useState<DayFilter>("all");
+  const [batchDays, setBatchDays] = useState<DayFilter>("all");
+
+  const [tankSearch, setTankSearch] = useState("");
+  const [tankPage, setTankPage] = useState(1);
+  const TANKS_PER_PAGE = 4;
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchTanks = async () => {
-      try {
-        const list = await getTanks();
-        setTanks(list);
-      } catch (err) {
-        console.error("Không thể tải danh sách bể:", err);
-      } finally {
-        setTanksLoading(false);
-      }
-    };
-    fetchTanks();
+    getTanks()
+      .then(setTanks)
+      .catch((err) => console.error("Không thể tải danh sách bể:", err))
+      .finally(() => setTanksLoading(false));
   }, []);
 
-  const { stats, batches, loading } = useOperatorDashboard(
-    selectedTankId || undefined,
+  const { alertStats, batchStats, deviceStats, batches, loading } = useOperatorDashboard(
+    undefined,
+    alertDays,
+    batchDays,
   );
-  const selectedTank = tanks.find((t) => t.id === selectedTankId);
 
-  const visibleTanks = selectedTankId
-    ? tanks.filter((t) => t.id === selectedTankId)
-    : tanks;
+  const filteredTanks = useMemo(() => {
+    const q = tankSearch.toLowerCase().trim();
+    return tanks.filter((t) => !q || t.name.toLowerCase().includes(q));
+  }, [tanks, tankSearch]);
+
+  const totalTankPages = Math.ceil(filteredTanks.length / TANKS_PER_PAGE);
+  const pagedTanks = filteredTanks.slice((tankPage - 1) * TANKS_PER_PAGE, tankPage * TANKS_PER_PAGE);
 
   if (loading && !tanks.length) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          bgcolor: "#F8FAFC",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: "#F8FAFC" }}>
         <CircularProgress />
       </Box>
     );
   }
 
+  // Pie chart data
+  const alertPieData: PieSlice[] = [
+    { name: "Chờ xử lý", value: alertStats.open, color: "#EF4444" },
+    { name: "Đang xử lý", value: alertStats.acknowledged, color: "#F59E0B" },
+    { name: "Đóng sự cố", value: alertStats.resolved, color: "#10B981" },
+    { name: "Bỏ qua", value: alertStats.dismissed, color: "#94A3B8" },
+  ];
+
+  const batchPieData: PieSlice[] = [
+    { name: "Đang nuôi", value: batchStats.active, color: "#2A85FF" },
+    { name: "Đã thu hoạch", value: batchStats.harvested, color: "#10B981" },
+    { name: "Tạm dừng", value: batchStats.paused, color: "#F59E0B" },
+    { name: "Đã hủy", value: batchStats.terminated, color: "#EF4444" },
+  ];
+
+  const devicePieData: PieSlice[] = [
+    { name: "Đang bật", value: deviceStats.running, color: "#10B981" },
+    { name: "Đang tắt", value: deviceStats.stopped, color: "#CBD5E1" },
+  ];
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        bgcolor: "#F8FAFC",
-        minHeight: "100vh",
-        width: "100%",
-      }}
-    >
+    <Box sx={{ display: "flex", bgcolor: "#F8FAFC", minHeight: "100vh", width: "100%" }}>
       <OperatorSidebar />
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          ml: "240px",
-          display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-        }}
-      >
+      <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <OperatorHeader />
 
-        <Box
-          component="main"
-          sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1, width: "100%" }}
-        >
-          {/* ── Header + Tank Selector ── */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="flex-end"
-            flexWrap="wrap"
-            gap={2}
-            sx={{ mb: 3 }}
-          >
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}
-              >
-                Tổng quan hệ thống iRAS-RAG
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#64748B" }}>
-                {selectedTank
-                  ? `Đang theo dõi bể: ${selectedTank.name}`
-                  : "Tổng quan tình trạng vận hành toàn hệ thống iRAS-RAG"}
-              </Typography>
-            </Box>
+        <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1, width: "100%" }}>
+          {/* ── Header ── */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
+              Tổng quan hệ thống iRAS-RAG
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              Tổng quan tình trạng vận hành toàn hệ thống iRAS-RAG
+            </Typography>
+          </Box>
 
-            <FormControl size="small" sx={{ minWidth: 220 }}>
-              <InputLabel>Lọc theo bể</InputLabel>
-              <Select
-                value={selectedTankId}
-                label="Lọc theo bể"
-                onChange={(e) => setSelectedTankId(e.target.value)}
-                disabled={tanksLoading}
-                sx={{
-                  bgcolor: "#fff",
-                  borderRadius: "10px",
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "#E2E8F0",
-                  },
-                }}
-              >
-                <MenuItem value="">
-                  <em>Tất cả bể</em>
-                </MenuItem>
-                {tanks.map((tank) => (
-                  <MenuItem key={tank.id} value={tank.id}>
-                    {tank.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-
-          {/* ── ZONE 1: KPI Bar ── */}
+          {/* ── ZONE 1: Pie Charts ── */}
           <Box
             sx={{
               display: "grid",
@@ -241,36 +290,31 @@ const OperatorDashboard = () => {
               mb: 3,
             }}
           >
-            <KpiCard
-              title="Cảnh báo chờ xử lý"
-              value={stats.openAlerts}
-              subtitle={
-                stats.openAlerts > 0 ? "Cần xử lý ngay" : "Không có cảnh báo mở"
-              }
-              icon={NotificationsActiveIcon}
-              color="#EF4444"
-              onClick={() => navigate("/operator/alerts")}
+            <PieChartCard
+              title="Tổng quan cảnh báo"
+              data={alertPieData}
+              total={alertStats.total}
+              totalLabel="Tổng số cảnh báo"
+              dayFilter={alertDays}
+              onDayFilterChange={setAlertDays}
             />
-            <KpiCard
-              title="Lô nuôi đang hoạt động"
-              value={stats.activeBatches}
-              subtitle={
-                selectedTank ? `Trong bể ${selectedTank.name}` : "Toàn hệ thống"
-              }
-              icon={InventoryIcon}
-              color="#2A85FF"
-              onClick={() => navigate("/operator/tanks")}
+            <PieChartCard
+              title="Tổng quan vụ nuôi"
+              data={batchPieData}
+              total={batchStats.total}
+              totalLabel="Tổng số vụ nuôi"
+              dayFilter={batchDays}
+              onDayFilterChange={setBatchDays}
             />
-            <KpiCard
-              title="Thiết bị đang chạy"
-              value={`${stats.runningDevices}/${stats.totalDevices}`}
-              subtitle="Máy bơm, sục khí, đèn..."
-              icon={SettingsSuggestIcon}
-              color="#10B981"
+            <PieChartCard
+              title="Tổng quan thiết bị"
+              data={devicePieData}
+              total={deviceStats.total}
+              totalLabel="Tổng số thiết bị"
             />
           </Box>
 
-          {/* ── ZONE 2 + 3: Main Layout (Tank Grid + Side Panel) ── */}
+          {/* ── ZONE 2 + 3: Tank Grid + Side Panel ── */}
           <Box
             sx={{
               display: "grid",
@@ -279,75 +323,87 @@ const OperatorDashboard = () => {
               alignItems: "start",
             }}
           >
-            {/* ZONE 2 — Tank Grid */}
+            {/* Tank Grid */}
             <Box>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                mb={1.5}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: "#1E293B" }}
-                >
+              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
                   Trạng thái các bể
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#94A3B8" }}>
-                  {visibleTanks.length} bể được hiển thị
+                  {filteredTanks.length} bể được hiển thị
                 </Typography>
               </Stack>
 
-              {visibleTanks.length === 0 ? (
+              {/* Search */}
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Tìm kiếm theo tên bể..."
+                value={tankSearch}
+                onChange={(e) => { setTankSearch(e.target.value); setTankPage(1); }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" sx={{ color: "#94A3B8" }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 1.5, bgcolor: "#fff", borderRadius: "10px",
+                  "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "#E2E8F0" },
+                }}
+              />
+
+              {filteredTanks.length === 0 ? (
                 <Paper
                   elevation={0}
-                  sx={{
-                    p: 4,
-                    borderRadius: "14px",
-                    border: "1px dashed #CBD5E1",
-                    textAlign: "center",
-                    bgcolor: "#fff",
-                  }}
+                  sx={{ p: 4, borderRadius: "14px", border: "1px dashed #CBD5E1", textAlign: "center", bgcolor: "#fff" }}
                 >
                   <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                    Chưa có bể nào được cấu hình
+                    {tankSearch ? "Không tìm thấy bể phù hợp" : "Chưa có bể nào được cấu hình"}
                   </Typography>
                 </Paper>
               ) : (
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      visibleTanks.length === 1
-                        ? "1fr"
-                        : { xs: "1fr", sm: "repeat(2, 1fr)" },
-                    gap: 2,
-                  }}
-                >
-                  {visibleTanks.map((tank) => {
-                    const tankBatch = batches.find(
-                      (b) => b.fishTankId === tank.id,
-                    );
-                    return (
-                      <TankPulseCard
-                        key={tank.id}
-                        tankId={tank.id}
-                        tankName={tank.name}
-                        batch={tankBatch}
-                        onClick={() => navigate("/operator/sensors")}
+                <>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: pagedTanks.length === 1 ? "1fr" : { xs: "1fr", sm: "repeat(2, 1fr)" },
+                      gap: 2,
+                    }}
+                  >
+                    {pagedTanks.map((tank) => {
+                      const tankBatch = batches.find((b) => b.fishTankId === tank.id);
+                      return (
+                        <TankPulseCard
+                          key={tank.id}
+                          tankId={tank.id}
+                          tankName={tank.name}
+                          batch={tankBatch}
+                          onClick={() => navigate("/operator/sensors")}
+                        />
+                      );
+                    })}
+                  </Box>
+
+                  {totalTankPages > 1 && (
+                    <Stack alignItems="center" mt={2}>
+                      <Pagination
+                        count={totalTankPages}
+                        page={tankPage}
+                        onChange={(_, p) => setTankPage(p)}
+                        size="small"
+                        color="primary"
                       />
-                    );
-                  })}
-                </Box>
+                    </Stack>
+                  )}
+                </>
               )}
             </Box>
 
-            {/* ZONE 3 — Action Queue */}
+            {/* Side Panel */}
             <Stack spacing={2.5}>
-              <RecentAlertsList
-                tankId={selectedTankId || undefined}
-                limit={5}
-              />
+              <RecentAlertsList limit={5} />
             </Stack>
           </Box>
         </Box>
