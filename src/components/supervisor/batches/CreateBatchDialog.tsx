@@ -1,5 +1,21 @@
 import SaveIcon from "@mui/icons-material/Save";
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSpecies } from "../../../api/species";
@@ -53,6 +69,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [initialQuantity, setInitialQuantity] = useState("");
   const [startDate, setStartDate] = useState("");
   const [isBatchNameEdited, setIsBatchNameEdited] = useState(false);
+
+  const [confirmLowQuantityOpen, setConfirmLowQuantityOpen] = useState(false);
 
   const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
@@ -149,9 +167,15 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (confirmed = false) => {
     if (!validate()) {
       return; // Không cần hiện toast vì lỗi đỏ đã hiện rõ ở các field
+    }
+
+    // Nếu số lượng dưới 50% khuyến nghị và chưa xác nhận, hiển thị confirmation
+    if (isInitialQuantityBelowMin && !confirmed) {
+      setConfirmLowQuantityOpen(true);
+      return;
     }
 
     setSubmitting(true);
@@ -226,6 +250,11 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const handleClose = (reason: "backdropClick" | "escapeKeyDown") => {
     if (reason === "backdropClick") return;
     onClose();
+  };
+
+  const proceedWithLowQuantity = () => {
+    setConfirmLowQuantityOpen(false);
+    handleSubmit(true);
   };
 
   const recommendedMax = selectedSpecies ? recommendedInitials[selectedSpecies] : undefined;
@@ -395,8 +424,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
         </Button>
         <Button
           variant="contained"
-          onClick={handleSubmit}
-          disabled={loading || submitting || isInitialQuantityBelowMin || isInitialQuantityAboveMax || isStartDateInPast || !!errors.estimatedHarvestDate} // Disable nếu ngày trong quá khứ hoặc số lượng nằm ngoài phạm vi hợp lệ
+          onClick={() => handleSubmit()}
+          disabled={loading || submitting || isInitialQuantityAboveMax || isStartDateInPast} // Disable nếu ngày trong quá khứ hoặc vượt quá sức chứa
           startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           sx={{
             bgcolor: "#2A85FF",
@@ -408,6 +437,25 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
           {submitting ? "Đang tạo..." : "Tạo vụ nuôi"}
         </Button>
       </DialogActions>
+
+      {/* Confirmation dialog when quantity is below 50% of recommended max */}
+      <Dialog open={confirmLowQuantityOpen} onClose={() => setConfirmLowQuantityOpen(false)}>
+        <DialogTitle>Xác nhận số lượng thấp</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Số lượng bạn nhập ({initialQuantityNumber.toLocaleString()} con) thấp hơn 50% sức chứa khuyến nghị ({recommendedSuggested?.toLocaleString()} con).
+          </Alert>
+          <Typography>Bạn có chắc chắn muốn tạo vụ nuôi với số lượng này không? Mật độ thả thấp có thể ảnh hưởng đến hiệu quả sản xuất.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmLowQuantityOpen(false)} disabled={submitting}>
+            Quay lại nhập
+          </Button>
+          <Button onClick={proceedWithLowQuantity} variant="contained" color="warning" disabled={submitting}>
+            Tiếp tục tạo vụ nuôi
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
