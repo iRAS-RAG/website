@@ -9,7 +9,6 @@ interface Props {
   title?: string;
   series?: Series[] | null;
   height?: number;
-  yLabel?: string;
 }
 
 const COLORS = ["#2A85FF", "#10B981", "#F59E0B", "#9333EA", "#EF4444", "#06B6D4"];
@@ -28,7 +27,7 @@ function buildChartData(series: Series[]) {
   });
 }
 
-export const TimeseriesChart: React.FC<Props> = ({ title, series, height = 320, yLabel }) => {
+export const TimeseriesChart: React.FC<Props> = ({ title, series, height = 320 }) => {
   if (!series || series.length === 0) {
     return (
       <Paper variant="outlined" sx={{ p: 3, borderRadius: "16px", minHeight: height }}>

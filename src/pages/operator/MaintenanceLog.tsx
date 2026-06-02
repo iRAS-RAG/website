@@ -119,19 +119,17 @@ const MaintenanceLog: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // LOGIC LỌC DROPDOWN: Chỉ hiện những Alert chưa có hành động khắc phục (hoặc alert đang được edit)
+  // LOGIC LỌC DROPDOWN: Chỉ hiện những Alert chưa có hành động khắc phục
+  // Luôn giữ lại alert đang được pre-select (từ navigation hoặc edit mode)
   const availableAlerts = useMemo(() => {
     return alertsList.filter((alert) => {
-      // Nếu đang ở chế độ sửa, cho phép giữ lại Alert của bản ghi đang sửa
-      if (
-        isEditMode &&
-        formData.alertId.toLowerCase() === alert.id.toLowerCase()
-      ) {
+      // Luôn bao gồm alert đang được chọn (dù từ edit hay redirect từ AlertDetailModal)
+      if (formData.alertId && formData.alertId.toLowerCase() === alert.id.toLowerCase()) {
         return true;
       }
       return !alert.hasCorrectiveAction && String(alert.status).toUpperCase() !== "DISMISSED";
     });
-  }, [alertsList, isEditMode, formData.alertId]);
+  }, [alertsList, formData.alertId]);
 
   // Auto-open create modal when navigated from AlertDetailModal
   const navState = location.state as { openCreate?: boolean; alertId?: string } | null;

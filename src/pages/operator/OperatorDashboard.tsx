@@ -17,8 +17,6 @@ import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { TankPulseCard } from "../../components/operator/TankPulseCard";
 import { RecentAlertsList } from "../../components/operator/RecentAlertsList";
-import { AISuggestionsPanel } from "../../components/operator/AISuggestionsPanel";
-
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
@@ -350,7 +348,6 @@ const OperatorDashboard = () => {
                 tankId={selectedTankId || undefined}
                 limit={5}
               />
-              <AISuggestionsPanel limit={5} />
             </Stack>
           </Box>
         </Box>
