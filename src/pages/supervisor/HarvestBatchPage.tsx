@@ -4,7 +4,6 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, Dialog
 import dayjs from "dayjs";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import LocalizedDateField from "../../components/common/LocalizedDateField";
 import { useToast } from "../../components/common/toastContext";
 import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
@@ -18,7 +17,7 @@ const HarvestBatchPage: React.FC = () => {
   const { harvestBatch } = useBatches({ autoLoad: false });
   const { batch, loading } = useBatchDetails(id || null);
 
-  const [harvestDate, setHarvestDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const harvestDate = new Date().toISOString().split("T")[0];
   const [actualHarvestWeightKg, setActualHarvestWeightKg] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -98,10 +97,6 @@ const HarvestBatchPage: React.FC = () => {
 
   const handleHarvestClick = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!harvestDate) {
-      toast.error("Vui lòng chọn ngày thu hoạch");
-      return;
-    }
 
     if (!actualHarvestWeightKg || isNaN(Number(actualHarvestWeightKg))) {
       toast.error("Vui lòng nhập trọng lượng thu hoạch hợp lệ");
@@ -195,7 +190,20 @@ const HarvestBatchPage: React.FC = () => {
                       </Grid>
 
                       <Grid size={{ xs: 12, md: 6 }}>
-                        <LocalizedDateField label="Ngày thu hoạch" value={harvestDate} onChange={setHarvestDate} required />
+                        <TextField
+                          fullWidth
+                          label="Ngày thu hoạch"
+                          value={dayjs(harvestDate).format("DD-MM-YYYY")}
+                          InputProps={{ readOnly: true }}
+                          sx={{
+                            "& .MuiInputBase-input": {
+                              color: "#1E293B",
+                              fontWeight: 500,
+                              cursor: "default",
+                            },
+                            "& .MuiOutlinedInput-root": { backgroundColor: "#F8FAFC" },
+                          }}
+                        />
                       </Grid>
 
                       <Grid size={{ xs: 12, md: 6 }}>

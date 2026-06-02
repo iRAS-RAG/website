@@ -135,6 +135,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     if (!selectedSpecies) newErrors.config = "Vui lòng chọn loài";
     if (!selectedTank) newErrors.tank = "Vui lòng chọn bể nuôi";
     if (!startDate) newErrors.startDate = "Ngày bắt đầu là bắt buộc";
+    else if (startDate < new Date().toISOString().split("T")[0]) newErrors.startDate = "Ngày bắt đầu không thể trong quá khứ";
 
     // Kiểm tra chặn lúc bấm Submit
     // no estimated harvest date validation — backend determines stages
@@ -246,6 +247,9 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     }
   }
   const showExplanatoryHelperGreen = !errors.initialQuantity && !!selectedSpecies && !recommendedLoading && !isInitialQuantityBelowMin && !isInitialQuantityAboveMax;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isStartDateInPast = startDate !== "" && startDate < todayStr;
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" disableEscapeKeyDown={submitting}>
@@ -371,7 +375,15 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 flexDirection: { xs: "column", sm: "row" },
               }}
             >
-              <LocalizedDateField label="Ngày bắt đầu" value={startDate} onChange={setStartDate} error={!!errors.startDate} helperText={errors.startDate} required sx={{ flex: 1 }} />
+              <LocalizedDateField
+                label="Ngày bắt đầu"
+                value={startDate}
+                onChange={setStartDate}
+                error={!!errors.startDate || isStartDateInPast}
+                helperText={errors.startDate || (isStartDateInPast ? "Ngày bắt đầu không thể trong quá khứ" : "")}
+                required
+                sx={{ flex: 1 }}
+              />
               {/* Estimated harvest date is no longer required; backend plans stages */}
             </Box>
           </Box>
@@ -384,7 +396,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={loading || submitting || isInitialQuantityBelowMin || isInitialQuantityAboveMax || !!errors.estimatedHarvestDate} // Disable nếu ngày bị lỗi hoặc số lượng nằm ngoài phạm vi hợp lệ
+          disabled={loading || submitting || isInitialQuantityBelowMin || isInitialQuantityAboveMax || isStartDateInPast || !!errors.estimatedHarvestDate} // Disable nếu ngày trong quá khứ hoặc số lượng nằm ngoài phạm vi hợp lệ
           startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           sx={{
             bgcolor: "#2A85FF",
