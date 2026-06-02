@@ -6,20 +6,14 @@ import {
   deleteBatch as apiDeleteBatch,
   getBatch as apiGetBatch,
   harvestBatch as apiHarvestBatch,
+  startBatch as apiStartBatch,
   terminateBatch as apiTerminateBatch,
   updateBatch as apiUpdateBatch,
   getBatchOperationLogs,
   getBatchPerformance,
   getBatches,
 } from "../api/batches";
-import type {
-  Batch,
-  BatchComparison,
-  BatchOperationLog,
-  BatchPerformance,
-  CreateBatchPayload,
-  HarvestBatchPayload,
-} from "../types/batch";
+import type { Batch, BatchComparison, BatchOperationLog, BatchPerformance, CreateBatchPayload, HarvestBatchPayload } from "../types/batch";
 
 export type UseBatchesOptions = {
   autoLoad?: boolean;
@@ -34,17 +28,14 @@ export default function useBatches(options: UseBatchesOptions = {}) {
   const [error, setError] = useState<string | null>(null);
 
   // Load batches
-  const loadBatches = async (
-    status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED",
-  ) => {
+  const loadBatches = async (status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED") => {
     setLoading(true);
     setError(null);
     try {
       const data = await getBatches(status);
       setBatches(data);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load batches";
+      const message = err instanceof Error ? err.message : "Failed to load batches";
       setError(message);
       console.error("Failed to load batches:", err);
     } finally {
@@ -60,9 +51,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
   }, [autoLoad, statusFilter]);
 
   // Create a new batch
-  const createBatch = async (
-    payload: CreateBatchPayload,
-  ): Promise<Batch | null> => {
+  const createBatch = async (payload: CreateBatchPayload): Promise<Batch | null> => {
     try {
       const newBatch = await apiCreateBatch(payload);
       if (newBatch) {
@@ -70,18 +59,14 @@ export default function useBatches(options: UseBatchesOptions = {}) {
       }
       return newBatch;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create batch";
+      const message = err instanceof Error ? err.message : "Failed to create batch";
       setError(message);
       throw err;
     }
   };
 
   // Update a batch
-  const updateBatch = async (
-    id: string,
-    payload: Partial<CreateBatchPayload>,
-  ): Promise<Batch | null> => {
+  const updateBatch = async (id: string, payload: Partial<CreateBatchPayload>): Promise<Batch | null> => {
     try {
       const updated = await apiUpdateBatch(id, payload);
       if (updated) {
@@ -89,18 +74,14 @@ export default function useBatches(options: UseBatchesOptions = {}) {
       }
       return updated;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update batch";
+      const message = err instanceof Error ? err.message : "Failed to update batch";
       setError(message);
       throw err;
     }
   };
 
   // Harvest a batch
-  const harvestBatch = async (
-    id: string,
-    payload: HarvestBatchPayload,
-  ): Promise<Batch | null> => {
+  const harvestBatch = async (id: string, payload: HarvestBatchPayload): Promise<Batch | null> => {
     try {
       const harvested = await apiHarvestBatch(id, payload);
       if (harvested) {
@@ -108,18 +89,29 @@ export default function useBatches(options: UseBatchesOptions = {}) {
       }
       return harvested;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to harvest batch";
+      const message = err instanceof Error ? err.message : "Failed to harvest batch";
+      setError(message);
+      throw err;
+    }
+  };
+
+  // Start/resume a paused batch
+  const startBatch = async (id: string): Promise<Batch | null> => {
+    try {
+      const started = await apiStartBatch(id);
+      if (started) {
+        setBatches((prev) => prev.map((b) => (b.id === id ? started : b)));
+      }
+      return started;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to start batch";
       setError(message);
       throw err;
     }
   };
 
   // Mark batch as terminated
-  const terminateBatch = async (
-    id: string,
-    reason: string,
-  ): Promise<Batch | null> => {
+  const terminateBatch = async (id: string, reason: string): Promise<Batch | null> => {
     try {
       const terminated = await apiTerminateBatch(id, reason);
       if (terminated) {
@@ -127,8 +119,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
       }
       return terminated;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to terminate batch";
+      const message = err instanceof Error ? err.message : "Failed to terminate batch";
       setError(message);
       throw err;
     }
@@ -143,8 +134,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
       }
       return success;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete batch";
+      const message = err instanceof Error ? err.message : "Failed to delete batch";
       setError(message);
       return false;
     }
@@ -178,6 +168,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
     createBatch,
     updateBatch,
     harvestBatch,
+    startBatch,
     terminateBatch,
     deleteBatch,
     refreshBatch,
@@ -202,10 +193,7 @@ export function useBatchDetails(batchId: string | null) {
           return [] as BatchOperationLog[];
         }),
         getBatchPerformance(id, 7).catch((err) => {
-          console.warn(
-            "Batch performance API unavailable, using empty performance data:",
-            err,
-          );
+          console.warn("Batch performance API unavailable, using empty performance data:", err);
           return [] as BatchPerformance[];
         }),
       ]);
@@ -221,9 +209,7 @@ export function useBatchDetails(batchId: string | null) {
   };
 
   // Create operation log
-  const createLog = async (
-    log: Omit<BatchOperationLog, "id" | "batchId" | "createdAt">,
-  ): Promise<BatchOperationLog | null> => {
+  const createLog = async (log: Omit<BatchOperationLog, "id" | "batchId" | "createdAt">): Promise<BatchOperationLog | null> => {
     if (!batchId) return null;
     try {
       const newLog = await apiCreateLog(batchId, log);
@@ -288,8 +274,7 @@ export function useBatchComparison() {
       const data = await apiCompareBatches(batchIds);
       setComparisons(data);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to compare batches";
+      const message = err instanceof Error ? err.message : "Failed to compare batches";
       setError(message);
       console.error("Failed to compare batches:", err);
     } finally {

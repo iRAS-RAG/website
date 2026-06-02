@@ -127,7 +127,7 @@ const HarvestBatchPage: React.FC = () => {
                 Quay lại chi tiết vụ nuôi
               </Button>
               <Typography variant="h4" fontWeight={700}>
-                Thu hoạch/Kết thúc vụ nuôi
+                Thu hoạch vụ nuôi
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Hoàn tất chu kỳ sản xuất cho {batch.name}

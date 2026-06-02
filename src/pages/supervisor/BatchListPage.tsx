@@ -15,7 +15,7 @@ import type { Batch, BatchStatus } from "../../types/batch";
 const statusLabels: Record<BatchStatus, string> = {
   ACTIVE: "Đang nuôi",
   HARVESTED: "Đã thu hoạch",
-  PAUSED: "Tạm dừng",
+  PAUSED: "Chưa bắt đầu",
   TERMINATED: "Kết thúc",
 };
 
@@ -134,7 +134,7 @@ const BatchListPage: React.FC = () => {
       sortable: false,
       render: (row) => (
         <Typography variant="body2" sx={{ color: "#64748B" }}>
-          {`${calculateAge(row.startDate)} ngày`}
+          {row.status === "PAUSED" ? "N/A" : `${calculateAge(row.startDate)} ngày`}
         </Typography>
       ),
     },
@@ -320,9 +320,8 @@ const BatchListPage: React.FC = () => {
             >
               <Tab label="Tất cả" value="all" />
               <Tab label="Đang nuôi" value="ACTIVE" />
+              <Tab label="Chưa bắt đầu" value="PAUSED" />
               <Tab label="Đã thu hoạch" value="HARVESTED" />
-              <Tab label="Tạm dừng" value="PAUSED" />
-              <Tab label="Kết thúc" value="TERMINATED" />
             </Tabs>
             <Divider />
 

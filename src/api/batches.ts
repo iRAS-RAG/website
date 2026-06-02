@@ -211,6 +211,20 @@ export async function harvestBatch(id: string, payload: HarvestBatchPayload): Pr
 }
 
 /**
+ * Start/resume a paused batch
+ */
+export async function startBatch(id: string): Promise<Batch | null> {
+  try {
+    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}/start`, { method: "POST" });
+    if (!res) return null;
+    return toBatch(res);
+  } catch (error) {
+    console.error("Failed to start batch:", error);
+    throw error;
+  }
+}
+
+/**
  * Mark a batch as terminated
  */
 export async function terminateBatch(id: string, reason: string): Promise<Batch | null> {

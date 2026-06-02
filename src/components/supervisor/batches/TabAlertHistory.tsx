@@ -85,10 +85,10 @@ const TabAlertHistory: React.FC<Props> = ({ batchId, batchName, fishTankId, star
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="body2" color="text.secondary">
-          Lịch sử cảnh báo cho đợt nuôi {batchName ?? batchId}
+          Lịch sử cảnh báo cho vụ nuôi {batchName ?? batchId}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Hiển thị cảnh báo cho ao/bể liên quan trong khoảng thời gian của đợt nuôi.
+          Hiển thị cảnh báo cho ao/bể liên quan trong khoảng thời gian của vụ nuôi.
         </Typography>
       </Paper>
 

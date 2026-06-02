@@ -1,10 +1,12 @@
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import EditIcon from "@mui/icons-material/Edit";
 import ErrorIcon from "@mui/icons-material/Error";
-import { Box, Button, Chip, Grid, Paper, Typography } from "@mui/material";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, Paper, Typography } from "@mui/material";
 import dayjs from "dayjs";
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { startBatch as apiStartBatch } from "../../../api/batches";
 import type { Batch } from "../../../types/batch";
 
 type Props = {
@@ -12,8 +14,10 @@ type Props = {
   onRefresh: () => void;
 };
 
-const BatchHeader: React.FC<Props> = ({ batch }) => {
+const BatchHeader: React.FC<Props> = ({ batch, onRefresh }) => {
   const navigate = useNavigate();
+  const [starting, setStarting] = useState(false);
+  const [confirmStartOpen, setConfirmStartOpen] = useState(false);
 
   // Calculate current age
   const calculateAge = (startDate: string): number => {
@@ -27,6 +31,24 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
 
   const currentQty = batch.currentQuantity ?? batch.initialQuantity ?? 0;
 
+  const handleStart = () => {
+    setConfirmStartOpen(true);
+  };
+
+  const proceedWithStart = async () => {
+    setConfirmStartOpen(false);
+    setStarting(true);
+    try {
+      await apiStartBatch(batch.id);
+      onRefresh();
+      navigate(`/supervisor/batches/${batch.id}`);
+    } catch (err) {
+      console.error("Failed to start batch:", err);
+    } finally {
+      setStarting(false);
+    }
+  };
+
   const statusConfig = {
     ACTIVE: { color: "success" as const, icon: <CheckCircleIcon /> },
     HARVESTED: { color: "default" as const, icon: <CheckCircleIcon /> },
@@ -37,7 +59,7 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
   const statusLabel = {
     ACTIVE: "Đang nuôi",
     HARVESTED: "Đã thu hoạch",
-    PAUSED: "Tạm dừng",
+    PAUSED: "Chưa bắt đầu",
     TERMINATED: "Kết thúc",
   };
 
@@ -83,7 +105,7 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
                 Số ngày nuôi
               </Typography>
               <Typography variant="body1" fontWeight={600}>
-                {currentAge} ngày
+                {batch.status === "PAUSED" ? "N/A" : `${currentAge} ngày`}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
@@ -111,18 +133,42 @@ const BatchHeader: React.FC<Props> = ({ batch }) => {
             <Button variant="outlined" startIcon={<EditIcon />} fullWidth onClick={() => navigate(`/supervisor/batches/${batch.id}/edit`)} disabled={batch.status !== "ACTIVE"}>
               Chỉnh sửa thông tin
             </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => navigate(`/supervisor/batches/${batch.id}/harvest`)}
-              disabled={batch.status !== "ACTIVE"}
-              color={batch.status === "ACTIVE" ? "primary" : "inherit"}
-            >
-              Thu hoạch/Kết thúc đợt nuôi
-            </Button>
+            {batch.status === "PAUSED" ? (
+              <Button variant="contained" fullWidth onClick={handleStart} disabled={starting} color="success" startIcon={starting ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon />}>
+                {starting ? "Đang bắt đầu..." : "Bắt đầu vụ nuôi"}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => navigate(`/supervisor/batches/${batch.id}/harvest`)}
+                disabled={batch.status !== "ACTIVE"}
+                color={batch.status === "ACTIVE" ? "primary" : "inherit"}
+              >
+                Thu hoạch vụ nuôi
+              </Button>
+            )}
           </Box>
         </Grid>
       </Grid>
+
+      {/* Confirmation dialog for starting a batch */}
+      <Dialog open={confirmStartOpen} onClose={() => setConfirmStartOpen(false)}>
+        <DialogTitle>Xác nhận bắt đầu vụ nuôi</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn bắt đầu vụ nuôi <strong>{batch.name}</strong> không?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmStartOpen(false)} disabled={starting}>
+            Hủy
+          </Button>
+          <Button onClick={proceedWithStart} variant="contained" color="success" disabled={starting}>
+            {starting ? "Đang bắt đầu..." : "Xác nhận bắt đầu"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };

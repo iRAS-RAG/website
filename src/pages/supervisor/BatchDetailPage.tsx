@@ -18,7 +18,7 @@ const BatchDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
 
-  const { loading, batch, logs, performance, createLog, loadPerformance } = useBatchDetails(id || null);
+  const { loading, batch, logs, performance, createLog, loadPerformance, loadBatchDetails } = useBatchDetails(id || null);
 
   if (loading) {
     return (
@@ -96,7 +96,7 @@ const BatchDetailPage: React.FC = () => {
           </Button>
 
           {/* Batch Header (Summary Bar) */}
-          <BatchHeader batch={batch} onRefresh={() => undefined} />
+          <BatchHeader batch={batch} onRefresh={() => id && loadBatchDetails(id)} />
 
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 3, mb: 3 }}>
