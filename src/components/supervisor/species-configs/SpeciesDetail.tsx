@@ -46,6 +46,7 @@ import { createSpeciesStageConfig, deleteSpeciesStageConfig, reorderSpeciesStage
 import useFeedTypes from "../../../hooks/useFeedTypes";
 import useGrowthStages from "../../../hooks/useGrowthStages";
 import type { SpeciesConfig, Stage } from "../../../hooks/useSpeciesConfigs";
+import type { SpeciesStageConfigCreate } from "../../../types/species-stage-config";
 import { autoSuggestIcon } from "../../../utils/iconMapper";
 import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
@@ -113,27 +114,28 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   const currentOrderIds = displayStages.map((s) => s.id);
   const isOrderDirty = currentOrderIds.join(",") !== savedOrderRef.current.join(",");
 
-  const pendingCreateRef = useRef<{ growthStageId: string; created?: any } | null>(null);
+  const pendingCreateRef = useRef<{ growthStageId: string; created?: Record<string, unknown> } | null>(null);
 
   useEffect(() => {
     const pending = pendingCreateRef.current;
     if (!pending) return;
     const found = (species.stages || []).find((s) => s.growthStageId === pending.growthStageId && !s.configId);
     if (found && pending.created) {
+      const c = pending.created;
       updateStage(species.id, found.id, {
-        configId: String(pending.created.id ?? ""),
-        sequence: pending.created.sequence ?? found.sequence,
-        feedPer100: pending.created.amountPer100Fish ?? found.feedPer100,
-        frequencyPerDay: pending.created.frequencyPerDay ?? found.frequencyPerDay,
-        maxStockingDensity: pending.created.maxStockingDensity ?? found.maxStockingDensity,
-        expectedDurationDays: pending.created.expectedDurationDays ?? found.expectedDurationDays,
-        feedTypeIds: pending.created.feedTypeIds ?? found.feedTypeIds,
-        expectedWeightKgPerFish: pending.created.expectedWeightKgPerFish ?? found.expectedWeightKgPerFish,
-        survivalRate: pending.created.survivalRate ?? found.survivalRate,
+        configId: String(c.id ?? ""),
+        sequence: (c.sequence as number | undefined) ?? found.sequence,
+        feedPer100: (c.amountPer100Fish as number | undefined) ?? found.feedPer100,
+        frequencyPerDay: (c.frequencyPerDay as number | undefined) ?? found.frequencyPerDay,
+        maxStockingDensity: (c.maxStockingDensity as number | undefined) ?? found.maxStockingDensity,
+        expectedDurationDays: (c.expectedDurationDays as number | undefined) ?? found.expectedDurationDays,
+        feedTypeIds: (c.feedTypeIds as string[] | undefined) ?? found.feedTypeIds,
+        expectedWeightKgPerFish: (c.expectedWeightKgPerFish as number | undefined) ?? found.expectedWeightKgPerFish,
+        survivalRate: (c.survivalRate as number | undefined) ?? found.survivalRate,
       });
       pendingCreateRef.current = null;
     }
-  }, [species.stages, updateStage]);
+  }, [species.id, species.stages, updateStage]);
 
   function handleDragStart(e: React.DragEvent, idx: number) {
     dragIndexRef.current = idx;
@@ -223,13 +225,12 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       if (st.configId) {
         await updateSpeciesStageConfig(st.configId, payload);
       } else {
-        const created = await createSpeciesStageConfig({ speciesId: species.id, growthStageId: st.growthStageId ?? "", ...payload } as any);
+        const created = await createSpeciesStageConfig({ speciesId: species.id, growthStageId: st.growthStageId ?? "", ...payload } as unknown as SpeciesStageConfigCreate);
         pendingCreateRef.current = { growthStageId: st.growthStageId ?? "", created };
       }
 
       toast.success("Lưu giai đoạn thành công");
-    } catch (e) {
-      console.error("Failed to save stage", e);
+    } catch {
       toast.error("Lưu giai đoạn thất bại");
     } finally {
       setSaving((s) => ({ ...s, [st.id]: false }));
@@ -250,12 +251,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       // Remove from local growth stages list so the dialog updates without refresh
       try {
         setGrowthStages((prev) => prev.filter((g) => g.id !== growthStageId));
-      } catch (err) {
+      } catch {
         // ignore if setter not available
       }
       toast.success("Xóa giai đoạn thành công");
-    } catch (e) {
-      console.error("Failed to delete growth stage", e);
+    } catch {
       toast.error("Xóa giai đoạn thất bại");
     }
   }
@@ -457,14 +457,16 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                             <CircularProgress size={18} />
                           </MenuItem>
                         ) : (
-                          <>
-                            <MenuItem key="empty" value="" sx={{ display: "none" }} />
-                            {st.feedType && !feedTypes.some((f) => f.id === st.feedType) ? (
-                              <MenuItem key="fallback" value={st.feedType} sx={{ display: "none" }}>
-                                {st.feedType}
-                              </MenuItem>
-                            ) : null}
-                            {feedTypes.map((f) => {
+                          [
+                            <MenuItem key="empty" value="" sx={{ display: "none" }} />,
+                            ...(st.feedType && !feedTypes.some((f) => f.id === st.feedType)
+                              ? [
+                                  <MenuItem key="fallback" value={st.feedType} sx={{ display: "none" }}>
+                                    {st.feedType}
+                                  </MenuItem>,
+                                ]
+                              : []),
+                            ...feedTypes.map((f) => {
                               const isSelected = (st.feedTypeIds && st.feedTypeIds.includes(f.id)) || st.feedType === f.id || (st.feedType || "").includes(f.name);
                               return (
                                 <MenuItem
@@ -484,8 +486,8 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                                   <ListItemText primary={f.name} />
                                 </MenuItem>
                               );
-                            })}
-                          </>
+                            }),
+                          ]
                         )}
                       </Select>
                     </FormControl>
