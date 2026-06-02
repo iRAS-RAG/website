@@ -166,7 +166,7 @@ const BatchListPage: React.FC = () => {
     },
     {
       field: "actualHarvestDate",
-      label: "Ngày thu hoạch",
+      label: "Ngày thu hoạch/kết thúc",
       sortable: true,
       render: (row) => (
         <Typography variant="body2" sx={{ color: "#64748B" }}>

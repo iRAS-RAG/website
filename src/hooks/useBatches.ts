@@ -9,6 +9,7 @@ import {
   startBatch as apiStartBatch,
   terminateBatch as apiTerminateBatch,
   updateBatch as apiUpdateBatch,
+  updateBatchSchedule as apiUpdateBatchSchedule,
   getBatchOperationLogs,
   getBatchPerformance,
   getBatches,
@@ -140,6 +141,21 @@ export default function useBatches(options: UseBatchesOptions = {}) {
     }
   };
 
+  // Update batch schedule (for PAUSED batches)
+  const updateBatchSchedule = async (id: string, payload: { startDate?: string; speciesId?: string; initialQuantity?: number }): Promise<Batch | null> => {
+    try {
+      const updated = await apiUpdateBatchSchedule(id, payload);
+      if (updated) {
+        setBatches((prev) => prev.map((b) => (b.id === id ? updated : b)));
+      }
+      return updated;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update batch schedule";
+      setError(message);
+      throw err;
+    }
+  };
+
   // Refresh single batch
   const refreshBatch = async (id: string): Promise<Batch | null> => {
     try {
@@ -167,6 +183,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
     loadBatches,
     createBatch,
     updateBatch,
+    updateBatchSchedule,
     harvestBatch,
     startBatch,
     terminateBatch,

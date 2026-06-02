@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { startBatch as apiStartBatch, terminateBatch as apiTerminateBatch } from "../../../api/batches";
 import type { Batch } from "../../../types/batch";
+import EditBatchDialog from "./EditBatchDialog";
 
 type Props = {
   batch: Batch;
@@ -21,6 +22,7 @@ const BatchHeader: React.FC<Props> = ({ batch, onRefresh }) => {
   const [confirmStartOpen, setConfirmStartOpen] = useState(false);
   const [confirmTerminateOpen, setConfirmTerminateOpen] = useState(false);
   const [terminating, setTerminating] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Calculate current age
   const calculateAge = (startDate: string): number => {
@@ -158,7 +160,7 @@ const BatchHeader: React.FC<Props> = ({ batch, onRefresh }) => {
         {/* Right: Actions */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, height: "100%", justifyContent: "center" }}>
-            <Button variant="outlined" startIcon={<EditIcon />} fullWidth onClick={() => navigate(`/supervisor/batches/${batch.id}/edit`)} disabled={batch.status !== "ACTIVE"}>
+            <Button variant="outlined" startIcon={<EditIcon />} fullWidth onClick={() => setEditDialogOpen(true)} disabled={batch.status !== "ACTIVE" && batch.status !== "PAUSED"}>
               Chỉnh sửa thông tin
             </Button>
             {batch.status === "PAUSED" ? (
@@ -228,6 +230,17 @@ const BatchHeader: React.FC<Props> = ({ batch, onRefresh }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Edit batch dialog */}
+      <EditBatchDialog
+        batch={batch}
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        onSuccess={() => {
+          setEditDialogOpen(false);
+          onRefresh();
+        }}
+      />
     </Paper>
   );
 };

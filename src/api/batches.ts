@@ -167,17 +167,14 @@ export async function createBatch(payload: CreateBatchPayload): Promise<Batch | 
 }
 
 /**
- * Update batch information
+ * Update batch information (name, currentQuantity, unitOfMeasure)
  */
-export async function updateBatch(id: string, payload: Partial<CreateBatchPayload>): Promise<Batch | null> {
+export async function updateBatch(id: string, payload: { name?: string; currentQuantity?: number; unitOfMeasure?: string }): Promise<Batch | null> {
   try {
     const body: Record<string, unknown> = {};
-    if (payload.name) body.name = payload.name;
-    if (payload.fishTankId) body.fishTankId = payload.fishTankId;
-    if (payload.speciesId) body.speciesId = payload.speciesId as string;
-    if (payload.startDate) body.startDate = payload.startDate;
-    if (payload.initialQuantity) body.initialQuantity = payload.initialQuantity;
-    if (payload.unitOfMeasure) body.unitOfMeasure = payload.unitOfMeasure;
+    if (payload.name !== undefined) body.name = payload.name;
+    if (payload.currentQuantity !== undefined) body.currentQuantity = payload.currentQuantity;
+    if (payload.unitOfMeasure !== undefined) body.unitOfMeasure = payload.unitOfMeasure;
 
     const res = await apiFetch<Record<string, unknown>>(`/batches/${id}`, {
       method: "PUT",
@@ -187,6 +184,28 @@ export async function updateBatch(id: string, payload: Partial<CreateBatchPayloa
     return toBatch(res);
   } catch (error) {
     console.error("Failed to update batch:", error);
+    throw error;
+  }
+}
+
+/**
+ * Update batch schedule (for PAUSED batches: startDate, speciesId, initialQuantity)
+ */
+export async function updateBatchSchedule(id: string, payload: { startDate?: string; speciesId?: string; initialQuantity?: number }): Promise<Batch | null> {
+  try {
+    const body: Record<string, unknown> = {};
+    if (payload.startDate !== undefined) body.startDate = payload.startDate;
+    if (payload.speciesId !== undefined) body.speciesId = payload.speciesId;
+    if (payload.initialQuantity !== undefined) body.initialQuantity = payload.initialQuantity;
+
+    const res = await apiFetch<Record<string, unknown>>(`/batches/${id}/schedule`, {
+      method: "PUT",
+      body,
+    });
+    if (!res) return null;
+    return toBatch(res);
+  } catch (error) {
+    console.error("Failed to update batch schedule:", error);
     throw error;
   }
 }
