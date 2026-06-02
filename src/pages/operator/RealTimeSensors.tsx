@@ -1,31 +1,7 @@
-import {
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Paper,
-  Stack,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, Stack, Typography, useTheme } from "@mui/material";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Brush,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceArea,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Brush, CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Components
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
@@ -126,16 +102,7 @@ const renderCustomDot = (props: CustomDotProps) => {
   const { cx, cy, value, safeMin, safeMax, defaultColor } = props;
   if (cx == null || cy == null || value == null) return null;
   const isOut = value < safeMin || value > safeMax;
-  return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={isOut ? 7 : 5}
-      fill={isOut ? "#EF4444" : defaultColor}
-      stroke={isOut ? "#FEE2E2" : "#ffffff"}
-      strokeWidth={isOut ? 4 : 2}
-    />
-  );
+  return <circle cx={cx} cy={cy} r={isOut ? 7 : 5} fill={isOut ? "#EF4444" : defaultColor} stroke={isOut ? "#FEE2E2" : "#ffffff"} strokeWidth={isOut ? 4 : 2} />;
 };
 
 // --- MAIN COMPONENT ---
@@ -143,8 +110,7 @@ const RealTimeSensors = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const { tanks, selectedTank, setSelectedTank, latestData, devices, loading, refetch } =
-    useRealTimeTanks();
+  const { tanks, selectedTank, setSelectedTank, latestData, devices, loading, refetch } = useRealTimeTanks();
   const liveSeries = useLiveTelemetry(selectedTank?.id ?? null);
 
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
@@ -160,9 +126,7 @@ const RealTimeSensors = () => {
   const lastAccumulatedTsRef = useRef<number>(0);
 
   // Only use selected sensor if it's still in current tank's data
-  const currentSensorId = latestData.some((s) => s.sensorId === selectedSensorId)
-    ? selectedSensorId
-    : null;
+  const currentSensorId = latestData.some((s) => s.sensorId === selectedSensorId) ? selectedSensorId : null;
 
   const activeSensor = latestData.find((s) => s.sensorId === currentSensorId);
 
@@ -179,7 +143,6 @@ const RealTimeSensors = () => {
   const fetchChartData = useCallback(async () => {
     if (!currentSensorId || timeFilter === "10s") return;
     setChartLoading(true);
-    const sensorTypeName = activeSensor?.sensorTypeName ?? "";
     try {
       const now = dayjs();
       let fromDate: string;
@@ -215,12 +178,7 @@ const RealTimeSensors = () => {
           return;
       }
 
-      const res = await realtimeApi.getSensorHistory(
-        currentSensorId,
-        fromDate,
-        now.toISOString(),
-        intervalMin,
-      );
+      const res = await realtimeApi.getSensorHistory(currentSensorId, fromDate, now.toISOString(), intervalMin);
 
       type RawLog = {
         recordedAt?: string;
@@ -233,7 +191,7 @@ const RealTimeSensors = () => {
       };
 
       const raw = extractArray(res) as RawLog[];
-      let points: ChartPoint[] = raw
+      const points: ChartPoint[] = raw
         .map((d) => {
           const ts = d.recordedAt || d.createdAt || d.created_at || d.timestamp;
           const val = d.value ?? d.averageValue ?? d.data ?? null;
@@ -250,16 +208,14 @@ const RealTimeSensors = () => {
     } finally {
       setChartLoading(false);
     }
-  }, [currentSensorId, timeFilter, activeSensor?.sensorTypeName]);
+  }, [currentSensorId, timeFilter]);
 
   // Tích lũy live data vào buffer (không bị cắt bởi WINDOW_MS)
   useEffect(() => {
     if (!currentSensorId) return;
     const rawPoints = liveSeries.get(currentSensorId) ?? [];
     if (rawPoints.length === 0) return;
-    const newPoints = rawPoints
-      .filter((p) => p.ts > lastAccumulatedTsRef.current)
-      .map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
+    const newPoints = rawPoints.filter((p) => p.ts > lastAccumulatedTsRef.current).map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
     if (newPoints.length > 0) {
       lastAccumulatedTsRef.current = newPoints[newPoints.length - 1].ts;
       setAccumulatedLive((prev) => [...prev, ...newPoints]);
@@ -327,29 +283,15 @@ const RealTimeSensors = () => {
   const chartColor = activeSensor ? getSensorColor(activeSensor.sensorTypeName) : "#64748B";
 
   // Daily min/max from API — phải khai báo TRƯỚC yDomain để tránh TDZ error
-  const dailyMin: number | null =
-    activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
-  const dailyMax: number | null =
-    activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
+  const dailyMin: number | null = activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
+  const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
 
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
   const isCurrentDanger = currentValue < thresholds.min || currentValue > thresholds.max;
 
-  const chartValues = displayChartData
-    .map((d) => d.value)
-    .filter((v): v is number => v !== null);
-
   const yDomain = useMemo(() => {
-    const values = displayChartData
-      .map((d) => d.value)
-      .filter((v): v is number => v !== null);
-    const allValues = [
-      ...values,
-      thresholds.min,
-      thresholds.max,
-      ...(dailyMin != null ? [dailyMin] : []),
-      ...(dailyMax != null ? [dailyMax] : []),
-    ];
+    const values = displayChartData.map((d) => d.value).filter((v): v is number => v !== null);
+    const allValues = [...values, thresholds.min, thresholds.max, ...(dailyMin != null ? [dailyMin] : []), ...(dailyMax != null ? [dailyMax] : [])];
     if (allValues.length === 0) return [0, 100];
     return [Math.floor(Math.min(...allValues) - 1), Math.ceil(Math.max(...allValues) + 1)];
   }, [displayChartData, thresholds, dailyMin, dailyMax]);
@@ -370,10 +312,7 @@ const RealTimeSensors = () => {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* TITLE */}
             <Box sx={{ mb: 4 }}>
-              <Typography
-                variant="h1"
-                sx={{ fontSize: "2rem", fontWeight: 600, color: theme.palette.text.primary }}
-              >
+              <Typography variant="h1" sx={{ fontSize: "2rem", fontWeight: 600, color: theme.palette.text.primary }}>
                 Giám sát cảm biến thời gian thực
               </Typography>
               <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
@@ -382,10 +321,7 @@ const RealTimeSensors = () => {
             </Box>
 
             {/* TANK SELECTION */}
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}
-            >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
               CHỌN BỂ NUÔI
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 4 }}>
@@ -403,14 +339,8 @@ const RealTimeSensors = () => {
                     position: "relative",
                     width: "calc((100% - 48px) / 4)",
                     minWidth: "160px",
-                    border:
-                      selectedTank?.id === tank.id
-                        ? `2px solid ${theme.palette.primary.main}`
-                        : `1px solid ${theme.palette.divider}`,
-                    bgcolor:
-                      selectedTank?.id === tank.id
-                        ? theme.palette.primary.light + "20"
-                        : theme.palette.background.paper,
+                    border: selectedTank?.id === tank.id ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+                    bgcolor: selectedTank?.id === tank.id ? theme.palette.primary.light + "20" : theme.palette.background.paper,
                   }}
                 >
                   <Box
@@ -422,9 +352,7 @@ const RealTimeSensors = () => {
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      bgcolor: tank.hasOpenAlert
-                        ? theme.palette.error.main
-                        : theme.palette.success.main,
+                      bgcolor: tank.hasOpenAlert ? theme.palette.error.main : theme.palette.success.main,
                     }}
                   />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -432,16 +360,11 @@ const RealTimeSensors = () => {
                   </Typography>
                 </Paper>
               ))}
-              {tanks.length === 0 && (
-                <Typography variant="body2">Đang tải danh sách bể...</Typography>
-              )}
+              {tanks.length === 0 && <Typography variant="body2">Đang tải danh sách bể...</Typography>}
             </Box>
 
             {/* SENSOR CARDS */}
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 600, mb: 2.5, color: theme.palette.text.primary }}
-            >
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2.5, color: theme.palette.text.primary }}>
               Chỉ số hiện tại {selectedTank ? `- ${selectedTank.name}` : ""}
             </Typography>
             {loading ? (
@@ -480,26 +403,15 @@ const RealTimeSensors = () => {
 
             {/* CHART — shown when a sensor card is clicked */}
             {activeSensor && (
-              <Paper
-                variant="outlined"
-                sx={{ p: 3, mb: 5, borderRadius: "16px", borderColor: theme.palette.divider }}
-              >
+              <Paper variant="outlined" sx={{ p: 3, mb: 5, borderRadius: "16px", borderColor: theme.palette.divider }}>
                 {/* Header */}
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  mb={2}
-                  flexWrap="wrap"
-                  gap={2}
-                >
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
                   <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                       Biểu đồ: {activeSensor.sensorTypeName}
                     </Typography>
                     <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                      Ngưỡng an toàn: {thresholds.min} – {thresholds.max}{" "}
-                      {activeSensor.unitOfMeasure}
+                      Ngưỡng an toàn: {thresholds.min} – {thresholds.max} {activeSensor.unitOfMeasure}
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
@@ -552,32 +464,18 @@ const RealTimeSensors = () => {
                     </Box>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={displayChartData}
-                        margin={{ top: 20, right: 30, left: 0, bottom: 10 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#E5E7EB"
-                        />
-                        <XAxis
-                          dataKey="time"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#6B7280" }}
-                          dy={8}
-                        />
+                      <LineChart data={displayChartData} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={8} />
                         <YAxis
                           axisLine={false}
                           tickLine={false}
                           domain={yDomain}
                           ticks={yAxisTicks}
-                          tick={(props: { x: number; y: number; payload: { value: number } }) => {
+                          tick={(props: { x?: string | number; y?: string | number; payload?: { value?: number | string } }) => {
                             const { x, y, payload } = props;
-                            const isThresholdTick =
-                              Math.abs(payload.value - thresholds.min) < 0.05 ||
-                              Math.abs(payload.value - thresholds.max) < 0.05;
+                            const tickValue = payload?.value ?? 0;
+                            const isThresholdTick = Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05;
                             return (
                               <text
                                 x={x}
@@ -588,7 +486,7 @@ const RealTimeSensors = () => {
                                 fontWeight={isThresholdTick ? 700 : 400}
                                 fill={isThresholdTick ? "#10B981" : "#6B7280"}
                               >
-                                {payload.value}
+                                {tickValue}
                               </text>
                             );
                           }}
@@ -608,20 +506,9 @@ const RealTimeSensors = () => {
                             border: "none",
                             boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                           }}
-                          formatter={(val: number) => [
-                            `${val} ${activeSensor.unitOfMeasure}`,
-                            activeSensor.sensorTypeName,
-                          ]}
+                          formatter={(val: number | undefined) => [`${val ?? ""} ${activeSensor.unitOfMeasure}`, activeSensor.sensorTypeName]}
                         />
-                        <ReferenceArea
-                          y1={thresholds.min}
-                          y2={thresholds.max}
-                          fill="#10B981"
-                          fillOpacity={0.08}
-                          stroke="#10B981"
-                          strokeOpacity={0.3}
-                          strokeDasharray="3 3"
-                        />
+                        <ReferenceArea y1={thresholds.min} y2={thresholds.max} fill="#10B981" fillOpacity={0.08} stroke="#10B981" strokeOpacity={0.3} strokeDasharray="3 3" />
                         <Line
                           name={activeSensor.sensorTypeName}
                           type="monotone"
@@ -640,30 +527,26 @@ const RealTimeSensors = () => {
                           activeDot={{ r: 8 }}
                         />
                         {/* Brush scroll — chỉ cho 10s/1m/1h (data tích lũy), không cần cho 1d/1w */}
-                        {(timeFilter === "10s" || timeFilter === "1m" || timeFilter === "1h") &&
-                          displayChartData.length > 12 && (
-                            <Brush
-                              dataKey="time"
-                              height={24}
-                              startIndex={Math.max(0, displayChartData.length - 12)}
-                              endIndex={displayChartData.length - 1}
-                              stroke="#10B981"
-                              fill="#F0FDF4"
-                              travellerWidth={8}
-                              gap={1}
-                              tickFormatter={() => ""}
-                            />
-                          )}
+                        {(timeFilter === "10s" || timeFilter === "1m" || timeFilter === "1h") && displayChartData.length > 12 && (
+                          <Brush
+                            dataKey="time"
+                            height={24}
+                            startIndex={Math.max(0, displayChartData.length - 12)}
+                            endIndex={displayChartData.length - 1}
+                            stroke="#10B981"
+                            fill="#F0FDF4"
+                            travellerWidth={8}
+                            gap={1}
+                            tickFormatter={() => ""}
+                          />
+                        )}
                       </LineChart>
                     </ResponsiveContainer>
                   )}
                 </Box>
 
                 {displayChartData.length === 0 && !chartLoading && (
-                  <Typography
-                    variant="body2"
-                    sx={{ textAlign: "center", color: theme.palette.text.secondary, mb: 2 }}
-                  >
+                  <Typography variant="body2" sx={{ textAlign: "center", color: theme.palette.text.secondary, mb: 2 }}>
                     Chưa có dữ liệu trong khoảng thời gian này.
                   </Typography>
                 )}
@@ -787,12 +670,8 @@ const RealTimeSensors = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            bgcolor: device.state
-                              ? theme.palette.success.light
-                              : theme.palette.action.hover,
-                            color: device.state
-                              ? theme.palette.success.main
-                              : theme.palette.text.secondary,
+                            bgcolor: device.state ? theme.palette.success.light : theme.palette.action.hover,
+                            color: device.state ? theme.palette.success.main : theme.palette.text.secondary,
                           }}
                         >
                           {device.state ? <BoltIcon /> : <PowerOffIcon />}
@@ -804,30 +683,19 @@ const RealTimeSensors = () => {
                           <Typography
                             variant="caption"
                             sx={{
-                              color: device.state
-                                ? theme.palette.success.main
-                                : "text.secondary",
+                              color: device.state ? theme.palette.success.main : "text.secondary",
                             }}
                           >
                             {device.state ? "Đang hoạt động" : "Đã tắt"}
                           </Typography>
                         </Box>
                       </Box>
-                      <Button
-                        size="small"
-                        variant={device.state ? "outlined" : "contained"}
-                        color={device.state ? "error" : "primary"}
-                        onClick={() => setDeviceToToggle(device)}
-                      >
+                      <Button size="small" variant={device.state ? "outlined" : "contained"} color={device.state ? "error" : "primary"} onClick={() => setDeviceToToggle(device)}>
                         {device.state ? "Tắt" : "Bật"}
                       </Button>
                     </Paper>
                   ))}
-                  {devices.length === 0 && (
-                    <Typography variant="body2">
-                      Không tìm thấy thiết bị điều khiển nào cho bể này.
-                    </Typography>
-                  )}
+                  {devices.length === 0 && <Typography variant="body2">Không tìm thấy thiết bị điều khiển nào cho bể này.</Typography>}
                 </Box>
               )}
             </Box>
@@ -845,9 +713,7 @@ const RealTimeSensors = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.text.primary, pb: 1 }}>
-          {deviceToToggle?.state ? "Xác nhận TẮT thiết bị" : "Xác nhận BẬT thiết bị"}
-        </DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.text.primary, pb: 1 }}>{deviceToToggle?.state ? "Xác nhận TẮT thiết bị" : "Xác nhận BẬT thiết bị"}</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: theme.palette.text.secondary, mb: 2 }}>
             Thiết bị{" "}
@@ -859,9 +725,7 @@ const RealTimeSensors = () => {
               component="span"
               sx={{
                 fontWeight: 700,
-                color: deviceToToggle?.state
-                  ? theme.palette.success.main
-                  : theme.palette.text.secondary,
+                color: deviceToToggle?.state ? theme.palette.success.main : theme.palette.text.secondary,
               }}
             >
               {deviceToToggle?.state ? "BẬT" : "TẮT"}
@@ -871,9 +735,7 @@ const RealTimeSensors = () => {
               component="span"
               sx={{
                 fontWeight: 700,
-                color: deviceToToggle?.state
-                  ? theme.palette.error.main
-                  : theme.palette.success.main,
+                color: deviceToToggle?.state ? theme.palette.error.main : theme.palette.success.main,
               }}
             >
               {deviceToToggle?.state ? "TẮT" : "BẬT"}
@@ -892,19 +754,13 @@ const RealTimeSensors = () => {
           >
             <ErrorOutlineIcon sx={{ color: "#EA580C", fontSize: 22, mt: "2px" }} />
             <Typography variant="body2" sx={{ color: "#9A3412", lineHeight: 1.6 }}>
-              Đây là thiết bị đang vận hành trực tiếp trong môi trường bể nuôi. Bật/tắt sai thời
-              điểm có thể làm thay đổi đột ngột điều kiện nước (oxy, nhiệt độ, dòng chảy...) và
-              gây nguy hiểm cho vật nuôi. Vui lòng kiểm tra kỹ tình trạng bể và các chỉ số cảm
-              biến trước khi xác nhận.
+              Đây là thiết bị đang vận hành trực tiếp trong môi trường bể nuôi. Bật/tắt sai thời điểm có thể làm thay đổi đột ngột điều kiện nước (oxy, nhiệt độ, dòng chảy...) và gây nguy hiểm cho vật
+              nuôi. Vui lòng kiểm tra kỹ tình trạng bể và các chỉ số cảm biến trước khi xác nhận.
             </Typography>
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button
-            onClick={() => setDeviceToToggle(null)}
-            disabled={isToggling}
-            sx={{ color: theme.palette.text.secondary, fontWeight: 600, textTransform: "none" }}
-          >
+          <Button onClick={() => setDeviceToToggle(null)} disabled={isToggling} sx={{ color: theme.palette.text.secondary, fontWeight: 600, textTransform: "none" }}>
             Hủy
           </Button>
           <Button
@@ -914,11 +770,7 @@ const RealTimeSensors = () => {
             disabled={isToggling}
             sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none", textTransform: "none" }}
           >
-            {isToggling
-              ? "Đang xử lý..."
-              : deviceToToggle?.state
-                ? "Xác nhận tắt"
-                : "Xác nhận bật"}
+            {isToggling ? "Đang xử lý..." : deviceToToggle?.state ? "Xác nhận tắt" : "Xác nhận bật"}
           </Button>
         </DialogActions>
       </Dialog>

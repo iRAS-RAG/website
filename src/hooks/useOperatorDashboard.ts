@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { apiFetch } from "../api/client";
+import { useEffect, useState } from "react";
 import { alertApi } from "../api/alerts";
 import { getBatches } from "../api/batches";
+import { apiFetch } from "../api/client";
 import { getControlDevices } from "../api/control-devices";
 import type { Batch } from "../types/batch";
 
@@ -50,16 +50,12 @@ export const useOperatorDashboard = (tankId?: string) => {
       setLoading(true);
       try {
         const [alertsRes, activeBatches, devices] = await Promise.all([
-          alertApi
-            .getAll({ page: 1, pageSize: 1, status: "OPEN", tankId })
-            .catch(() => null),
+          alertApi.getAll({ page: 1, pageSize: 1, statuses: ["OPEN"], tankId }).catch(() => null),
           getBatches("ACTIVE").catch(() => [] as Batch[]),
           getControlDevices().catch(() => []),
         ]);
 
-        const filteredBatches = tankId
-          ? activeBatches.filter((b) => b.fishTankId === tankId)
-          : activeBatches;
+        const filteredBatches = tankId ? activeBatches.filter((b) => b.fishTankId === tankId) : activeBatches;
 
         const runningDevices = devices.filter((d) => d.state === true).length;
 

@@ -1,34 +1,21 @@
-import {
-  Avatar,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Paper,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Avatar, Box, Button, Chip, CircularProgress, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 // Icons
 import SendIcon from "@mui/icons-material/Send";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ThumbDownAltOutlinedIcon from "@mui/icons-material/ThumbDownAltOutlined";
 import ThumbUpAltOutlinedIcon from "@mui/icons-material/ThumbUpAltOutlined";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
 // Components
+import { useToast } from "../../components/common/toastContext";
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
-import { useToast } from "../../components/common/toastContext";
 
 // API
 import { advisoryApi } from "../../api/advisory";
@@ -60,7 +47,7 @@ const stripMarkdown = (s: string): string => {
     .replace(/\*\*([\s\S]+?)\*\*/g, "$1") // **bold**
     .replace(/__([\s\S]+?)__/g, "$1") // __bold__
     .replace(/^#{1,6}\s+/gm, "") // headers # / ##
-    .replace(/^\s*[*+\-]\s+/gm, "• ") // bullets: *, -, +
+    .replace(/^\s*[*+-]\s+/gm, "• ") // bullets: *, -, +
     .replace(/`([^`]+)`/g, "$1"); // `code`
 };
 
@@ -92,7 +79,7 @@ const AIAdvisory: React.FC = () => {
       }
     };
     loadTanks();
-  }, []);
+  }, [toast]);
 
   // Khi điều hướng từ trang Cảnh báo sang: tự chọn bể + điền sẵn câu hỏi
   useEffect(() => {
@@ -191,9 +178,7 @@ const AIAdvisory: React.FC = () => {
         const idx = newExchanges.length - 1;
         newExchanges[idx] = {
           ...newExchanges[idx],
-          answer:
-            res?.answer?.trim() ||
-            "Hệ thống chưa trả về câu trả lời. Vui lòng thử lại.",
+          answer: res?.answer?.trim() || "Hệ thống chưa trả về câu trả lời. Vui lòng thử lại.",
           isOffTopic: !!res?.isOffTopic,
           citations: res?.citations ?? [],
           error: false,
@@ -204,15 +189,11 @@ const AIAdvisory: React.FC = () => {
     } catch (err) {
       console.error("Lỗi gọi advisory chat:", err);
       const status = isApiError(err) ? err.status : undefined;
-      const apiMsg = isApiError(err)
-        ? (err.data as { message?: string })?.message
-        : undefined;
+      const apiMsg = isApiError(err) ? (err.data as { message?: string })?.message : undefined;
 
       let reason: string;
       if (status === 403) {
-        reason =
-          (apiMsg || "Bạn không có quyền truy cập bể nuôi này.") +
-          " Vui lòng chọn bể khác.";
+        reason = (apiMsg || "Bạn không có quyền truy cập bể nuôi này.") + " Vui lòng chọn bể khác.";
       } else if (status === 401) {
         reason = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
       } else {
@@ -304,10 +285,7 @@ const AIAdvisory: React.FC = () => {
                     <WaterDropIcon color="primary" />
                   </Box>
                   <Box>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ fontWeight: 700, lineHeight: 1.2 }}
-                    >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                       Phân tích sự cố: {selectedTank.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -365,17 +343,9 @@ const AIAdvisory: React.FC = () => {
                       <SmartToyIcon sx={{ fontSize: 18, color: "white" }} />
                     </Avatar>
                     <Box sx={{ flex: 1 }}>
-                      <Paper
-                        elevation={0}
-                        sx={{ p: 2, borderRadius: "12px 12px 12px 0", mb: 1 }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "text.primary" }}
-                        >
-                          Xin chào, chúc bạn một ngày tốt lành! Vui lòng chọn
-                          một bể nuôi bên dưới để tôi bắt đầu phân tích trạng
-                          thái và tư vấn cho bạn.
+                      <Paper elevation={0} sx={{ p: 2, borderRadius: "12px 12px 12px 0", mb: 1 }}>
+                        <Typography variant="body2" sx={{ color: "text.primary" }}>
+                          Xin chào, chúc bạn một ngày tốt lành! Vui lòng chọn một bể nuôi bên dưới để tôi bắt đầu phân tích trạng thái và tư vấn cho bạn.
                         </Typography>
                       </Paper>
 
@@ -383,21 +353,11 @@ const AIAdvisory: React.FC = () => {
                         (loadingTanks ? (
                           <CircularProgress size={24} sx={{ mt: 1.5 }} />
                         ) : tanks.length === 0 ? (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: "block", mt: 1 }}
-                          >
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                             Không có bể nuôi nào để tư vấn.
                           </Typography>
                         ) : (
-                          <Stack
-                            direction="row"
-                            spacing={1.5}
-                            flexWrap="wrap"
-                            useFlexGap
-                            sx={{ mt: 1.5 }}
-                          >
+                          <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mt: 1.5 }}>
                             {tanks.map((tank) => (
                               <Button
                                 key={tank.id}
@@ -407,34 +367,21 @@ const AIAdvisory: React.FC = () => {
                                   borderRadius: "20px",
                                   px: 2,
                                   py: 0.8,
-                                  bgcolor: tank.hasOpenAlert
-                                    ? "#FEF2F2"
-                                    : "#EFF6FF",
-                                  color: tank.hasOpenAlert
-                                    ? "#DC2626"
-                                    : "#2563EB",
+                                  bgcolor: tank.hasOpenAlert ? "#FEF2F2" : "#EFF6FF",
+                                  color: tank.hasOpenAlert ? "#DC2626" : "#2563EB",
                                   boxShadow: "none",
                                   border: `1px solid ${tank.hasOpenAlert ? "#FECACA" : "#BFDBFE"}`,
                                   fontWeight: 600,
                                   textTransform: "none",
                                   "&:hover": {
-                                    bgcolor: tank.hasOpenAlert
-                                      ? "#FEE2E2"
-                                      : "#DBEAFE",
+                                    bgcolor: tank.hasOpenAlert ? "#FEE2E2" : "#DBEAFE",
                                     boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
                                     transform: "translateY(-1px)",
                                   },
                                   transition: "all 0.2s",
                                 }}
                                 startIcon={<WaterDropIcon fontSize="small" />}
-                                endIcon={
-                                  tank.hasOpenAlert ? (
-                                    <WarningAmberIcon
-                                      fontSize="small"
-                                      color="error"
-                                    />
-                                  ) : null
-                                }
+                                endIcon={tank.hasOpenAlert ? <WarningAmberIcon fontSize="small" color="error" /> : null}
                               >
                                 {tank.name}
                               </Button>
@@ -448,11 +395,7 @@ const AIAdvisory: React.FC = () => {
                 {/* BONG BÓNG SẴN SÀNG */}
                 {selectedTank && exchanges.length === 0 && (
                   <Box sx={{ alignSelf: "flex-start", maxWidth: "95%" }}>
-                    <Stack
-                      direction="row"
-                      spacing={1.5}
-                      alignItems="flex-start"
-                    >
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
                       <Avatar
                         sx={{
                           bgcolor: theme.palette.primary.main,
@@ -463,17 +406,9 @@ const AIAdvisory: React.FC = () => {
                       >
                         <SmartToyIcon sx={{ fontSize: 18, color: "white" }} />
                       </Avatar>
-                      <Paper
-                        elevation={0}
-                        sx={{ p: 2, borderRadius: "12px 12px 12px 0" }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "text.primary" }}
-                        >
-                          Tôi đã sẵn sàng phân tích cho{" "}
-                          <strong>{selectedTank.name}</strong>. Bạn hãy nhập câu
-                          hỏi hoặc mô tả vấn đề bên dưới để tôi tư vấn.
+                      <Paper elevation={0} sx={{ p: 2, borderRadius: "12px 12px 12px 0" }}>
+                        <Typography variant="body2" sx={{ color: "text.primary" }}>
+                          Tôi đã sẵn sàng phân tích cho <strong>{selectedTank.name}</strong>. Bạn hãy nhập câu hỏi hoặc mô tả vấn đề bên dưới để tôi tư vấn.
                         </Typography>
                       </Paper>
                     </Stack>
@@ -511,11 +446,7 @@ const AIAdvisory: React.FC = () => {
                           width: "100%",
                         }}
                       >
-                        <Stack
-                          direction="row"
-                          spacing={1.5}
-                          alignItems="flex-start"
-                        >
+                        <Stack direction="row" spacing={1.5} alignItems="flex-start">
                           <Avatar
                             sx={{
                               bgcolor: theme.palette.primary.main,
@@ -524,26 +455,14 @@ const AIAdvisory: React.FC = () => {
                               mt: 0.5,
                             }}
                           >
-                            <SmartToyIcon
-                              sx={{ fontSize: 18, color: "white" }}
-                            />
+                            <SmartToyIcon sx={{ fontSize: 18, color: "white" }} />
                           </Avatar>
                           <Box sx={{ flex: 1 }}>
-                            <Paper
-                              elevation={0}
-                              sx={{ p: 2, borderRadius: "12px 12px 12px 0" }}
-                            >
+                            <Paper elevation={0} sx={{ p: 2, borderRadius: "12px 12px 12px 0" }}>
                               {isWaitingForAPI ? (
-                                <Stack
-                                  direction="row"
-                                  spacing={1}
-                                  alignItems="center"
-                                >
+                                <Stack direction="row" spacing={1} alignItems="center">
                                   <CircularProgress size={16} />
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                  >
+                                  <Typography variant="body2" color="text.secondary">
                                     Đang phân tích...
                                   </Typography>
                                 </Stack>
@@ -552,9 +471,7 @@ const AIAdvisory: React.FC = () => {
                                   <Typography
                                     variant="body2"
                                     sx={{
-                                      color: ex.error
-                                        ? "error.main"
-                                        : "text.primary",
+                                      color: ex.error ? "error.main" : "text.primary",
                                       whiteSpace: "pre-wrap",
                                     }}
                                   >
@@ -562,14 +479,7 @@ const AIAdvisory: React.FC = () => {
                                   </Typography>
 
                                   {ex.isOffTopic && !ex.error && (
-                                    <Chip
-                                      size="small"
-                                      icon={<WarningAmberIcon />}
-                                      label="Câu hỏi nằm ngoài phạm vi tư vấn"
-                                      color="warning"
-                                      variant="outlined"
-                                      sx={{ mt: 1.5 }}
-                                    />
+                                    <Chip size="small" icon={<WarningAmberIcon />} label="Câu hỏi nằm ngoài phạm vi tư vấn" color="warning" variant="outlined" sx={{ mt: 1.5 }} />
                                   )}
 
                                   {ex.citations && ex.citations.length > 0 && (
@@ -584,12 +494,7 @@ const AIAdvisory: React.FC = () => {
                                         Nguồn tham khảo:
                                       </Typography>
                                       {ex.citations.map((c, i) => (
-                                        <Typography
-                                          key={i}
-                                          variant="caption"
-                                          display="block"
-                                          color="text.secondary"
-                                        >
+                                        <Typography key={i} variant="caption" display="block" color="text.secondary">
                                           • {c}
                                         </Typography>
                                       ))}
@@ -601,12 +506,7 @@ const AIAdvisory: React.FC = () => {
 
                             {/* NÚT ĐÁNH GIÁ FEEDBACK */}
                             {!isWaitingForAPI && !ex.error && (
-                              <Stack
-                                direction="row"
-                                justifyContent="flex-end"
-                                spacing={0.75}
-                                sx={{ mt: 1 }}
-                              >
+                              <Stack direction="row" justifyContent="flex-end" spacing={0.75} sx={{ mt: 1 }}>
                                 <Button
                                   size="small"
                                   startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize: "15px !important" }} />}
@@ -620,10 +520,7 @@ const AIAdvisory: React.FC = () => {
                                     py: 0.4,
                                     minWidth: 0,
                                     borderRadius: "6px",
-                                    color:
-                                      ex.feedbackSubmitted && ex.isHelpful === true
-                                        ? "success.main"
-                                        : "text.secondary",
+                                    color: ex.feedbackSubmitted && ex.isHelpful === true ? "success.main" : "text.secondary",
                                     "&:hover": {
                                       color: "success.main",
                                       bgcolor: "rgba(46, 125, 50, 0.08)",
@@ -646,10 +543,7 @@ const AIAdvisory: React.FC = () => {
                                     py: 0.4,
                                     minWidth: 0,
                                     borderRadius: "6px",
-                                    color:
-                                      ex.feedbackSubmitted && ex.isHelpful === false
-                                        ? "error.main"
-                                        : "text.secondary",
+                                    color: ex.feedbackSubmitted && ex.isHelpful === false ? "error.main" : "text.secondary",
                                     "&:hover": {
                                       color: "error.main",
                                       bgcolor: "rgba(211, 47, 47, 0.08)",
@@ -680,12 +574,7 @@ const AIAdvisory: React.FC = () => {
               }}
             >
               {!selectedTank && (
-                <Typography
-                  variant="caption"
-                  display="block"
-                  align="center"
-                  sx={{ mb: 1, color: "text.disabled" }}
-                >
+                <Typography variant="caption" display="block" align="center" sx={{ mb: 1, color: "text.disabled" }}>
                   Bạn cần chọn một bể ở trên để bắt đầu nhập câu hỏi.
                 </Typography>
               )}
@@ -706,11 +595,7 @@ const AIAdvisory: React.FC = () => {
                     flex: 1,
                     "& input::placeholder": { fontSize: "13px" },
                   }}
-                  placeholder={
-                    selectedTank
-                      ? `Nhập câu hỏi hoặc mô tả vấn đề cho ${selectedTank.name}...`
-                      : "Vui lòng chọn bể phía trên trước..."
-                  }
+                  placeholder={selectedTank ? `Nhập câu hỏi hoặc mô tả vấn đề cho ${selectedTank.name}...` : "Vui lòng chọn bể phía trên trước..."}
                   variant="standard"
                   disabled={!selectedTank || sending}
                   value={message}
@@ -731,13 +616,7 @@ const AIAdvisory: React.FC = () => {
                   onClick={handleSend}
                   variant="contained"
                   size="small"
-                  endIcon={
-                    sending ? (
-                      <CircularProgress size={14} color="inherit" />
-                    ) : (
-                      <SendIcon sx={{ fontSize: "16px !important" }} />
-                    )
-                  }
+                  endIcon={sending ? <CircularProgress size={14} color="inherit" /> : <SendIcon sx={{ fontSize: "16px !important" }} />}
                   sx={{
                     borderRadius: "8px",
                     px: 2,

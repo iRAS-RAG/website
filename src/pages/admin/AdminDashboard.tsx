@@ -1,4 +1,3 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Avatar,
   Box,
@@ -20,6 +19,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import AdminHeader from "../../components/admin/AdminHeader";
@@ -27,30 +27,26 @@ import AdminSidebar from "../../components/admin/AdminSidebar";
 
 // Icons
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import LoginIcon from "@mui/icons-material/Login";
-import LogoutIcon from "@mui/icons-material/Logout";
-import HistoryIcon from "@mui/icons-material/History";
-import PeopleIcon from "@mui/icons-material/People";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
-import RouterIcon from "@mui/icons-material/Router";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import SearchIcon from "@mui/icons-material/Search";
-import CloseIcon from "@mui/icons-material/Close";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import HistoryIcon from "@mui/icons-material/History";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
+import PeopleIcon from "@mui/icons-material/People";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import RouterIcon from "@mui/icons-material/Router";
+import SearchIcon from "@mui/icons-material/Search";
 
-import { useAdminDashboard } from "../../hooks/useAdminDashboard";
 import { auditLogApi } from "../../api/audit-logs";
-import {
-  buildDescription,
-  isSimpleLog,
-  parseAuditJson,
-} from "../../types/audit-log";
+import { useAdminDashboard } from "../../hooks/useAdminDashboard";
 import type { AuditLog } from "../../types/audit-log";
+import { buildDescription, isSimpleLog, parseAuditJson } from "../../types/audit-log";
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 
@@ -76,16 +72,12 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, subtitle, icon: Icon, c
       transition: "transform 0.15s, box-shadow 0.15s",
       bgcolor: "#fff",
       height: "100%",
-      "&:hover": onClick
-        ? { transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }
-        : undefined,
+      "&:hover": onClick ? { transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" } : undefined,
     }}
   >
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>
-          {title}
-        </Typography>
+        <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>{title}</Typography>
         <Typography variant="h4" sx={{ fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>
           {value}
         </Typography>
@@ -154,17 +146,25 @@ function getActionMeta(action: string): {
   icon: React.ElementType;
 } {
   switch (action) {
-    case "Tạo":      return { color: "#10B981", bg: "#ECFDF5", label: "Tạo",       icon: AddCircleOutlineIcon };
-    case "Sửa":      return { color: "#F59E0B", bg: "#FFFBEB", label: "Sửa",       icon: EditOutlinedIcon };
-    case "Xóa":      return { color: "#EF4444", bg: "#FEF2F2", label: "Xóa",       icon: DeleteOutlineIcon };
-    case "Đăng nhập": return { color: "#2A85FF", bg: "#EFF6FF", label: "Đăng nhập", icon: LoginIcon };
-    case "Đăng xuất": return { color: "#64748B", bg: "#F1F5F9", label: "Đăng xuất", icon: LogoutIcon };
-    case "Thu hoạch lô": return { color: "#8B5CF6", bg: "#F5F3FF", label: "Thu hoạch", icon: AgricultureIcon };
-    case "Bật/tắt thiết bị": return { color: "#06B6D4", bg: "#ECFEFF", label: "Bật/Tắt", icon: PowerSettingsNewIcon };
+    case "Tạo":
+      return { color: "#10B981", bg: "#ECFDF5", label: "Tạo", icon: AddCircleOutlineIcon };
+    case "Sửa":
+      return { color: "#F59E0B", bg: "#FFFBEB", label: "Sửa", icon: EditOutlinedIcon };
+    case "Xóa":
+      return { color: "#EF4444", bg: "#FEF2F2", label: "Xóa", icon: DeleteOutlineIcon };
+    case "Đăng nhập":
+      return { color: "#2A85FF", bg: "#EFF6FF", label: "Đăng nhập", icon: LoginIcon };
+    case "Đăng xuất":
+      return { color: "#64748B", bg: "#F1F5F9", label: "Đăng xuất", icon: LogoutIcon };
+    case "Thu hoạch lô":
+      return { color: "#8B5CF6", bg: "#F5F3FF", label: "Thu hoạch", icon: AgricultureIcon };
+    case "Bật/tắt thiết bị":
+      return { color: "#06B6D4", bg: "#ECFEFF", label: "Bật/Tắt", icon: PowerSettingsNewIcon };
     case "Xem báo cáo tổng quan":
     case "Xem báo cáo tuần":
       return { color: "#F59E0B", bg: "#FFFBEB", label: "Báo cáo", icon: AssessmentIcon };
-    default: return { color: "#64748B", bg: "#F1F5F9", label: action || "Khác", icon: HistoryIcon };
+    default:
+      return { color: "#64748B", bg: "#F1F5F9", label: action || "Khác", icon: HistoryIcon };
   }
 }
 
@@ -172,27 +172,22 @@ function getActionMeta(action: string): {
 
 const ACTION_FILTERS = [
   { key: "", label: "Tất cả" },
-  { key: "Đăng nhập",       label: "Đăng nhập" },
-  { key: "Đăng xuất",       label: "Đăng xuất" },
-  { key: "Tạo",             label: "Tạo" },
-  { key: "Sửa",             label: "Sửa" },
-  { key: "Xóa",             label: "Xóa" },
-  { key: "Thu hoạch lô",    label: "Thu hoạch" },
+  { key: "Đăng nhập", label: "Đăng nhập" },
+  { key: "Đăng xuất", label: "Đăng xuất" },
+  { key: "Tạo", label: "Tạo" },
+  { key: "Sửa", label: "Sửa" },
+  { key: "Xóa", label: "Xóa" },
+  { key: "Thu hoạch lô", label: "Thu hoạch" },
   { key: "Bật/tắt thiết bị", label: "Bật/Tắt TB" },
 ];
 
 // ─── Aligned comparison (Update: old | new, same row per key) ─────────────────
 
-const AlignedComparison: React.FC<{ oldRaw?: string | null; newRaw?: string | null }> = ({
-  oldRaw,
-  newRaw,
-}) => {
+const AlignedComparison: React.FC<{ oldRaw?: string | null; newRaw?: string | null }> = ({ oldRaw, newRaw }) => {
   const oldData = parseAuditJson(oldRaw) ?? {};
   const newData = parseAuditJson(newRaw) ?? {};
   const HIDDEN = new Set(["name", "Name"]);
-  const allKeys = Array.from(
-    new Set([...Object.keys(oldData), ...Object.keys(newData)])
-  ).filter((k) => !HIDDEN.has(k));
+  const allKeys = Array.from(new Set([...Object.keys(oldData), ...Object.keys(newData)])).filter((k) => !HIDDEN.has(k));
 
   const fmt = (val: unknown): string => {
     if (val === null || val === undefined) return "—";
@@ -216,9 +211,7 @@ const AlignedComparison: React.FC<{ oldRaw?: string | null; newRaw?: string | nu
       </Stack>
 
       {allKeys.length === 0 ? (
-        <Typography sx={{ p: 2, fontSize: "0.75rem", color: "#94A3B8", fontStyle: "italic" }}>
-          Không có thay đổi nào được ghi nhận
-        </Typography>
+        <Typography sx={{ p: 2, fontSize: "0.75rem", color: "#94A3B8", fontStyle: "italic" }}>Không có thay đổi nào được ghi nhận</Typography>
       ) : (
         allKeys.map((key, idx) => {
           const oldVal = oldData[key];
@@ -234,19 +227,13 @@ const AlignedComparison: React.FC<{ oldRaw?: string | null; newRaw?: string | nu
               }}
             >
               <Box sx={{ width: 130, flexShrink: 0, p: 1.25, borderRight: "1px solid #F1F5F9" }}>
-                <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "#475569", wordBreak: "break-word" }}>
-                  {key}
-                </Typography>
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "#475569", wordBreak: "break-word" }}>{key}</Typography>
               </Box>
               <Box sx={{ flex: 1, p: 1.25, borderRight: "1px solid #FEE2E2", bgcolor: changed ? "#FEF2F2" : "transparent" }}>
-                <Typography sx={{ fontSize: "0.72rem", color: changed ? "#DC2626" : "#64748B", wordBreak: "break-all" }}>
-                  {fmt(oldVal)}
-                </Typography>
+                <Typography sx={{ fontSize: "0.72rem", color: changed ? "#DC2626" : "#64748B", wordBreak: "break-all" }}>{fmt(oldVal)}</Typography>
               </Box>
               <Box sx={{ flex: 1, p: 1.25, bgcolor: changed ? "#ECFDF5" : "transparent" }}>
-                <Typography sx={{ fontSize: "0.72rem", color: changed ? "#059669" : "#64748B", wordBreak: "break-all" }}>
-                  {fmt(newVal)}
-                </Typography>
+                <Typography sx={{ fontSize: "0.72rem", color: changed ? "#059669" : "#64748B", wordBreak: "break-all" }}>{fmt(newVal)}</Typography>
               </Box>
             </Stack>
           );
@@ -267,9 +254,7 @@ const SingleSection: React.FC<{
 }> = ({ title, raw, titleColor, borderColor, bgHeader }) => {
   const data = parseAuditJson(raw);
   const HIDDEN = new Set(["name", "Name"]);
-  const entries = data
-    ? Object.entries(data).filter(([k]) => !HIDDEN.has(k))
-    : [];
+  const entries = data ? Object.entries(data).filter(([k]) => !HIDDEN.has(k)) : [];
 
   return (
     <Box sx={{ border: `1px solid ${borderColor}`, borderRadius: "10px", overflow: "hidden" }}>
@@ -281,15 +266,9 @@ const SingleSection: React.FC<{
           <Stack spacing={0.6}>
             {entries.map(([key, val]) => (
               <Stack key={key} direction="row" spacing={1} alignItems="flex-start">
-                <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "#475569", minWidth: 130, flexShrink: 0 }}>
-                  {key}
-                </Typography>
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "#475569", minWidth: 130, flexShrink: 0 }}>{key}</Typography>
                 <Typography sx={{ fontSize: "0.72rem", color: "#0F172A", wordBreak: "break-all" }}>
-                  {val === null || val === undefined
-                    ? "—"
-                    : typeof val === "object"
-                    ? JSON.stringify(val)
-                    : String(val)}
+                  {val === null || val === undefined ? "—" : typeof val === "object" ? JSON.stringify(val) : String(val)}
                 </Typography>
               </Stack>
             ))}
@@ -325,9 +304,7 @@ const DetailDialog: React.FC<{ log: AuditLog | null; onClose: () => void }> = ({
               <Icon fontSize="small" />
             </Avatar>
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "#0F172A" }}>
-                Chi tiết hành động
-              </Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "#0F172A" }}>Chi tiết hành động</Typography>
               <Typography variant="caption" sx={{ color: "#64748B" }}>
                 {formatTimestamp(log.timestamp)}
               </Typography>
@@ -347,9 +324,7 @@ const DetailDialog: React.FC<{ log: AuditLog | null; onClose: () => void }> = ({
               <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 600, display: "block", mb: 0.25 }}>
                 Người thực hiện
               </Typography>
-              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>
-                {log.fullName?.trim() || log.email}
-              </Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>{log.fullName?.trim() || log.email}</Typography>
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 600, display: "block", mb: 0.25 }}>
@@ -381,13 +356,9 @@ const DetailDialog: React.FC<{ log: AuditLog | null; onClose: () => void }> = ({
           <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 600, display: "block", mb: 0.5 }}>
             Hành động
           </Typography>
-          <Typography sx={{ fontSize: "0.9rem", color: "#0F172A", mb: 0.75 }}>
-            {buildDescription(log)}
-          </Typography>
+          <Typography sx={{ fontSize: "0.9rem", color: "#0F172A", mb: 0.75 }}>{buildDescription(log)}</Typography>
           <Stack direction="row" spacing={0.75} flexWrap="wrap">
-            {log.entityType && log.entityType !== "Xác thực" && (
-              <Chip size="small" label={log.entityType} sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 600, fontSize: "0.68rem" }} />
-            )}
+            {log.entityType && log.entityType !== "Xác thực" && <Chip size="small" label={log.entityType} sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 600, fontSize: "0.68rem" }} />}
             <Chip size="small" label={meta.label} sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 700, fontSize: "0.68rem" }} />
           </Stack>
         </Box>
@@ -396,28 +367,14 @@ const DetailDialog: React.FC<{ log: AuditLog | null; onClose: () => void }> = ({
         {!isSimpleLog(log) && (isCreate || isDelete || isUpdate) && (
           <>
             <Divider sx={{ mb: 2 }} />
-            <Typography sx={{ fontWeight: 700, fontSize: "0.85rem", color: "#475569", mb: 1.5 }}>
-              {isUpdate ? "Thay đổi nội dung" : isCreate ? "Nội dung được tạo" : "Nội dung bị xóa"}
-            </Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.85rem", color: "#475569", mb: 1.5 }}>{isUpdate ? "Thay đổi nội dung" : isCreate ? "Nội dung được tạo" : "Nội dung bị xóa"}</Typography>
 
             {isUpdate ? (
               <AlignedComparison oldRaw={log.oldValue} newRaw={log.newValue} />
             ) : isCreate ? (
-              <SingleSection
-                title="Nội dung vừa tạo"
-                raw={log.newValue}
-                titleColor="#10B981"
-                borderColor="#D1FAE5"
-                bgHeader="#ECFDF5"
-              />
+              <SingleSection title="Nội dung vừa tạo" raw={log.newValue} titleColor="#10B981" borderColor="#D1FAE5" bgHeader="#ECFDF5" />
             ) : (
-              <SingleSection
-                title="Nội dung bị xóa"
-                raw={log.oldValue}
-                titleColor="#EF4444"
-                borderColor="#FEE2E2"
-                bgHeader="#FEF2F2"
-              />
+              <SingleSection title="Nội dung bị xóa" raw={log.oldValue} titleColor="#EF4444" borderColor="#FEE2E2" bgHeader="#FEF2F2" />
             )}
           </>
         )}
@@ -488,20 +445,13 @@ const ActivityFeed: React.FC = () => {
   }, [actionFilter]);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{ borderRadius: "14px", border: "1px solid #E2E8F0", overflow: "hidden", bgcolor: "#fff" }}
-    >
+    <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E2E8F0", overflow: "hidden", bgcolor: "#fff" }}>
       {/* Header */}
       <Box sx={{ p: 2.5, borderBottom: "1px solid #E2E8F0" }}>
         <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
           <HistoryIcon sx={{ color: "#475569", fontSize: 20 }} />
           <Typography sx={{ fontWeight: 700, color: "#0F172A" }}>Hoạt động hệ thống gần đây</Typography>
-          <Chip
-            size="small"
-            label={totalItems}
-            sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 700, height: 20, fontSize: "0.7rem" }}
-          />
+          <Chip size="small" label={totalItems} sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 700, height: 20, fontSize: "0.7rem" }} />
         </Stack>
 
         {/* Search */}
@@ -567,11 +517,7 @@ const ActivityFeed: React.FC = () => {
 
             return (
               <React.Fragment key={log.id || idx}>
-                <Tooltip
-                  title={canShowDetail ? "Bấm để xem chi tiết thay đổi" : ""}
-                  placement="left"
-                  disableHoverListener={!canShowDetail}
-                >
+                <Tooltip title={canShowDetail ? "Bấm để xem chi tiết thay đổi" : ""} placement="left" disableHoverListener={!canShowDetail}>
                   <ListItemButton
                     onClick={() => canShowDetail && setSelectedLog(log)}
                     sx={{
@@ -591,28 +537,13 @@ const ActivityFeed: React.FC = () => {
                       disableTypography
                       primary={
                         <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
-                          <Chip
-                            size="small"
-                            label={meta.label}
-                            sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 700, height: 18, fontSize: "0.62rem" }}
-                          />
-                          {log.role && roleColor && (
-                            <Chip
-                              size="small"
-                              label={log.role}
-                              sx={{ bgcolor: `${roleColor}18`, color: roleColor, fontWeight: 700, height: 18, fontSize: "0.62rem" }}
-                            />
-                          )}
-                          <Typography sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.875rem" }}>
-                            {buildDescription(log)}
-                          </Typography>
+                          <Chip size="small" label={meta.label} sx={{ bgcolor: meta.bg, color: meta.color, fontWeight: 700, height: 18, fontSize: "0.62rem" }} />
+                          {log.role && roleColor && <Chip size="small" label={log.role} sx={{ bgcolor: `${roleColor}18`, color: roleColor, fontWeight: 700, height: 18, fontSize: "0.62rem" }} />}
+                          <Typography sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.875rem" }}>{buildDescription(log)}</Typography>
                         </Stack>
                       }
                     />
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#94A3B8", whiteSpace: "nowrap", ml: 1, mt: 0.25, flexShrink: 0 }}
-                    >
+                    <Typography variant="caption" sx={{ color: "#94A3B8", whiteSpace: "nowrap", ml: 1, mt: 0.25, flexShrink: 0 }}>
                       {relativeTime(log.timestamp)}
                     </Typography>
                   </ListItemButton>
@@ -646,10 +577,7 @@ const ActivityFeed: React.FC = () => {
 
 // ─── Role Distribution ────────────────────────────────────────────────────────
 
-const RoleDistribution: React.FC<{ usersByRole: Record<string, number>; total: number }> = ({
-  usersByRole,
-  total,
-}) => {
+const RoleDistribution: React.FC<{ usersByRole: Record<string, number>; total: number }> = ({ usersByRole, total }) => {
   const entries = Object.entries(usersByRole).sort((a, b) => b[1] - a[1]);
   return (
     <Paper elevation={0} sx={{ p: 2.5, borderRadius: "14px", border: "1px solid #E2E8F0", bgcolor: "#fff" }}>
@@ -658,7 +586,9 @@ const RoleDistribution: React.FC<{ usersByRole: Record<string, number>; total: n
         <Typography sx={{ fontWeight: 700, color: "#0F172A" }}>Phân bố vai trò</Typography>
       </Stack>
       {total === 0 ? (
-        <Typography variant="caption" sx={{ color: "#94A3B8" }}>Chưa có dữ liệu người dùng</Typography>
+        <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+          Chưa có dữ liệu người dùng
+        </Typography>
       ) : (
         <Stack spacing={1.5}>
           {entries.map(([role, count]) => {
@@ -667,7 +597,9 @@ const RoleDistribution: React.FC<{ usersByRole: Record<string, number>; total: n
             return (
               <Box key={role}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569" }}>{role}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: "#475569" }}>
+                    {role}
+                  </Typography>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: "#0F172A" }}>
                     {count}{" "}
                     <Typography component="span" variant="caption" sx={{ color: "#94A3B8", fontWeight: 500 }}>
@@ -690,7 +622,7 @@ const RoleDistribution: React.FC<{ usersByRole: Record<string, number>; total: n
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 const AdminDashboard: React.FC = () => {
-  const { stats, loading } = useAdminDashboard();
+  const { stats } = useAdminDashboard();
   const navigate = useNavigate();
   const offlineDevices = Math.max(0, stats.totalDevices - stats.runningDevices);
 
@@ -701,8 +633,12 @@ const AdminDashboard: React.FC = () => {
         <AdminHeader />
         <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1 }}>
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>Bảng điều khiển quản trị</Typography>
-            <Typography variant="body2" sx={{ color: "#64748B" }}>Theo dõi hoạt động hệ thống iRAS-RAG</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
+              Bảng điều khiển quản trị
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              Theo dõi hoạt động hệ thống iRAS-RAG
+            </Typography>
           </Box>
 
           {/* KPI */}
@@ -718,18 +654,16 @@ const AdminDashboard: React.FC = () => {
             <KpiCard
               title="Tổng người dùng"
               value={stats.totalUsers}
-              subtitle={Object.entries(stats.usersByRole).map(([k, v]) => `${k}: ${v}`).join(" • ") || "Chưa có"}
+              subtitle={
+                Object.entries(stats.usersByRole)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(" • ") || "Chưa có"
+              }
               icon={PeopleIcon}
               color="#9333EA"
               onClick={() => navigate("/admin/users")}
             />
-            <KpiCard
-              title="Cảm biến"
-              value={stats.totalSensors}
-              subtitle="Tổng cảm biến trong hệ thống"
-              icon={AgricultureIcon}
-              color="#2A85FF"
-            />
+            <KpiCard title="Cảm biến" value={stats.totalSensors} subtitle="Tổng cảm biến trong hệ thống" icon={AgricultureIcon} color="#2A85FF" />
             <KpiCard
               title="Tài liệu CSDL tri thức"
               value={stats.totalDocuments}
