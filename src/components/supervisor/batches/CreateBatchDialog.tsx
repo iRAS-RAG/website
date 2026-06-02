@@ -16,9 +16,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSpecies } from "../../../api/species";
+import { getSpeciesStageConfigsBySpecies } from "../../../api/species-stage-configs";
 import { getTankRecommendedInitials, getTanks } from "../../../api/tanks";
 import useBatches from "../../../hooks/useBatches";
 import type { Species } from "../../../types/species";
@@ -77,6 +79,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recommendedInitials, setRecommendedInitials] = useState<Record<string, number | null>>({});
   const [recommendedLoading, setRecommendedLoading] = useState(false);
+  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState<string | null>(null);
+  const [estimatingHarvest, setEstimatingHarvest] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -146,6 +150,31 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     const autoName = getAutoSuggestedName(speciesName, startDate);
     setBatchName(autoName);
   }, [selectedSpecies, startDate, speciesList, isBatchNameEdited]);
+
+  // Fetch species stage configs to calculate estimated harvest date
+  useEffect(() => {
+    if (!selectedSpecies || !startDate) {
+      setEstimatedHarvestDate(null);
+      return;
+    }
+    setEstimatingHarvest(true);
+    (async () => {
+      try {
+        const stages = await getSpeciesStageConfigsBySpecies(selectedSpecies);
+        const totalDays = stages.reduce((sum, s) => sum + (s.expectedDurationDays ?? 0), 0);
+        if (totalDays > 0) {
+          const est = dayjs(startDate).add(totalDays, "day").format("DD/MM/YYYY");
+          setEstimatedHarvestDate(est);
+        } else {
+          setEstimatedHarvestDate(null);
+        }
+      } catch {
+        setEstimatedHarvestDate(null);
+      } finally {
+        setEstimatingHarvest(false);
+      }
+    })();
+  }, [selectedSpecies, startDate]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -413,7 +442,26 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 required
                 sx={{ flex: 1 }}
               />
-              {/* Estimated harvest date is no longer required; backend plans stages */}
+              <TextField
+                fullWidth
+                label="Ngày thu hoạch dự kiến"
+                value={estimatedHarvestDate || (estimatingHarvest ? "Đang tính..." : "—")}
+                InputProps={{ readOnly: true }}
+                sx={{
+                  flex: 1,
+                  "& .MuiInputBase-input": {
+                    color: estimatedHarvestDate ? "#2A85FF" : "#94A3B8",
+                    fontWeight: 600,
+                    cursor: "default",
+                  },
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "#F8FAFC",
+                  },
+                  "& .MuiInputLabel-root": {
+                    color: "#64748B",
+                  },
+                }}
+              />
             </Box>
           </Box>
         )}
