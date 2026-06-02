@@ -42,7 +42,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 import { createGrowthStage, deleteGrowthStage } from "../../../api/growth-stages";
-import { createSpeciesStageConfig, deleteSpeciesStageConfig, updateSpeciesStageConfig } from "../../../api/species-stage-configs";
+import { createSpeciesStageConfig, deleteSpeciesStageConfig, reorderSpeciesStageConfigs, updateSpeciesStageConfig } from "../../../api/species-stage-configs";
 import useFeedTypes from "../../../hooks/useFeedTypes";
 import useGrowthStages from "../../../hooks/useGrowthStages";
 import type { SpeciesConfig, Stage } from "../../../hooks/useSpeciesConfigs";
@@ -75,8 +75,18 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   const { stages: growthStages, setStages: setGrowthStages, loading: growthLoading } = useGrowthStages(species.id);
   const { feeds: feedTypes, loading: feedLoading } = useFeedTypes();
 
-  const [displayStages, setDisplayStages] = useState<Stage[]>(() => (species.stages || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0)));
-  useEffect(() => setDisplayStages((species.stages || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))), [species.stages]);
+  const savedOrderRef = useRef<string[]>([]);
+
+  const [displayStages, setDisplayStages] = useState<Stage[]>(() => {
+    const sorted = (species.stages || []).slice().sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity));
+    savedOrderRef.current = sorted.map((s) => s.id);
+    return sorted;
+  });
+  useEffect(() => {
+    const sorted = (species.stages || []).slice().sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity));
+    setDisplayStages(sorted);
+    savedOrderRef.current = sorted.map((s) => s.id);
+  }, [species.stages]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newStageName, setNewStageName] = useState("");
@@ -94,10 +104,14 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   const [deletingStage] = useState(false);
 
   const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [reordering, setReordering] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const dragIndexRef = useRef<number | null>(null);
   const dragOverIndexRef = useRef<number | null>(null);
+
+  const currentOrderIds = displayStages.map((s) => s.id);
+  const isOrderDirty = currentOrderIds.join(",") !== savedOrderRef.current.join(",");
 
   const pendingCreateRef = useRef<{ growthStageId: string; created?: any } | null>(null);
 
@@ -133,10 +147,17 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   function handleDragOver(e: React.DragEvent, idx: number) {
     e.preventDefault();
     dragOverIndexRef.current = idx;
+    setDragOverIdx(idx);
   }
 
-  async function handleDrop(e: React.DragEvent, idx: number) {
+  function handleDragLeave() {
+    setDragOverIdx(null);
+    dragOverIndexRef.current = null;
+  }
+
+  function handleDrop(e: React.DragEvent, idx: number) {
     e.preventDefault();
+    setDragOverIdx(null);
     const from = dragIndexRef.current;
     if (from === null || from === undefined) return;
     const to = idx;
@@ -146,36 +167,32 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       return;
     }
 
-    const prevSeqMap = Object.fromEntries((displayStages || []).map((s) => [s.id, s.sequence]));
     const next = arrayMove(displayStages, from, to);
     // Assign contiguous sequences in the new order
     const normalized = next.map((s, i) => ({ ...s, sequence: i + 1 }));
     setDisplayStages(normalized);
 
-    setReordering(true);
+    dragIndexRef.current = null;
+    dragOverIndexRef.current = null;
+  }
+
+  async function handleSaveOrder() {
+    setSavingOrder(true);
     try {
-      const movedId = displayStages[from]?.id;
-      const updates: Promise<unknown>[] = [];
+      const orderedConfigIds = displayStages.map((s) => s.configId).filter((id): id is string => !!id);
 
-      normalized.forEach((s) => {
-        const newSeq = s.sequence ?? 0;
-        const oldSeq = Number(prevSeqMap[s.id] ?? 0);
-        // Update local parent cache immediately
-        updateStage(species.id, s.id, { sequence: newSeq });
-        // Persist only the moved stage when a server config exists and the sequence changed
-        if (s.id === movedId && s.configId && oldSeq !== newSeq) {
-          updates.push(updateSpeciesStageConfig(s.configId, { sequence: newSeq }));
-        }
-      });
+      if (orderedConfigIds.length > 0) {
+        await reorderSpeciesStageConfigs(species.id, orderedConfigIds);
+      }
 
-      if (updates.length > 0) await Promise.all(updates);
+      // Mark the current order as saved
+      savedOrderRef.current = displayStages.map((s) => s.id);
 
-      // Let parent re-fetch authoritative order if provided (API sorts by sequence)
+      // Let parent re-fetch authoritative order if provided
       if (typeof refreshStages === "function") {
         try {
           await refreshStages();
         } catch (err) {
-          // ignore refresh errors, we already updated local cache
           console.error("Failed to refresh stages after reorder", err);
         }
       }
@@ -183,13 +200,10 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       toast.success("Cập nhật thứ tự giai đoạn thành công");
     } catch (err) {
       console.error("Failed to persist sequence", err);
-      // Revert to authoritative order from props
-      setDisplayStages((species.stages || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0)));
+      setDisplayStages((species.stages || []).slice().sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity)));
       toast.error("Không thể lưu thứ tự giai đoạn");
     } finally {
-      setReordering(false);
-      dragIndexRef.current = null;
-      dragOverIndexRef.current = null;
+      setSavingOrder(false);
     }
   }
 
@@ -204,7 +218,6 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         expectedWeightKgPerFish: st.expectedWeightKgPerFish,
         survivalRate: st.survivalRate,
         feedTypeIds: st.feedTypeIds,
-        sequence: st.sequence ?? displayStages.findIndex((d) => d.id === st.id) + 1,
       };
 
       if (st.configId) {
@@ -226,15 +239,6 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   async function handleAddStage(gs: { id: string; name: string }) {
     if ((species.stages || []).some((s) => s.growthStageId === gs.id)) return;
     addStage(species.id, gs.id, gs.name);
-    try {
-      const seq = (displayStages.length ?? (species.stages || []).length) + 1;
-      const created = await createSpeciesStageConfig({ speciesId: species.id, growthStageId: gs.id, sequence: seq } as any);
-      pendingCreateRef.current = { growthStageId: gs.id, created };
-      toast.success("Thêm giai đoạn thành công");
-    } catch (e) {
-      console.error("Failed to create species stage config", e);
-      //toast.error("Không thể thêm giai đoạn");
-    }
   }
 
   async function handleDeleteGrowthStage(growthStageId: string) {
@@ -361,220 +365,246 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
           </Typography>
           <ArrowDownwardIcon fontSize="small" sx={{ color: "#94A3B8", ml: 0.5 }} />
         </Box>
-        {displayStages.map((st, idx) => (
-          <Accordion
-            key={st.id}
-            elevation={0}
-            sx={{ border: "1px solid #E2E8F0", "&:before": { display: "none" } }}
-            onDragOver={(e) => handleDragOver(e, idx)}
-            onDrop={(e) => handleDrop(e, idx)}
-            onDragEnd={() => {
-              dragIndexRef.current = null;
-              dragOverIndexRef.current = null;
-            }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: "#F8FAFC" }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", pr: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Box
-                    sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "#EFF6FF", color: "#2A85FF", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
-                  >
-                    {idx + 1}
-                  </Box>
-                  <Box
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, idx)}
-                    onDragEnd={() => {
-                      dragIndexRef.current = null;
-                      dragOverIndexRef.current = null;
-                    }}
-                    sx={{ display: "inline-flex", alignItems: "center", cursor: "grab", color: "#94A3B8" }}
-                  >
-                    <DragIndicatorIcon fontSize="small" />
-                  </Box>
-                  <Typography sx={{ fontWeight: 600, color: "#334155" }}>{st.name}</Typography>
-                  {idx === 0 ? <Chip label="Bắt đầu" size="small" sx={{ ml: 1 }} /> : idx === displayStages.length - 1 ? <Chip label="Cuối" size="small" sx={{ ml: 1 }} /> : null}
-                </Box>
-                {st.configId && (
-                  <IconButton
-                    component="span"
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setStageToDelete(st);
-                    }}
-                    onFocus={(e) => e.stopPropagation()}
-                    sx={{ ml: 1, color: "#94A3B8" }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </Box>
-            </AccordionSummary>
+        {displayStages.map((st, idx) => {
+          const isDragging = dragIndexRef.current === idx;
+          const isOver = dragOverIdx === idx && dragIndexRef.current !== null && dragIndexRef.current !== idx;
 
-            <AccordionDetails sx={{ pt: 3 }}>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
-                  <FormControl fullWidth>
-                    <InputLabel id={`feedtype-label-${st.id}`}>{labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}</InputLabel>
-                    <Select
-                      labelId={`feedtype-label-${st.id}`}
-                      label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}
-                      multiple
-                      value={(st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds : st.feedType ? [st.feedType] : []) as string[]}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const arr = Array.isArray(val)
-                          ? val.map(String)
-                          : String(val)
-                              .split(",")
-                              .map((s) => s.trim());
-                        const names = arr.map((id) => feedTypes.find((f) => f.id === id)?.name).filter(Boolean) as string[];
-                        updateStage(species.id, st.id, { feedTypeIds: arr, feedType: names.length > 0 ? names.join(", ") : (arr[0] ?? "") });
-                      }}
-                      renderValue={(selected) => (selected as string[]).map((id) => feedTypes.find((f) => f.id === id)?.name ?? id).join(", ")}
+          return (
+            <Accordion
+              key={st.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, idx)}
+              onDragEnd={() => {
+                dragIndexRef.current = null;
+                dragOverIndexRef.current = null;
+                setDragOverIdx(null);
+              }}
+              elevation={0}
+              sx={{
+                border: "1px solid #E2E8F0",
+                "&:before": { display: "none" },
+                opacity: isDragging ? 0.5 : 1,
+                transition: "opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease",
+                cursor: "grab",
+                ...(isOver
+                  ? {
+                      borderColor: "#2A85FF",
+                      transform: "translateY(4px)",
+                      boxShadow: "0 4px 12px rgba(42, 133, 255, 0.15)",
+                    }
+                  : {}),
+                "&:active": { cursor: "grabbing" },
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: "#F8FAFC" }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", pr: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "#EFF6FF", color: "#2A85FF", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
                     >
-                      {feedLoading ? (
-                        <MenuItem disabled>
-                          <CircularProgress size={18} />
-                        </MenuItem>
-                      ) : (
-                        <>
-                          <MenuItem key="empty" value="" sx={{ display: "none" }} />
-                          {st.feedType && !feedTypes.some((f) => f.id === st.feedType) ? (
-                            <MenuItem key="fallback" value={st.feedType} sx={{ display: "none" }}>
-                              {st.feedType}
-                            </MenuItem>
-                          ) : null}
-                          {feedTypes.map((f) => {
-                            const isSelected = (st.feedTypeIds && st.feedTypeIds.includes(f.id)) || st.feedType === f.id || (st.feedType || "").includes(f.name);
-                            return (
-                              <MenuItem
-                                key={f.id}
-                                value={f.id}
-                                onClick={(e) => {
-                                  // Prevent the click from bubbling to parent handlers
-                                  e.stopPropagation();
-
-                                  // Compute current selections as strings
-                                  const current = (st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds.slice() : st.feedType ? [st.feedType] : []) as string[];
-                                  const idx = current.indexOf(f.id);
-                                  if (idx === -1) current.push(f.id);
-                                  else current.splice(idx, 1);
-
-                                  const names = current.map((id) => feedTypes.find((ff) => ff.id === id)?.name).filter(Boolean) as string[];
-
-                                  updateStage(species.id, st.id, { feedTypeIds: current, feedType: names.length > 0 ? names.join(", ") : (current[0] ?? "") });
-                                }}
-                              >
-                                <Checkbox size="small" checked={isSelected} />
-                                <ListItemText primary={f.name} />
-                              </MenuItem>
-                            );
-                          })}
-                        </>
-                      )}
-                    </Select>
-                  </FormControl>
-                </Box>
-
-                <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
-                  <TextField
-                    label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Lượng cám (kg/100 cá)")}
-                    type="number"
-                    fullWidth
-                    value={st.feedPer100}
-                    onChange={(e) => updateStage(species.id, st.id, { feedPer100: Number(e.target.value) })}
-                  />
-                </Box>
-
-                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
-                  <TextField
-                    label={labelWithIcon(<TimelineIcon fontSize="small" />, "Số lần/ngày")}
-                    type="number"
-                    fullWidth
-                    value={st.frequencyPerDay}
-                    onChange={(e) => updateStage(species.id, st.id, { frequencyPerDay: Number(e.target.value) })}
-                  />
-                </Box>
-
-                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
-                  <TextField
-                    label={labelWithIcon(<ScaleIcon fontSize="small" />, "Mật độ tối đa (cá/m3)")}
-                    type="number"
-                    fullWidth
-                    value={st.maxStockingDensity}
-                    onChange={(e) => updateStage(species.id, st.id, { maxStockingDensity: Number(e.target.value) })}
-                  />
-                </Box>
-
-                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
-                  <TextField
-                    label={labelWithIcon(<ScheduleIcon fontSize="small" />, "Thời gian (ngày)")}
-                    type="number"
-                    fullWidth
-                    value={st.expectedDurationDays}
-                    onChange={(e) => updateStage(species.id, st.id, { expectedDurationDays: Number(e.target.value) })}
-                  />
-                </Box>
-
-                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
-                  <TextField
-                    label={labelWithIcon(<ScaleIcon fontSize="small" />, "Trọng lượng mong đợi (kg/cá)")}
-                    type="number"
-                    fullWidth
-                    value={st.expectedWeightKgPerFish}
-                    inputProps={{ step: "0.0001" }}
-                    onChange={(e) => updateStage(species.id, st.id, { expectedWeightKgPerFish: Number(e.target.value) })}
-                  />
-                </Box>
-
-                <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
-                  <TextField
-                    label={labelWithIcon(<PercentIcon fontSize="small" />, "Tỷ lệ sống (0-1)")}
-                    type="number"
-                    fullWidth
-                    value={st.survivalRate}
-                    inputProps={{ step: "0.01", min: 0, max: 1 }}
-                    onChange={(e) => updateStage(species.id, st.id, { survivalRate: Number(e.target.value) })}
-                  />
-                </Box>
-
-                <Box sx={{ width: "100%" }}>
-                  <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, mb: 1, color: "#475569" }}>
-                    <SensorsIcon fontSize="small" /> Ngưỡng cảm biến
-                  </Typography>
-                  <ThresholdEditor
-                    speciesId={species.id}
-                    stage={st}
-                    onSaveThreshold={(sensor, min, max, id) => updateStageThreshold(species.id, st.id, sensor, min, max, id)}
-                    onRemoveThreshold={(sensor) => {
-                      const nextThresholds = (st.thresholds || []).filter((t) => t.sensor !== sensor);
-                      updateStage(species.id, st.id, { thresholds: nextThresholds });
-                    }}
-                  />
-                  <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
-                    <Button
-                      variant="contained"
+                      {idx + 1}
+                    </Box>
+                    <Box sx={{ display: "inline-flex", alignItems: "center", color: "#94A3B8", cursor: "grab" }}>
+                      <DragIndicatorIcon fontSize="small" />
+                    </Box>
+                    <Typography sx={{ fontWeight: 600, color: "#334155" }}>{st.name}</Typography>
+                    {idx === 0 ? <Chip label="Bắt đầu" size="small" sx={{ ml: 1 }} /> : idx === displayStages.length - 1 ? <Chip label="Cuối" size="small" sx={{ ml: 1 }} /> : null}
+                  </Box>
+                  {st.configId && (
+                    <IconButton
+                      component="span"
                       size="small"
-                      startIcon={!saving[st.id] ? <SaveIcon fontSize="small" /> : undefined}
-                      onClick={() => saveStage(st)}
-                      disabled={!!saving[st.id] || reordering}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setStageToDelete(st);
+                      }}
+                      onFocus={(e) => e.stopPropagation()}
+                      sx={{ ml: 1, color: "#94A3B8" }}
                     >
-                      {saving[st.id] ? <CircularProgress size={16} /> : "Lưu giai đoạn này"}
-                    </Button>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 3 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                  <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
+                    <FormControl fullWidth>
+                      <InputLabel id={`feedtype-label-${st.id}`}>{labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}</InputLabel>
+                      <Select
+                        labelId={`feedtype-label-${st.id}`}
+                        label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}
+                        multiple
+                        value={(st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds : st.feedType ? [st.feedType] : []) as string[]}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const arr = Array.isArray(val)
+                            ? val.map(String)
+                            : String(val)
+                                .split(",")
+                                .map((s) => s.trim());
+                          const names = arr.map((id) => feedTypes.find((f) => f.id === id)?.name).filter(Boolean) as string[];
+                          updateStage(species.id, st.id, { feedTypeIds: arr, feedType: names.length > 0 ? names.join(", ") : (arr[0] ?? "") });
+                        }}
+                        renderValue={(selected) => (selected as string[]).map((id) => feedTypes.find((f) => f.id === id)?.name ?? id).join(", ")}
+                      >
+                        {feedLoading ? (
+                          <MenuItem disabled>
+                            <CircularProgress size={18} />
+                          </MenuItem>
+                        ) : (
+                          <>
+                            <MenuItem key="empty" value="" sx={{ display: "none" }} />
+                            {st.feedType && !feedTypes.some((f) => f.id === st.feedType) ? (
+                              <MenuItem key="fallback" value={st.feedType} sx={{ display: "none" }}>
+                                {st.feedType}
+                              </MenuItem>
+                            ) : null}
+                            {feedTypes.map((f) => {
+                              const isSelected = (st.feedTypeIds && st.feedTypeIds.includes(f.id)) || st.feedType === f.id || (st.feedType || "").includes(f.name);
+                              return (
+                                <MenuItem
+                                  key={f.id}
+                                  value={f.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const current = (st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds.slice() : st.feedType ? [st.feedType] : []) as string[];
+                                    const idx = current.indexOf(f.id);
+                                    if (idx === -1) current.push(f.id);
+                                    else current.splice(idx, 1);
+                                    const names = current.map((id) => feedTypes.find((ff) => ff.id === id)?.name).filter(Boolean) as string[];
+                                    updateStage(species.id, st.id, { feedTypeIds: current, feedType: names.length > 0 ? names.join(", ") : (current[0] ?? "") });
+                                  }}
+                                >
+                                  <Checkbox size="small" checked={isSelected} />
+                                  <ListItemText primary={f.name} />
+                                </MenuItem>
+                              );
+                            })}
+                          </>
+                        )}
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
+                    <TextField
+                      label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Lượng cám (kg/100 cá)")}
+                      type="number"
+                      fullWidth
+                      value={st.feedPer100}
+                      onChange={(e) => updateStage(species.id, st.id, { feedPer100: Number(e.target.value) })}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                    <TextField
+                      label={labelWithIcon(<TimelineIcon fontSize="small" />, "Số lần/ngày")}
+                      type="number"
+                      fullWidth
+                      value={st.frequencyPerDay}
+                      onChange={(e) => updateStage(species.id, st.id, { frequencyPerDay: Number(e.target.value) })}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                    <TextField
+                      label={labelWithIcon(<ScaleIcon fontSize="small" />, "Mật độ tối đa (cá/m3)")}
+                      type="number"
+                      fullWidth
+                      value={st.maxStockingDensity}
+                      onChange={(e) => updateStage(species.id, st.id, { maxStockingDensity: Number(e.target.value) })}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                    <TextField
+                      label={labelWithIcon(<ScheduleIcon fontSize="small" />, "Thời gian (ngày)")}
+                      type="number"
+                      fullWidth
+                      value={st.expectedDurationDays}
+                      onChange={(e) => updateStage(species.id, st.id, { expectedDurationDays: Number(e.target.value) })}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                    <TextField
+                      label={labelWithIcon(<ScaleIcon fontSize="small" />, "Trọng lượng mong đợi (kg/cá)")}
+                      type="number"
+                      fullWidth
+                      value={st.expectedWeightKgPerFish}
+                      inputProps={{ step: "0.0001" }}
+                      onChange={(e) => updateStage(species.id, st.id, { expectedWeightKgPerFish: Number(e.target.value) })}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                    <TextField
+                      label={labelWithIcon(<PercentIcon fontSize="small" />, "Tỷ lệ sống (0-1)")}
+                      type="number"
+                      fullWidth
+                      value={st.survivalRate}
+                      inputProps={{ step: "0.01", min: 0, max: 1 }}
+                      onChange={(e) => updateStage(species.id, st.id, { survivalRate: Number(e.target.value) })}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: "100%" }}>
+                    <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, mb: 1, color: "#475569" }}>
+                      <SensorsIcon fontSize="small" /> Ngưỡng cảm biến
+                    </Typography>
+                    <ThresholdEditor
+                      speciesId={species.id}
+                      stage={st}
+                      onSaveThreshold={(sensor, min, max, id) => updateStageThreshold(species.id, st.id, sensor, min, max, id)}
+                      onRemoveThreshold={(sensor) => {
+                        const nextThresholds = (st.thresholds || []).filter((t) => t.sensor !== sensor);
+                        updateStage(species.id, st.id, { thresholds: nextThresholds });
+                      }}
+                    />
+                    <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={!saving[st.id] ? <SaveIcon fontSize="small" /> : undefined}
+                        onClick={() => saveStage(st)}
+                        disabled={!!saving[st.id] || savingOrder}
+                      >
+                        {saving[st.id] ? <CircularProgress size={16} /> : "Lưu giai đoạn này"}
+                      </Button>
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
-            </AccordionDetails>
-          </Accordion>
-        ))}
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
 
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)} sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}>
             Thêm giai đoạn phát triển
           </Button>
+          {displayStages.some((s) => s.configId) && (
+            <Button
+              variant="contained"
+              onClick={handleSaveOrder}
+              disabled={!isOrderDirty || savingOrder}
+              startIcon={savingOrder ? <CircularProgress size={20} color="inherit" /> : undefined}
+              sx={{
+                borderRadius: "8px",
+                textTransform: "none",
+                fontWeight: 600,
+                bgcolor: isOrderDirty ? "#2A85FF" : "#94A3B8",
+                "&:hover": { bgcolor: isOrderDirty ? "#1F6FDB" : "#94A3B8" },
+              }}
+            >
+              {savingOrder ? "Đang lưu..." : "Lưu thứ tự"}
+            </Button>
+          )}
         </Box>
 
         <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
