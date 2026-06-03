@@ -205,6 +205,18 @@ const RealTimeSensors = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // Auto-select the first tank that has a masterboard once both lists are loaded.
+  const didAutoSelectRef = useRef(false);
+  useEffect(() => {
+    if (didAutoSelectRef.current) return;
+    if (tanks.length === 0 || tanksWithMasterboard.size === 0) return;
+    const firstWithBoard = tanks.find((t) => tanksWithMasterboard.has(t.id));
+    if (firstWithBoard) {
+      setSelectedTank(firstWithBoard);
+      didAutoSelectRef.current = true;
+    }
+  }, [tanks, tanksWithMasterboard, setSelectedTank]);
+
   const handleSimulationToggle = async () => {
     if (!masterBoardMac) return;
     setSimulationLoading(true);
