@@ -74,8 +74,14 @@ const formatCountdown = (seconds: number): string => {
 
 const getSensorIcon = (name: string) => {
   const lower = name?.toLowerCase() || "";
+  if (lower.includes("công suất")) return BoltIcon;
+  if (lower.includes("điện áp")) return BoltIcon;
+  if (lower.includes("dòng điện")) return BoltIcon;
+  if (lower.includes("lưu lượng")) return AirIcon;
+  if (lower.includes("mực nước")) return WaterDropIcon;
   if (lower.includes("nhiệt độ")) return ThermostatIcon;
   if (lower.includes("ph")) return ScienceIcon;
+  if (lower.includes("tds")) return WaterDropIcon;
   if (lower.includes("oxy") || lower.includes("do")) return AirIcon;
   if (lower.includes("ammonia") || lower.includes("nh3")) return WaterDropIcon;
   return ScienceIcon;
@@ -83,8 +89,14 @@ const getSensorIcon = (name: string) => {
 
 const getSensorColor = (sensorTypeName: string) => {
   const lower = sensorTypeName?.toLowerCase() || "";
+  if (lower.includes("công suất")) return "#EC4899";
+  if (lower.includes("điện áp")) return "#F97316";
+  if (lower.includes("dòng điện")) return "#EF4444";
+  if (lower.includes("lưu lượng")) return "#06B6D4";
+  if (lower.includes("mực nước")) return "#14B8A6";
   if (lower.includes("nhiệt độ") || lower.includes("temp")) return "#3B82F6";
   if (lower.includes("ph")) return "#8B5CF6";
+  if (lower.includes("tds")) return "#F59E0B";
   if (lower.includes("oxy") || lower.includes("do")) return "#10B981";
   return "#64748B";
 };

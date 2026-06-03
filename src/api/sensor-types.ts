@@ -11,6 +11,20 @@ function toUi(item: Record<string, unknown>): SensorType {
   };
 }
 
+export async function getSensorType(id: string): Promise<SensorType | null> {
+  try {
+    const res = await apiFetch<unknown>(`/hardwares/sensor-types/${id}`);
+    if (!res) return null;
+    if (typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {
+      const inner = (res as Record<string, unknown>).data as Record<string, unknown> | undefined;
+      if (inner) return toUi(inner);
+    }
+    return toUi(res as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
 export async function getSensorTypes(): Promise<SensorType[]> {
   const res = await apiFetch<unknown>("/hardwares/sensor-types");
   const items = extractArray(res);

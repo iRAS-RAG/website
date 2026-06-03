@@ -1,6 +1,7 @@
 // AddIcon intentionally removed: adding new masterboards per-tank disabled
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import BoltIcon from "@mui/icons-material/Bolt";
 import HeightIcon from "@mui/icons-material/Height";
 import MemoryIcon from "@mui/icons-material/Memory";
 import OpacityIcon from "@mui/icons-material/Opacity";
@@ -32,10 +33,15 @@ type Props = {
 // Hàm helper tự động chọn Icon phù hợp dựa trên Tên loại cảm biến
 const getSensorIcon = (typeName?: string) => {
   const t = typeName?.toLowerCase() || "";
+  if (t.includes("công suất")) return <BoltIcon color="warning" />;
+  if (t.includes("điện áp")) return <BoltIcon color="error" />;
+  if (t.includes("dòng điện")) return <BoltIcon color="info" />;
+  if (t.includes("lưu lượng")) return <OpacityIcon color="info" />;
+  if (t.includes("mực nước")) return <OpacityIcon color="success" />;
   if (t.includes("nhiệt độ")) return <ThermostatIcon color="error" />;
   if (t.includes("ph")) return <ScienceIcon color="success" />;
-  if (t.includes("oxy") || t.includes("tds"))
-    return <OpacityIcon color="primary" />;
+  if (t.includes("tds")) return <OpacityIcon color="warning" />;
+  if (t.includes("oxy") || t.includes("do")) return <OpacityIcon color="primary" />;
   return <ThermostatIcon color="action" />;
 };
 

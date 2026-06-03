@@ -1,7 +1,12 @@
+import AirIcon from "@mui/icons-material/Air";
+import BoltIcon from "@mui/icons-material/Bolt";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import MemoryIcon from "@mui/icons-material/Memory";
 import OpacityIcon from "@mui/icons-material/Opacity";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import ScienceIcon from "@mui/icons-material/Science";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import {
   Box,
   Collapse,
@@ -59,6 +64,30 @@ export default function StructureList({
   selected,
 }: Props) {
   const theme = useTheme();
+
+  const sensorIcon = (typeName?: string) => {
+    const t = typeName?.toLowerCase() || "";
+    const sx = { fontSize: 14 };
+    if (t.includes("công suất")) return <BoltIcon sx={{ ...sx, color: "#EC4899" }} />;
+    if (t.includes("điện áp")) return <BoltIcon sx={{ ...sx, color: "#F97316" }} />;
+    if (t.includes("dòng điện")) return <BoltIcon sx={{ ...sx, color: "#EF4444" }} />;
+    if (t.includes("lưu lượng")) return <AirIcon sx={{ ...sx, color: "#06B6D4" }} />;
+    if (t.includes("mực nước")) return <WaterDropIcon sx={{ ...sx, color: "#14B8A6" }} />;
+    if (t.includes("nhiệt độ")) return <ThermostatIcon sx={{ ...sx, color: "#3B82F6" }} />;
+    if (t.includes("ph")) return <ScienceIcon sx={{ ...sx, color: "#8B5CF6" }} />;
+    if (t.includes("tds")) return <WaterDropIcon sx={{ ...sx, color: "#F59E0B" }} />;
+    return <ThermostatIcon sx={{ ...sx, color: "#64748B" }} />;
+  };
+
+  const deviceIcon = (typeName?: string) => {
+    const t = typeName?.toLowerCase() || "";
+    const sx = { fontSize: 14, color: "#64748B" };
+    if (t.includes("bơm") || t.includes("pump")) return <PowerSettingsNewIcon sx={{ ...sx, color: "#06B6D4" }} />;
+    if (t.includes("quạt") || t.includes("fan")) return <AirIcon sx={{ ...sx, color: "#10B981" }} />;
+    if (t.includes("đèn") || t.includes("light")) return <BoltIcon sx={{ ...sx, color: "#F59E0B" }} />;
+    if (t.includes("van") || t.includes("valve")) return <OpacityIcon sx={{ ...sx, color: "#3B82F6" }} />;
+    return <PowerSettingsNewIcon sx={sx} />;
+  };
 
   // Hàm helper để tạo style cho Active State
   const getActiveStyle = (isSelected: boolean) => ({
@@ -163,12 +192,12 @@ export default function StructureList({
                       const isBoardSelected =
                         selected.type === "board" && selected.id === b.id;
                       const isBoardExpanded = !!expandedBoards[b.id];
-                      const boardSensors = sensors.filter(
-                        (s) => s.masterBoardId === b.id,
-                      );
-                      const boardControls = controlDevices.filter(
-                        (c) => c.masterBoardId === b.id,
-                      );
+                      const boardSensors = sensors
+                        .filter((s) => s.masterBoardId === b.id)
+                        .sort((a, b) => (a.pinCode ?? 999) - (b.pinCode ?? 999));
+                      const boardControls = controlDevices
+                        .filter((c) => c.masterBoardId === b.id)
+                        .sort((a, b) => (a.pinCode ?? 999) - (b.pinCode ?? 999));
 
                       return (
                         <Box
@@ -281,13 +310,7 @@ export default function StructureList({
                                     }
                                   >
                                     <ListItemIcon sx={{ minWidth: 24 }}>
-                                      <FiberManualRecordIcon
-                                        sx={{
-                                          color: "#fb8c00",
-                                          fontSize: 10,
-                                          opacity: isSensorSelected ? 1 : 0.6,
-                                        }}
-                                      />
+                                      {sensorIcon(s.sensorTypeName)}
                                     </ListItemIcon>
                                     <ListItemText
                                       primary={
@@ -367,13 +390,7 @@ export default function StructureList({
                                     }
                                   >
                                     <ListItemIcon sx={{ minWidth: 24 }}>
-                                      <FiberManualRecordIcon
-                                        sx={{
-                                          color: "#388e3c",
-                                          fontSize: 10,
-                                          opacity: isControlSelected ? 1 : 0.6,
-                                        }}
-                                      />
+                                      {deviceIcon(c.controlDeviceTypeName)}
                                     </ListItemIcon>
                                     <ListItemText
                                       primary={
