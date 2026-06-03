@@ -1,4 +1,5 @@
 import {
+  Alert,
   alpha,
   Box,
   Button,
@@ -31,8 +32,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 // Icons
@@ -58,8 +59,7 @@ import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import type { PlannedStage } from "../../types/batch";
 import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
-const isBatchActive = (status: unknown) =>
-  status === 0 || String(status).toLowerCase() === "active";
+const isBatchActive = (status: unknown) => status === 0 || String(status).toLowerCase() === "active";
 
 const getStatusInfo = (status: unknown): { label: string; color: "success" | "default" | "warning" | "error" } => {
   const s = String(status).toLowerCase();
@@ -80,21 +80,8 @@ const BatchManagement = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const {
-    batches,
-    selectedBatch,
-    setSelectedBatch,
-    feedingLogs,
-    mortalityLogs,
-    feedTypes,
-    totalFeed,
-    totalDead,
-    loading,
-    refetch,
-    refetchDetails,
-    availableFeedTypes,
-    plannedStages,
-  } = useOperatorBatches();
+  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, loading, refetch, refetchDetails, availableFeedTypes, plannedStages, activeStage } =
+    useOperatorBatches();
 
   const [tabValue, setTabValue] = useState(0);
 
@@ -187,21 +174,41 @@ const BatchManagement = () => {
     });
   }, [mortalityLogs, mortDateFrom, mortDateTo]);
 
+  // Today's feeding guidance
+  const feedingGuidance = useMemo(() => {
+    const dailyTargetKg = activeStage?.estimatedDailyFeedKg;
+    const dailyFrequency = activeStage?.frequencyPerDay;
+    if (dailyTargetKg == null && dailyFrequency == null) return null;
+
+    const todayStart = dayjs().startOf("day");
+    const todayLogs = feedingLogs.filter((log) => dayjs(log.createdDate).isAfter(todayStart));
+    const todayFeedCount = todayLogs.length;
+    const todayFeedAmount = todayLogs.reduce((sum, log) => sum + log.amount, 0);
+
+    const remainingFeedings = dailyFrequency != null ? Math.max(0, dailyFrequency - todayFeedCount) : null;
+    const remainingAmount = dailyTargetKg != null ? dailyTargetKg - todayFeedAmount : null;
+    const isOverfed = dailyTargetKg != null && todayFeedAmount > dailyTargetKg;
+
+    return {
+      dailyTargetKg,
+      dailyFrequency,
+      todayFeedCount,
+      todayFeedAmount,
+      remainingFeedings,
+      remainingAmount,
+      isOverfed,
+    };
+  }, [activeStage, feedingLogs]);
+
   // Harvested-state derived values (mirrors supervisor TabOverview logic)
   const isHarvested = selectedBatch ? normalizeStatus(selectedBatch.status) === "1" : false;
   const initialQty = selectedBatch?.initialQuantity ?? 0;
   const currentQty = selectedBatch?.currentQuantity ?? selectedBatch?.initialQuantity ?? 0;
   const netChange = currentQty - initialQty;
   const netPercent = initialQty > 0 ? (currentQty / initialQty - 1) * 100 : undefined;
-  const estimatedSurvivalPct =
-    selectedBatch?.estimatedHarvestCount != null && initialQty > 0
-      ? (selectedBatch.estimatedHarvestCount / initialQty) * 100
-      : undefined;
+  const estimatedSurvivalPct = selectedBatch?.estimatedHarvestCount != null && initialQty > 0 ? (selectedBatch.estimatedHarvestCount / initialQty) * 100 : undefined;
   const actualHarvestCount = selectedBatch?.actualHarvestCount ?? selectedBatch?.currentQuantity;
-  const actualSurvivalPct =
-    isHarvested && initialQty > 0 && actualHarvestCount != null
-      ? (actualHarvestCount / initialQty) * 100
-      : undefined;
+  const actualSurvivalPct = isHarvested && initialQty > 0 && actualHarvestCount != null ? (actualHarvestCount / initialQty) * 100 : undefined;
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
@@ -380,14 +387,7 @@ const BatchManagement = () => {
                       </Typography>
                     </Box>
                   ) : (
-                    filteredBatches.map((batch) => (
-                      <BatchListItem
-                        key={batch.id}
-                        data={batch}
-                        selected={selectedBatch?.id === batch.id}
-                        onClick={() => setSelectedBatch(batch)}
-                      />
-                    ))
+                    filteredBatches.map((batch) => <BatchListItem key={batch.id} data={batch} selected={selectedBatch?.id === batch.id} onClick={() => setSelectedBatch(batch)} />)
                   )}
                 </Stack>
               </Box>
@@ -482,9 +482,7 @@ const BatchManagement = () => {
                           Ngày dự kiến thu hoạch
                         </Typography>
                         <Typography variant="body2" fontWeight={600}>
-                          {selectedBatch.estimatedHarvestDate
-                            ? dayjs(selectedBatch.estimatedHarvestDate).format("DD-MM-YYYY")
-                            : "—"}
+                          {selectedBatch.estimatedHarvestDate ? dayjs(selectedBatch.estimatedHarvestDate).format("DD-MM-YYYY") : "—"}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -556,15 +554,15 @@ const BatchManagement = () => {
                             <KPICard
                               icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
                               label={isHarvested ? "Tỷ lệ sống thực tế" : "Tỷ lệ sống dự kiến (thu hoạch)"}
-                              value={
-                                isHarvested
-                                  ? actualSurvivalPct != null ? `${actualSurvivalPct.toFixed(1)}%` : "—"
-                                  : estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"
-                              }
+                              value={isHarvested ? (actualSurvivalPct != null ? `${actualSurvivalPct.toFixed(1)}%` : "—") : estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"}
                               desc={
                                 isHarvested
-                                  ? actualHarvestCount != null ? `Thực tế: ${actualHarvestCount} con` : ""
-                                  : selectedBatch.estimatedHarvestCount != null ? `Dự kiến số: ${selectedBatch.estimatedHarvestCount} con` : ""
+                                  ? actualHarvestCount != null
+                                    ? `Thực tế: ${actualHarvestCount} con`
+                                    : ""
+                                  : selectedBatch.estimatedHarvestCount != null
+                                    ? `Dự kiến số: ${selectedBatch.estimatedHarvestCount} con`
+                                    : ""
                               }
                             />
                             <KPICard
@@ -572,13 +570,21 @@ const BatchManagement = () => {
                               label={isHarvested ? "Kết quả thu hoạch" : "Dự kiến thu hoạch"}
                               value={
                                 isHarvested
-                                  ? actualHarvestCount != null ? `${actualHarvestCount} con` : "—"
-                                  : selectedBatch.estimatedHarvestCount != null ? `${selectedBatch.estimatedHarvestCount} con` : "—"
+                                  ? actualHarvestCount != null
+                                    ? `${actualHarvestCount} con`
+                                    : "—"
+                                  : selectedBatch.estimatedHarvestCount != null
+                                    ? `${selectedBatch.estimatedHarvestCount} con`
+                                    : "—"
                               }
                               desc={
                                 isHarvested
-                                  ? selectedBatch.actualHarvestWeightKg != null ? `Tổng trọng lượng: ${selectedBatch.actualHarvestWeightKg.toFixed(2)} kg` : ""
-                                  : selectedBatch.estimatedHarvestWeightKg != null ? `Tổng trọng lượng: ${selectedBatch.estimatedHarvestWeightKg.toFixed(2)} kg` : ""
+                                  ? selectedBatch.actualHarvestWeightKg != null
+                                    ? `Tổng trọng lượng: ${selectedBatch.actualHarvestWeightKg.toFixed(2)} kg`
+                                    : ""
+                                  : selectedBatch.estimatedHarvestWeightKg != null
+                                    ? `Tổng trọng lượng: ${selectedBatch.estimatedHarvestWeightKg.toFixed(2)} kg`
+                                    : ""
                               }
                             />
                             <KPICard
@@ -587,12 +593,7 @@ const BatchManagement = () => {
                               value={selectedBatch.fcr != null ? selectedBatch.fcr.toFixed(2) : "—"}
                               desc="Hệ số chuyển đổi thức ăn"
                             />
-                            <KPICard
-                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
-                              label="Tổng lượng cám tiêu thụ"
-                              value={`${totalFeed.toFixed(1)} kg`}
-                              desc="Hiệu suất tiêu thụ"
-                            />
+                            <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
                             <KPICard
                               icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
                               label="Tổng hao hụt (Cá chết)"
@@ -607,22 +608,93 @@ const BatchManagement = () => {
                     {/* TAB LỊCH SỬ CHO ĂN */}
                     {tabValue === 1 && (
                       <Stack spacing={2}>
+                        {/* ── Feeding guidance summary ── */}
+                        {feedingGuidance && (
+                          <Paper
+                            variant="outlined"
+                            sx={{
+                              p: 2,
+                              borderRadius: "12px",
+                              borderColor: feedingGuidance.isOverfed ? theme.palette.error.main : theme.palette.divider,
+                              bgcolor: feedingGuidance.isOverfed ? "#FEF2F2" : theme.palette.background.paper,
+                            }}
+                          >
+                            <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
+                              <SetMealIcon sx={{ color: feedingGuidance.isOverfed ? theme.palette.error.main : theme.palette.primary.main }} />
+                              <Typography variant="subtitle2" fontWeight={700} color={feedingGuidance.isOverfed ? "error" : "text.primary"}>
+                                Hướng dẫn cho ăn hôm nay
+                              </Typography>
+                            </Stack>
+
+                            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: feedingGuidance.isOverfed ? 1.5 : 0 }}>
+                              {/* Target */}
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                                  Mục tiêu
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {feedingGuidance.dailyTargetKg != null ? `${feedingGuidance.dailyTargetKg.toFixed(2)} kg/ngày` : "—"}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {feedingGuidance.dailyFrequency != null ? `${feedingGuidance.dailyFrequency} lần/ngày` : ""}
+                                </Typography>
+                              </Box>
+
+                              {/* Today's progress */}
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                                  Đã cho ăn hôm nay
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600} color={feedingGuidance.isOverfed ? "error.main" : "text.primary"}>
+                                  {feedingGuidance.todayFeedAmount.toFixed(2)} kg
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {feedingGuidance.todayFeedCount} lần
+                                </Typography>
+                              </Box>
+
+                              {/* Remaining */}
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                                  Còn lại
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight={600}
+                                  color={
+                                    feedingGuidance.remainingAmount != null && feedingGuidance.remainingAmount < 0
+                                      ? "error.main"
+                                      : feedingGuidance.remainingAmount != null && feedingGuidance.remainingAmount > 0
+                                        ? "success.main"
+                                        : "text.primary"
+                                  }
+                                >
+                                  {feedingGuidance.remainingAmount != null
+                                    ? feedingGuidance.remainingAmount > 0
+                                      ? `${feedingGuidance.remainingAmount.toFixed(2)} kg`
+                                      : feedingGuidance.remainingAmount < 0
+                                        ? `${Math.abs(feedingGuidance.remainingAmount).toFixed(2)} kg vượt mức`
+                                        : "Đã đạt mục tiêu"
+                                    : "—"}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {feedingGuidance.remainingFeedings != null ? (feedingGuidance.remainingFeedings > 0 ? `Còn ${feedingGuidance.remainingFeedings} lần` : "Đã đủ số lần") : ""}
+                                </Typography>
+                              </Box>
+                            </Box>
+
+                            {feedingGuidance.isOverfed && (
+                              <Alert severity="error" sx={{ fontSize: "0.8rem", mt: 1 }}>
+                                Vượt quá lượng cám khuyến nghị trong ngày! Vui lòng giảm lượng cho ăn ở các lần tiếp theo để tránh lãng phí thức ăn và ô nhiễm nước.
+                              </Alert>
+                            )}
+                          </Paper>
+                        )}
+
                         {/* Date range filter */}
                         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                          <DatePicker
-                            label="Từ ngày"
-                            value={feedDateFrom}
-                            onChange={(v) => setFeedDateFrom(v)}
-                            maxDate={feedDateTo ?? undefined}
-                            slotProps={{ textField: { size: "small" } }}
-                          />
-                          <DatePicker
-                            label="Đến ngày"
-                            value={feedDateTo}
-                            onChange={(v) => setFeedDateTo(v)}
-                            minDate={feedDateFrom ?? undefined}
-                            slotProps={{ textField: { size: "small" } }}
-                          />
+                          <DatePicker label="Từ ngày" value={feedDateFrom} onChange={(v) => setFeedDateFrom(v)} maxDate={feedDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
+                          <DatePicker label="Đến ngày" value={feedDateTo} onChange={(v) => setFeedDateTo(v)} minDate={feedDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
                           {(feedDateFrom || feedDateTo) && (
                             <Button
                               size="small"
@@ -699,20 +771,8 @@ const BatchManagement = () => {
                       <Stack spacing={2}>
                         {/* Date range filter */}
                         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                          <DatePicker
-                            label="Từ ngày"
-                            value={mortDateFrom}
-                            onChange={(v) => setMortDateFrom(v)}
-                            maxDate={mortDateTo ?? undefined}
-                            slotProps={{ textField: { size: "small" } }}
-                          />
-                          <DatePicker
-                            label="Đến ngày"
-                            value={mortDateTo}
-                            onChange={(v) => setMortDateTo(v)}
-                            minDate={mortDateFrom ?? undefined}
-                            slotProps={{ textField: { size: "small" } }}
-                          />
+                          <DatePicker label="Từ ngày" value={mortDateFrom} onChange={(v) => setMortDateFrom(v)} maxDate={mortDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
+                          <DatePicker label="Đến ngày" value={mortDateTo} onChange={(v) => setMortDateTo(v)} minDate={mortDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
                           {(mortDateFrom || mortDateTo) && (
                             <Button
                               size="small"
@@ -910,14 +970,7 @@ const BatchManagement = () => {
           >
             Hủy
           </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleSaveMortality}
-            disabled={isSavingMortality}
-            startIcon={mortalityWarning ? <WarningIcon /> : undefined}
-            sx={{ boxShadow: "none" }}
-          >
+          <Button variant="contained" color="error" onClick={handleSaveMortality} disabled={isSavingMortality} startIcon={mortalityWarning ? <WarningIcon /> : undefined} sx={{ boxShadow: "none" }}>
             {isSavingMortality ? "Đang xử lý..." : mortalityWarning ? "Xác nhận & Lưu" : "Lưu báo cáo"}
           </Button>
         </DialogActions>
@@ -1023,17 +1076,10 @@ const BatchListItem = ({ data, selected, onClick }: { data: IOperatorFarmingBatc
       }}
     >
       <Stack direction="row" justifyContent="space-between" mb={1} alignItems="flex-start">
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 700, fontSize: "0.85rem", color: theme.palette.text.primary, lineHeight: 1.3, pr: 1 }}
-        >
+        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: theme.palette.text.primary, lineHeight: 1.3, pr: 1 }}>
           {data.name}
         </Typography>
-        <Chip
-          label={label}
-          size="small"
-          sx={{ bgcolor: statusBg, color: statusColor, fontWeight: 600, fontSize: "0.62rem", height: 18, borderRadius: "5px", flexShrink: 0 }}
-        />
+        <Chip label={label} size="small" sx={{ bgcolor: statusBg, color: statusColor, fontWeight: 600, fontSize: "0.62rem", height: 18, borderRadius: "5px", flexShrink: 0 }} />
       </Stack>
       <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600, display: "block", mb: 0.5 }}>
         {data.fishTankName}
@@ -1059,10 +1105,7 @@ const BatchListItem = ({ data, selected, onClick }: { data: IOperatorFarmingBatc
 const KPICard = ({ icon, label, value, desc }: { icon: ReactNode; label: string; value: string; desc: string }) => {
   const theme = useTheme();
   return (
-    <Paper
-      variant="outlined"
-      sx={{ p: 2, borderRadius: "12px", display: "flex", flexDirection: "column", gap: 1, border: `1px solid ${theme.palette.divider}` }}
-    >
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px", display: "flex", flexDirection: "column", gap: 1, border: `1px solid ${theme.palette.divider}` }}>
       <Stack direction="row" alignItems="center" spacing={1}>
         {icon}
         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
