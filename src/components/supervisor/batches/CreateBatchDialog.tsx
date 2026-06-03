@@ -19,6 +19,7 @@ import {
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getMasterBoards } from "../../../api/masterboards";
 import { getSpecies } from "../../../api/species";
 import { getSpeciesStageConfigsBySpecies } from "../../../api/species-stage-configs";
 import { getTankRecommendedInitials, getTanks } from "../../../api/tanks";
@@ -82,6 +83,9 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [estimatedHarvestDate, setEstimatedHarvestDate] = useState<string | null>(null);
   const [estimatingHarvest, setEstimatingHarvest] = useState(false);
 
+  // Tanks that have at least one masterboard — used to warn about missing sensor hardware.
+  const [tanksWithMasterboard, setTanksWithMasterboard] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!open) return;
 
@@ -97,11 +101,11 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     setInitialQuantity("");
     setErrors({});
 
-    // Load species and tanks
+    // Load species, tanks, and masterboards
     (async () => {
       setLoading(true);
       try {
-        const [configsData, tanksData] = await Promise.all([
+        const [configsData, tanksData, boards] = await Promise.all([
           getSpecies().catch((err) => {
             console.error("Lỗi lấy danh sách loài:", err);
             return [];
@@ -110,10 +114,15 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
             console.error("Lỗi lấy danh sách bể:", err);
             return [];
           }),
+          getMasterBoards().catch((err) => {
+            console.error("Lỗi lấy danh sách bảng mạch:", err);
+            return [];
+          }),
         ]);
 
         setSpeciesList(configsData || []);
         setTanks(tanksData || []);
+        setTanksWithMasterboard(new Set((boards || []).map((b) => b.fishTankId).filter(Boolean) as string[]));
       } catch (error) {
         console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
       } finally {
@@ -359,6 +368,12 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
               </Select>
               <FormHelperText>{errors.tank}</FormHelperText>
             </FormControl>
+
+            {selectedTank && !tanksWithMasterboard.has(selectedTank) && (
+              <Alert severity="warning" sx={{ fontSize: "0.85rem" }}>
+                Bể này chưa được gắn bảng mạch. Vụ nuôi sẽ không thể nhận dữ liệu cảm biến.
+              </Alert>
+            )}
 
             <FormControl fullWidth error={!!errors.config} required>
               <InputLabel>Loài</InputLabel>
