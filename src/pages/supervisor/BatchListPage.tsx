@@ -1,7 +1,7 @@
 import AddIcon from "@mui/icons-material/Add";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import { Box, Button, Chip, CircularProgress, Divider, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DataTable, type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
@@ -44,31 +44,38 @@ const BatchListPage: React.FC = () => {
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
 
   // Thêm State UI để điều khiển Search & Pagination
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<string | undefined>();
+  const [sortDir, setSortDir] = useState<"asc" | "desc" | undefined>();
 
-  const { loading, batches, loadBatches } = useBatches({
+  // Debounce search input to avoid API calls on every keystroke
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setPage(1);
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
+
+  const { loading, batches, totalItems, loadBatches } = useBatches({
     autoLoad: true,
     statusFilter: statusFilter === "all" ? undefined : statusFilter,
+    page,
+    pageSize,
+    searchTerm,
+    sortBy,
+    sortDir,
   });
 
-  // Lọc dữ liệu theo Tab và Thanh tìm kiếm
-  let filteredBatches = statusFilter === "all" ? batches : batches.filter((b) => b.status === statusFilter);
-
-  if (searchTerm) {
-    filteredBatches = filteredBatches.filter((b) => b.name.toLowerCase().includes(searchTerm.toLowerCase()) || (b.speciesName && b.speciesName.toLowerCase().includes(searchTerm.toLowerCase())));
-  }
-
-  filteredBatches.sort((a, b) => {
-    const aTime = a.estimatedHarvestDate ? Date.parse(a.estimatedHarvestDate) : Number.POSITIVE_INFINITY;
-    const bTime = b.estimatedHarvestDate ? Date.parse(b.estimatedHarvestDate) : Number.POSITIVE_INFINITY;
-    return aTime - bTime;
-  });
-
-  // Phân trang dữ liệu
-  const totalPages = Math.ceil(filteredBatches.length / pageSize) || 1;
-  const paginatedBatches = filteredBatches.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
   const calculateAge = (startDate: string): number => {
     const start = new Date(startDate);
@@ -177,7 +184,7 @@ const BatchListPage: React.FC = () => {
     {
       field: "survivalRate",
       label: "Tỷ lệ sống",
-      sortable: true,
+      sortable: false,
       render: (row) => {
         if (!row.survivalRate && row.survivalRate !== 0) return "—";
         const rate = row.survivalRate;
@@ -331,11 +338,8 @@ const BatchListPage: React.FC = () => {
             {/* KHU VỰC TOOLBAR */}
             <TableToolbar
               searchPlaceholder="Tìm kiếm tên lô nuôi..."
-              searchTerm={searchTerm}
-              onSearchTermChange={(v) => {
-                setSearchTerm(v);
-                setPage(1);
-              }}
+              searchTerm={searchInput}
+              onSearchTermChange={setSearchInput}
               pageSize={pageSize}
               onPageSizeChange={(n) => {
                 setPageSize(n);
@@ -348,7 +352,7 @@ const BatchListPage: React.FC = () => {
               <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
                 <CircularProgress />
               </Box>
-            ) : paginatedBatches.length === 0 ? (
+            ) : batches.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 8 }}>
                 <Typography variant="h6" color="#475569">
                   Không tìm thấy vụ nuôi
@@ -358,11 +362,21 @@ const BatchListPage: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <DataTable columns={columns} rows={paginatedBatches} />
+              <DataTable
+                columns={columns}
+                rows={batches}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={(newSortBy, newSortDir) => {
+                  setSortBy(newSortBy);
+                  setSortDir(newSortDir);
+                  setPage(1);
+                }}
+              />
             )}
 
             {/* PAGINATION */}
-            {!loading && filteredBatches.length > 0 && (
+            {!loading && batches.length > 0 && (
               <Box
                 sx={{
                   p: 2,

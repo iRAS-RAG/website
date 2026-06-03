@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   compareBatches as apiCompareBatches,
   createBatch as apiCreateBatch,
@@ -13,43 +13,66 @@ import {
   getBatchOperationLogs,
   getBatchPerformance,
   getBatches,
+  type BatchesQuery,
 } from "../api/batches";
 import type { Batch, BatchComparison, BatchOperationLog, BatchPerformance, CreateBatchPayload, HarvestBatchPayload } from "../types/batch";
 
 export type UseBatchesOptions = {
   autoLoad?: boolean;
   statusFilter?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED";
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 };
 
 export default function useBatches(options: UseBatchesOptions = {}) {
-  const { autoLoad = true, statusFilter } = options;
+  const { autoLoad = true, statusFilter, page = 1, pageSize = 10, searchTerm = "", sortBy, sortDir } = options;
 
   const [loading, setLoading] = useState(false);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Load batches
-  const loadBatches = async (status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED") => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getBatches(status);
-      setBatches(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load batches";
-      setError(message);
-      console.error("Failed to load batches:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const buildQuery = useCallback(
+    (statusOverride?: string): BatchesQuery => ({
+      status: (statusOverride ?? statusFilter) as BatchesQuery["status"],
+      page,
+      pageSize,
+      searchTerm: searchTerm || undefined,
+      sortBy: sortBy || undefined,
+      sortDir: sortDir || undefined,
+    }),
+    [statusFilter, page, pageSize, searchTerm, sortBy, sortDir],
+  );
 
-  // Auto-load on mount
+  // Load batches
+  const loadBatches = useCallback(
+    async (statusOverride?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED") => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await getBatches(buildQuery(statusOverride));
+        setBatches(result.items);
+        setTotalItems(result.total);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load batches";
+        setError(message);
+        console.error("Failed to load batches:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [buildQuery],
+  );
+
+  // Auto-load on mount / when params change
   useEffect(() => {
     if (autoLoad) {
-      loadBatches(statusFilter);
+      loadBatches();
     }
-  }, [autoLoad, statusFilter]);
+  }, [autoLoad, loadBatches]);
 
   // Create a new batch
   const createBatch = async (payload: CreateBatchPayload): Promise<Batch | null> => {
@@ -179,6 +202,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
   return {
     loading,
     batches,
+    totalItems,
     error,
     loadBatches,
     createBatch,
