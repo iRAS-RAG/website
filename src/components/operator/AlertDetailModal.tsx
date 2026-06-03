@@ -99,7 +99,8 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
         setLocalStatus("Đang xử lý");
         setPendingStatus(null);
       } else {
-        // Dismissed — close
+        // Dismissed — close confirmation first, then the modal.
+        setPendingStatus(null);
         onClose();
       }
     } catch (err) {

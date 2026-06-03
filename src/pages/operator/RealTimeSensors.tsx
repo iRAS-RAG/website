@@ -1,6 +1,6 @@
-import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Brush, CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -11,10 +11,10 @@ import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { SensorCard } from "../../components/operator/SensorCard";
 
 // Hooks & API
-import { extractArray } from "../../api/client";
-import { realtimeApi } from "../../api/realtimeApi";
-import { getMasterBoards, getMasterBoardsByTank } from "../../api/masterboards";
 import { getActiveBatch, type SafeThreshold } from "../../api/batches";
+import { extractArray } from "../../api/client";
+import { getMasterBoards, getMasterBoardsByTank } from "../../api/masterboards";
+import { realtimeApi } from "../../api/realtimeApi";
 import { simulationApi } from "../../api/simulationApi";
 import { useToast } from "../../components/common/toastContext";
 import { useLiveTelemetry } from "../../hooks/useLiveTelemetry";
@@ -162,11 +162,17 @@ const RealTimeSensors = () => {
               setIsSimulating(status.isSimulating);
               if (status.isSimulating) setSimulatingMac(mac);
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTank]);
 
   // Fetch active-batch safe thresholds (species config) for the selected tank.
@@ -186,7 +192,9 @@ const RealTimeSensors = () => {
         if (!cancelled) setActiveBatchThresholds([]);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTank]);
 
   // Build set of tank IDs that have a masterboard (fetched once on mount).
@@ -202,7 +210,9 @@ const RealTimeSensors = () => {
         if (!cancelled) setTanksWithMasterboard(new Set());
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Auto-select the first tank that has a masterboard once both lists are loaded.
@@ -258,9 +268,7 @@ const RealTimeSensors = () => {
   const thresholds = useMemo((): { min: number; max: number } | null => {
     if (!activeSensor) return null;
     const sensorName = activeSensor.sensorTypeName?.toLowerCase() || "";
-    const speciesThreshold = activeBatchThresholds.find(
-      (t) => t.sensorTypeName?.toLowerCase() === sensorName,
-    );
+    const speciesThreshold = activeBatchThresholds.find((t) => t.sensorTypeName?.toLowerCase() === sensorName);
     if (speciesThreshold) {
       return { min: speciesThreshold.minValue, max: speciesThreshold.maxValue };
     }
@@ -338,9 +346,7 @@ const RealTimeSensors = () => {
     if (!currentSensorId || timeFilter !== "10s") return;
     const rawPoints = liveSeries.get(currentSensorId) ?? [];
     if (rawPoints.length === 0) return;
-    const newPoints = rawPoints
-      .filter((p) => p.ts > lastAccumulatedTsRef.current)
-      .map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
+    const newPoints = rawPoints.filter((p) => p.ts > lastAccumulatedTsRef.current).map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
     if (newPoints.length > 0) {
       lastAccumulatedTsRef.current = newPoints[newPoints.length - 1].ts;
       pendingLiveRef.current.push(...newPoints);
@@ -424,29 +430,39 @@ const RealTimeSensors = () => {
   };
 
   const chartColor = activeSensor ? getSensorColor(activeSensor.sensorTypeName) : "#64748B";
+  const isBinary = activeSensor?.unitOfMeasure === "0/1";
   const dailyMin: number | null = activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
   const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
   const isCurrentDanger = thresholds !== null && (currentValue < thresholds.min || currentValue > thresholds.max);
 
   const yDomain = useMemo(() => {
+    if (isBinary) return [-0.1, 1.1];
     const values = displayChartData.map((d) => d.value).filter((v): v is number => v !== null);
-    const allValues: number[] = [
-      ...values,
-      ...(thresholds ? [thresholds.min, thresholds.max] : []),
-      ...(dailyMin != null ? [dailyMin] : []),
-      ...(dailyMax != null ? [dailyMax] : []),
-    ];
+    const allValues: number[] = [...values, ...(thresholds ? [thresholds.min, thresholds.max] : []), ...(dailyMin != null ? [dailyMin] : []), ...(dailyMax != null ? [dailyMax] : [])];
     if (allValues.length === 0) return [0, 100];
     return [Math.floor(Math.min(...allValues) - 1), Math.ceil(Math.max(...allValues) + 1)];
-  }, [displayChartData, thresholds, dailyMin, dailyMax]);
+  }, [displayChartData, thresholds, dailyMin, dailyMax, isBinary]);
 
   const yAxisTicks = useMemo(() => {
-    const raw = thresholds
-      ? [yDomain[0], thresholds.min, thresholds.max, yDomain[1]]
-      : [yDomain[0], yDomain[1]];
+    if (isBinary) return [0, 1];
+    const raw = thresholds ? [yDomain[0], thresholds.min, thresholds.max, yDomain[1]] : [yDomain[0], yDomain[1]];
     return Array.from(new Set(raw.map((v) => Number(Number(v).toFixed(1))))).sort((a, b) => a - b);
-  }, [yDomain, thresholds]);
+  }, [yDomain, thresholds, isBinary]);
+
+  const binaryStats = useMemo(() => {
+    if (!isBinary || displayChartData.length === 0) return null;
+    let safe = 0;
+    let unsafe = 0;
+    let unknown = 0;
+    for (const d of displayChartData) {
+      if (d.value === null) unknown++;
+      else if (d.value >= 0.5) safe++;
+      else unsafe++;
+    }
+    const total = displayChartData.length;
+    return { safe, unsafe, unknown, total, safePct: Math.round((safe / total) * 100), unsafePct: Math.round((unsafe / total) * 100) };
+  }, [isBinary, displayChartData]);
 
   return (
     <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh" }}>
@@ -476,8 +492,12 @@ const RealTimeSensors = () => {
                 </Typography>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   {totalTankPages > 1 && (
-                    <IconButton size="small" onClick={() => setTankSlide((p) => Math.max(0, p - 1))} disabled={tankSlide === 0}
-                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, height: 32 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setTankSlide((p) => Math.max(0, p - 1))}
+                      disabled={tankSlide === 0}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, height: 32 }}
+                    >
                       <ChevronLeftIcon fontSize="small" />
                     </IconButton>
                   )}
@@ -487,8 +507,13 @@ const RealTimeSensors = () => {
                         key={tank.id}
                         onClick={() => setSelectedTank(tank)}
                         sx={{
-                          p: 2, cursor: "pointer", borderRadius: "14px",
-                          display: "flex", flexDirection: "column", justifyContent: "center", gap: 1,
+                          p: 2,
+                          cursor: "pointer",
+                          borderRadius: "14px",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          gap: 1,
                           minHeight: 88,
                           border: selectedTank?.id === tank.id ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                           bgcolor: selectedTank?.id === tank.id ? theme.palette.primary.light + "20" : theme.palette.background.paper,
@@ -502,25 +527,15 @@ const RealTimeSensors = () => {
                         <Stack direction="row" alignItems="center" spacing={0.75}>
                           {(() => {
                             const hasMb = tanksWithMasterboard.has(tank.id);
-                            const dotColor = tank.hasOpenAlert
-                              ? theme.palette.error.main
-                              : hasMb
-                                ? theme.palette.success.main
-                                : theme.palette.text.disabled;
-                            const label = tank.hasOpenAlert
-                              ? "Có cảnh báo"
-                              : hasMb
-                                ? "An toàn"
-                                : "Không có bộ mạch";
-                            const labelColor = tank.hasOpenAlert
-                              ? theme.palette.error.main
-                              : hasMb
-                                ? theme.palette.success.main
-                                : theme.palette.text.disabled;
+                            const dotColor = tank.hasOpenAlert ? theme.palette.error.main : hasMb ? theme.palette.success.main : theme.palette.text.disabled;
+                            const label = tank.hasOpenAlert ? "Có cảnh báo" : hasMb ? "An toàn" : "Không có bộ mạch";
+                            const labelColor = tank.hasOpenAlert ? theme.palette.error.main : hasMb ? theme.palette.success.main : theme.palette.text.disabled;
                             return (
                               <>
                                 <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0 }} />
-                                <Typography variant="caption" sx={{ color: labelColor, fontWeight: 600 }}>{label}</Typography>
+                                <Typography variant="caption" sx={{ color: labelColor, fontWeight: 600 }}>
+                                  {label}
+                                </Typography>
                               </>
                             );
                           })()}
@@ -533,8 +548,12 @@ const RealTimeSensors = () => {
                     ))}
                   </Box>
                   {totalTankPages > 1 && (
-                    <IconButton size="small" onClick={() => setTankSlide((p) => Math.min(totalTankPages - 1, p + 1))} disabled={tankSlide >= totalTankPages - 1}
-                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, height: 32 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setTankSlide((p) => Math.min(totalTankPages - 1, p + 1))}
+                      disabled={tankSlide >= totalTankPages - 1}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, height: 32 }}
+                    >
                       <ChevronRightIcon fontSize="small" />
                     </IconButton>
                   )}
@@ -562,21 +581,17 @@ const RealTimeSensors = () => {
             >
               <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  {isSimulating ? (
-                    <DangerousIcon sx={{ color: theme.palette.error.main, fontSize: 28 }} />
-                  ) : (
-                    <SensorOccupiedIcon sx={{ color: theme.palette.warning.main, fontSize: 28 }} />
-                  )}
+                  {isSimulating ? <DangerousIcon sx={{ color: theme.palette.error.main, fontSize: 28 }} /> : <SensorOccupiedIcon sx={{ color: theme.palette.warning.main, fontSize: 28 }} />}
                   <Box>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: isSimulating ? theme.palette.error.main : theme.palette.text.primary }}>
                       {isSimulating ? "ĐANG MÔ PHỎNG DỮ LIỆU NGUY HIỂM" : "Công cụ mô phỏng"}
                     </Typography>
                     <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                       {isSimulating
-                        ? `Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C (nguy hiểm). Biểu đồ vẫn cập nhật bình thường. MAC: ${simulatingMac}`
+                        ? `Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C (nguy hiểm). MAC: ${simulatingMac}`
                         : masterBoardMac
-                          ? `Bấm "Mô phỏng dữ liệu nguy hiểm" để thay nhiệt độ thực bằng giá trị ngẫu nhiên 50-60°C. Biểu đồ vẫn chạy bình thường.`
-                          : "Bể này chưa có MasterBoard với địa chỉ MAC để mô phỏng."}
+                          ? `Bấm "Mô phỏng dữ liệu nguy hiểm" để thay nhiệt độ thực bằng giá trị ngẫu nhiên 50-60°C.`
+                          : "Bể này chưa có bộ mạch chủ với địa chỉ MAC để mô phỏng."}
                     </Typography>
                   </Box>
                 </Box>
@@ -589,11 +604,7 @@ const RealTimeSensors = () => {
                     startIcon={isSimulating ? undefined : <DangerousIcon />}
                     sx={{ borderRadius: "8px", fontWeight: 700, textTransform: "none", boxShadow: "none", whiteSpace: "nowrap" }}
                   >
-                    {simulationLoading
-                      ? "Đang xử lý..."
-                      : isSimulating
-                        ? "Kết nối lại (dừng mô phỏng)"
-                        : "Mô phỏng mất kết nối"}
+                    {simulationLoading ? "Đang xử lý..." : isSimulating ? "Kết nối lại (dừng mô phỏng)" : "Mô phỏng mất kết nối"}
                   </Button>
                 )}
               </Stack>
@@ -606,187 +617,323 @@ const RealTimeSensors = () => {
           </Typography>
           {loading ? (
             <CircularProgress sx={{ mb: 4 }} />
-          ) : (() => {
-            const totalSensorPages = Math.ceil(latestData.length / ITEMS_PER_SLIDE);
-            const visibleSensors = latestData.slice(sensorSlide * ITEMS_PER_SLIDE, (sensorSlide + 1) * ITEMS_PER_SLIDE);
-            return (
-              <Stack direction="row" alignItems="stretch" spacing={1} sx={{ mb: 3 }}>
-                {totalSensorPages > 1 && (
-                  <IconButton size="small" onClick={() => setSensorSlide((p) => Math.max(0, p - 1))} disabled={sensorSlide === 0}
-                    sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, alignSelf: "center" }}>
-                    <ChevronLeftIcon fontSize="small" />
-                  </IconButton>
-                )}
-                <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${ITEMS_PER_SLIDE}, 1fr)`, gap: 2.5, flex: 1 }}>
-                  {visibleSensors.map((sensor) => (
-                    <SensorCard
-                      key={sensor.sensorId}
-                      label={sensor.sensorTypeName}
-                      value={sensor.latestData?.latestAvg?.toFixed(2) ?? "--"}
-                      unit={sensor.unitOfMeasure}
-                      status={sensor.latestData?.isWarning ? "Cảnh báo" : "An toàn"}
-                      statusColor={sensor.latestData?.isWarning ? "error" : "success"}
-                      icon={getSensorIcon(sensor.sensorTypeName)}
-                      isSelected={currentSensorId === sensor.sensorId}
-                      onClick={() => setSelectedSensorId(sensor.sensorId)}
-                    />
-                  ))}
-                  {Array.from({ length: ITEMS_PER_SLIDE - visibleSensors.length }).map((_, i) => (
-                    <Box key={`empty-sensor-${i}`} />
-                  ))}
-                </Box>
-                {totalSensorPages > 1 && (
-                  <IconButton size="small" onClick={() => setSensorSlide((p) => Math.min(totalSensorPages - 1, p + 1))} disabled={sensorSlide >= totalSensorPages - 1}
-                    sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, alignSelf: "center" }}>
-                    <ChevronRightIcon fontSize="small" />
-                  </IconButton>
-                )}
-                {latestData.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedTank ? "Bể này chưa có dữ liệu cảm biến." : "Chọn một bể để xem chỉ số."}
-                  </Typography>
-                )}
-              </Stack>
-            );
-          })()}
+          ) : (
+            (() => {
+              const totalSensorPages = Math.ceil(latestData.length / ITEMS_PER_SLIDE);
+              const visibleSensors = latestData.slice(sensorSlide * ITEMS_PER_SLIDE, (sensorSlide + 1) * ITEMS_PER_SLIDE);
+              return (
+                <Stack direction="row" alignItems="stretch" spacing={1} sx={{ mb: 3 }}>
+                  {totalSensorPages > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setSensorSlide((p) => Math.max(0, p - 1))}
+                      disabled={sensorSlide === 0}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, alignSelf: "center" }}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${ITEMS_PER_SLIDE}, 1fr)`, gap: 2.5, flex: 1 }}>
+                    {visibleSensors.map((sensor) => {
+                      const sensorIsBinary = sensor.unitOfMeasure === "0/1";
+                      const rawVal = sensor.latestData?.latestAvg;
+                      const displayValue = sensorIsBinary
+                        ? rawVal !== undefined && rawVal !== null
+                          ? rawVal >= 0.5
+                            ? "An toàn"
+                            : "Bất thường"
+                          : "--"
+                        : (rawVal?.toFixed(2) ?? "--");
+                      const statusLabel = sensorIsBinary
+                        ? rawVal !== undefined && rawVal !== null
+                          ? rawVal >= 0.5
+                            ? "An toàn"
+                            : "Bất thường"
+                          : "—"
+                        : sensor.latestData?.isWarning
+                          ? "Cảnh báo"
+                          : "An toàn";
+                      const statusCol = sensorIsBinary
+                        ? rawVal !== undefined && rawVal !== null && rawVal >= 0.5
+                          ? "success"
+                          : "error"
+                        : sensor.latestData?.isWarning
+                          ? "error"
+                          : "success";
+                      return (
+                        <SensorCard
+                          key={sensor.sensorId}
+                          label={sensor.sensorTypeName}
+                          value={displayValue}
+                          unit={sensorIsBinary ? "" : sensor.unitOfMeasure}
+                          status={statusLabel}
+                          statusColor={statusCol as "success" | "warning" | "error"}
+                          icon={getSensorIcon(sensor.sensorTypeName)}
+                          isSelected={currentSensorId === sensor.sensorId}
+                          onClick={() => setSelectedSensorId(sensor.sensorId)}
+                        />
+                      );
+                    })}
+                    {Array.from({ length: ITEMS_PER_SLIDE - visibleSensors.length }).map((_, i) => (
+                      <Box key={`empty-sensor-${i}`} />
+                    ))}
+                  </Box>
+                  {totalSensorPages > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setSensorSlide((p) => Math.min(totalSensorPages - 1, p + 1))}
+                      disabled={sensorSlide >= totalSensorPages - 1}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, alignSelf: "center" }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {latestData.length === 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      {selectedTank ? "Bể này chưa có dữ liệu cảm biến." : "Chọn một bể để xem chỉ số."}
+                    </Typography>
+                  )}
+                </Stack>
+              );
+            })()
+          )}
 
           {/* ── Chart — full width bên dưới ── */}
           {activeSensor && (
-            <Paper
-              variant="outlined"
-              sx={{ p: 2.5, borderRadius: "16px", borderColor: theme.palette.divider, mb: 3 }}
-            >
-                {/* Chart header */}
-                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5} flexWrap="wrap" gap={1.5}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Biểu đồ: {activeSensor.sensorTypeName}
-                  </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Chip
-                      icon={timeFilter === "10s" ? undefined : <RefreshIcon sx={{ fontSize: 14 }} />}
-                      label={timeFilter === "10s" ? "Trực tiếp" : formatCountdown(countdown)}
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: "16px", borderColor: theme.palette.divider, mb: 3 }}>
+              {/* Chart header */}
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5} flexWrap="wrap" gap={1.5}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Biểu đồ: {activeSensor.sensorTypeName}
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip
+                    icon={timeFilter === "10s" ? undefined : <RefreshIcon sx={{ fontSize: 14 }} />}
+                    label={timeFilter === "10s" ? "Trực tiếp" : formatCountdown(countdown)}
+                    size="small"
+                    variant="outlined"
+                    color={timeFilter === "10s" ? "success" : "default"}
+                    sx={{ fontWeight: 600, fontSize: "0.75rem", color: timeFilter === "10s" ? theme.palette.success.main : theme.palette.text.secondary }}
+                  />
+                  {TIME_FILTERS.map((f) => (
+                    <Button
+                      key={f.value}
                       size="small"
-                      variant="outlined"
-                      color={timeFilter === "10s" ? "success" : "default"}
-                      sx={{ fontWeight: 600, fontSize: "0.75rem", color: timeFilter === "10s" ? theme.palette.success.main : theme.palette.text.secondary }}
-                    />
-                    {TIME_FILTERS.map((f) => (
-                      <Button
-                        key={f.value}
-                        size="small"
-                        variant={timeFilter === f.value ? "contained" : "outlined"}
-                        onClick={() => handleFilterChange(f.value)}
-                        sx={{ minWidth: 0, px: 1.5, py: 0.4, textTransform: "none", fontWeight: 600, fontSize: "0.75rem", borderRadius: "8px", boxShadow: "none" }}
-                      >
-                        {f.label}
-                      </Button>
-                    ))}
-                  </Stack>
+                      variant={timeFilter === f.value ? "contained" : "outlined"}
+                      onClick={() => handleFilterChange(f.value)}
+                      sx={{ minWidth: 0, px: 1.5, py: 0.4, textTransform: "none", fontWeight: 600, fontSize: "0.75rem", borderRadius: "8px", boxShadow: "none" }}
+                    >
+                      {f.label}
+                    </Button>
+                  ))}
                 </Stack>
+              </Stack>
 
-                {/* Chart area */}
-                <Box sx={{ height: 320, width: "100%", mb: 2 }}>
-                  {chartLoading ? (
-                    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-                      <CircularProgress size={32} />
+              {/* Chart area */}
+              <Box sx={{ height: 320, width: "100%", mb: 2 }}>
+                {chartLoading ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                    <CircularProgress size={32} />
+                  </Box>
+                ) : isBinary ? (
+                  /* ── Binary sensor timeline ── */
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", px: 1 }}>
+                    {/* Legend */}
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 1.5 }}>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#10B981", flexShrink: 0 }} />
+                        <Typography variant="caption" color="text.secondary">An toàn (1)</Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#EF4444", flexShrink: 0 }} />
+                        <Typography variant="caption" color="text.secondary">Bất thường (0)</Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#E2E8F0", flexShrink: 0 }} />
+                        <Typography variant="caption" color="text.secondary">Không có dữ liệu</Typography>
+                      </Stack>
+                    </Stack>
+                    {/* Timeline bar */}
+                    <Box sx={{ flex: 1, borderRadius: "10px", overflow: "hidden", border: "1px solid #E2E8F0", display: "flex", minHeight: 40 }}>
+                      {displayChartData.map((point, i) => {
+                        const color = point.value === null ? "#E2E8F0" : point.value >= 0.5 ? "#10B981" : "#EF4444";
+                        const label = point.value === null ? "Không có dữ liệu" : point.value >= 0.5 ? "An toàn (1)" : "Bất thường (0)";
+                        return (
+                          <Box
+                            key={i}
+                            sx={{ flex: 1, bgcolor: color, minWidth: 1, transition: "background-color 0.3s" }}
+                            title={`${point.time}: ${label}`}
+                          />
+                        );
+                      })}
                     </Box>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={displayChartData} margin={{ top: 32, right: 24, left: 0, bottom: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={8} />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          domain={yDomain}
-                          ticks={yAxisTicks}
-                          tick={(props: { x?: string | number; y?: string | number; payload?: { value?: number | string } }) => {
-                            const { x, y, payload } = props;
-                            const tickValue = payload?.value ?? 0;
-                            const isThresholdTick = thresholds !== null && (Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05);
-                            return (
-                              <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={isThresholdTick ? 12 : 11} fontWeight={isThresholdTick ? 700 : 400} fill={isThresholdTick ? "#10B981" : "#6B7280"}>
-                                {tickValue}
-                              </text>
-                            );
-                          }}
-                          label={{ value: activeSensor.unitOfMeasure, position: "top", offset: 8, fill: "#9CA3AF", fontSize: 12, fontWeight: 600, style: { textAnchor: "middle" } }}
-                        />
-                        <Tooltip
-                          contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                          formatter={(val: number | undefined) => [`${val ?? ""} ${activeSensor.unitOfMeasure}`, activeSensor.sensorTypeName]}
-                        />
-                        {thresholds && (
-                          <ReferenceArea y1={thresholds.min} y2={thresholds.max} fill="#10B981" fillOpacity={0.08} stroke="#10B981" strokeOpacity={0.3} strokeDasharray="3 3" />
-                        )}
-                        <Line
-                          name={activeSensor.sensorTypeName}
-                          type="monotone"
-                          dataKey="value"
-                          stroke={chartColor}
-                          strokeWidth={2}
-                          connectNulls
-                          dot={(props: unknown) =>
-                            renderCustomDot({ ...(props as CustomDotProps), thresholds, defaultColor: chartColor })
-                          }
-                          activeDot={{ r: 8 }}
-                        />
-                        {(timeFilter === "1m" || timeFilter === "1h") && displayChartData.length > 12 && (
-                          <Brush dataKey="time" height={22} startIndex={Math.max(0, displayChartData.length - 12)} endIndex={displayChartData.length - 1} stroke="#10B981" fill="#F0FDF4" travellerWidth={8} gap={1} tickFormatter={(v: string) => v} />
-                        )}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  )}
-                </Box>
-
-                {displayChartData.length === 0 && !chartLoading && (
-                  <Typography variant="body2" sx={{ textAlign: "center", color: theme.palette.text.secondary, mb: 1.5 }}>
-                    Chưa có dữ liệu trong khoảng thời gian này.
-                  </Typography>
-                )}
-
-                <Divider sx={{ mb: 1.5 }} />
-
-                {/* Stats row */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>Ngưỡng an toàn</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                      {thresholds ? <>{thresholds.min} – {thresholds.max}{" "}<Typography component="span" variant="body2" sx={{ color: "text.secondary" }}>{activeSensor.unitOfMeasure}</Typography></> : "N/A"}
-                    </Typography>
-                    {thresholds && (
-                      <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>Mức tối ưu</Typography>
+                    {/* Time labels */}
+                    {displayChartData.length > 0 && (
+                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.75 }}>
+                        <Typography variant="caption" color="text.secondary">{displayChartData[0].time}</Typography>
+                        <Typography variant="caption" color="text.secondary">{displayChartData[displayChartData.length - 1].time}</Typography>
+                      </Box>
                     )}
                   </Box>
+                ) : (
+                  /* ── Analog sensor line chart ── */
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={displayChartData} margin={{ top: 32, right: 24, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={8} />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        domain={yDomain}
+                        ticks={yAxisTicks}
+                        tick={(props: { x?: string | number; y?: string | number; payload?: { value?: number | string } }) => {
+                          const { x, y, payload } = props;
+                          const tickValue = payload?.value ?? 0;
+                          const isThresholdTick = thresholds !== null && (Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05);
+                          return (
+                            <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={isThresholdTick ? 12 : 11} fontWeight={isThresholdTick ? 700 : 400} fill={isThresholdTick ? "#10B981" : "#6B7280"}>
+                              {tickValue}
+                            </text>
+                          );
+                        }}
+                        label={{ value: activeSensor.unitOfMeasure, position: "top", offset: 8, fill: "#9CA3AF", fontSize: 12, fontWeight: 600, style: { textAnchor: "middle" } }}
+                      />
+                      <Tooltip
+                        contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                        formatter={(val: number | undefined) => [`${val ?? ""} ${activeSensor.unitOfMeasure}`, activeSensor.sensorTypeName]}
+                      />
+                      {thresholds && <ReferenceArea y1={thresholds.min} y2={thresholds.max} fill="#10B981" fillOpacity={0.08} stroke="#10B981" strokeOpacity={0.3} strokeDasharray="3 3" />}
+                      <Line
+                        name={activeSensor.sensorTypeName}
+                        type="monotone"
+                        dataKey="value"
+                        stroke={chartColor}
+                        strokeWidth={2}
+                        connectNulls
+                        dot={(props: unknown) => renderCustomDot({ ...(props as CustomDotProps), thresholds, defaultColor: chartColor })}
+                        activeDot={{ r: 8 }}
+                      />
+                      {(timeFilter === "1m" || timeFilter === "1h") && displayChartData.length > 12 && (
+                        <Brush
+                          dataKey="time"
+                          height={22}
+                          startIndex={Math.max(0, displayChartData.length - 12)}
+                          endIndex={displayChartData.length - 1}
+                          stroke="#10B981"
+                          fill="#F0FDF4"
+                          travellerWidth={8}
+                          gap={1}
+                          tickFormatter={(v: string) => v}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </Box>
+
+              {displayChartData.length === 0 && !chartLoading && (
+                <Typography variant="body2" sx={{ textAlign: "center", color: theme.palette.text.secondary, mb: 1.5 }}>
+                  Chưa có dữ liệu trong khoảng thời gian này.
+                </Typography>
+              )}
+
+              <Divider sx={{ mb: 1.5 }} />
+
+              {/* Stats row */}
+              <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+                {isBinary ? (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                        Trạng thái hiện tại
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: currentValue >= 0.5 ? theme.palette.success.main : theme.palette.error.main }}>
+                        {currentValue >= 0.5 ? "An toàn (1)" : "Bất thường (0)"}
+                      </Typography>
+                    </Box>
+                    {binaryStats && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                          Thống kê
+                        </Typography>
+                        <Stack direction="row" spacing={2} sx={{ mt: 0.25 }}>
+                          <Typography variant="body2" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                            {binaryStats.safePct}% an toàn
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                            {binaryStats.unsafePct}% bất thường
+                          </Typography>
+                        </Stack>
+                      </Box>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                        Ngưỡng an toàn
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                        {thresholds ? (
+                          <>
+                            {thresholds.min} – {thresholds.max}{" "}
+                            <Typography component="span" variant="body2" sx={{ color: "text.secondary" }}>
+                              {activeSensor.unitOfMeasure}
+                            </Typography>
+                          </>
+                        ) : (
+                          "N/A"
+                        )}
+                      </Typography>
+                      {thresholds && (
+                        <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                          Mức tối ưu
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                        Ghi nhận hiện tại
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
+                        {currentValue.toFixed(2)}
+                        <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                          {activeSensor.unitOfMeasure}
+                        </Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : "text.secondary" }}>
+                        {thresholds ? (isCurrentDanger ? "Vượt ngưỡng" : "Bình thường") : "—"}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+                {!isBinary && dailyMin != null && (
                   <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>Ghi nhận hiện tại</Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
-                      {currentValue.toFixed(2)}
-                      <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>{activeSensor.unitOfMeasure}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                      Thấp nhất hôm nay
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : "text.secondary" }}>
-                      {thresholds ? (isCurrentDanger ? "Vượt ngưỡng" : "Bình thường") : "—"}
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.info.main }}>
+                      {dailyMin.toFixed(2)}
+                      <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                        {activeSensor.unitOfMeasure}
+                      </Typography>
                     </Typography>
                   </Box>
-                  {dailyMin != null && (
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>Thấp nhất hôm nay</Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.info.main }}>
-                        {dailyMin.toFixed(2)}
-                        <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>{activeSensor.unitOfMeasure}</Typography>
+                )}
+                {!isBinary && dailyMax != null && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                      Cao nhất hôm nay
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.warning.main }}>
+                      {dailyMax.toFixed(2)}
+                      <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                        {activeSensor.unitOfMeasure}
                       </Typography>
-                    </Box>
-                  )}
-                  {dailyMax != null && (
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>Cao nhất hôm nay</Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.warning.main }}>
-                        {dailyMax.toFixed(2)}
-                        <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>{activeSensor.unitOfMeasure}</Typography>
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             </Paper>
           )}
 
@@ -800,15 +947,16 @@ const RealTimeSensors = () => {
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {devices.map((device) => (
-                  <Paper
-                    key={device.id}
-                    variant="outlined"
-                    sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "12px" }}
-                  >
+                  <Paper key={device.id} variant="outlined" sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "12px" }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <Box
                         sx={{
-                          width: 40, height: 40, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center",
+                          width: 40,
+                          height: 40,
+                          borderRadius: "10px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                           bgcolor: device.state ? theme.palette.success.light : theme.palette.action.hover,
                           color: device.state ? theme.palette.success.main : theme.palette.text.secondary,
                         }}
@@ -816,7 +964,9 @@ const RealTimeSensors = () => {
                         {device.state ? <BoltIcon /> : <PowerOffIcon />}
                       </Box>
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{device.controlDeviceTypeName}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {device.controlDeviceTypeName}
+                        </Typography>
                         <Typography variant="caption" sx={{ color: device.state ? theme.palette.success.main : "text.secondary" }}>
                           {device.state ? "Đang hoạt động" : "Đã tắt"}
                         </Typography>
@@ -828,7 +978,9 @@ const RealTimeSensors = () => {
                   </Paper>
                 ))}
                 {devices.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">Không tìm thấy thiết bị điều khiển nào cho bể này.</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Không tìm thấy thiết bị điều khiển nào cho bể này.
+                  </Typography>
                 )}
               </Box>
             )}
@@ -837,12 +989,22 @@ const RealTimeSensors = () => {
       </Box>
 
       {/* ── Device toggle dialog ── */}
-      <Dialog open={Boolean(deviceToToggle)} onClose={() => { if (!isToggling) setDeviceToToggle(null); }} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}>
+      <Dialog
+        open={Boolean(deviceToToggle)}
+        onClose={() => {
+          if (!isToggling) setDeviceToToggle(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{deviceToToggle?.state ? "Xác nhận TẮT thiết bị" : "Xác nhận BẬT thiết bị"}</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: theme.palette.text.secondary, mb: 2 }}>
             Thiết bị{" "}
-            <Box component="span" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>{deviceToToggle?.controlDeviceTypeName}</Box>
+            <Box component="span" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+              {deviceToToggle?.controlDeviceTypeName}
+            </Box>
             {selectedTank ? ` tại ${selectedTank.name}` : ""} hiện đang{" "}
             <Box component="span" sx={{ fontWeight: 700, color: deviceToToggle?.state ? theme.palette.success.main : theme.palette.text.secondary }}>
               {deviceToToggle?.state ? "BẬT" : "TẮT"}
@@ -856,13 +1018,22 @@ const RealTimeSensors = () => {
           <Box sx={{ display: "flex", gap: 1.5, bgcolor: "#FFF7ED", border: "1px solid #FFEDD5", borderRadius: "12px", p: 2 }}>
             <ErrorOutlineIcon sx={{ color: "#EA580C", fontSize: 22, mt: "2px" }} />
             <Typography variant="body2" sx={{ color: "#9A3412", lineHeight: 1.6 }}>
-              Đây là thiết bị đang vận hành trực tiếp trong môi trường bể nuôi. Bật/tắt sai thời điểm có thể làm thay đổi đột ngột điều kiện nước (oxy, nhiệt độ, dòng chảy...) và gây nguy hiểm cho vật nuôi. Vui lòng kiểm tra kỹ tình trạng bể và các chỉ số cảm biến trước khi xác nhận.
+              Đây là thiết bị đang vận hành trực tiếp trong môi trường bể nuôi. Bật/tắt sai thời điểm có thể làm thay đổi đột ngột điều kiện nước (oxy, nhiệt độ, dòng chảy...) và gây nguy hiểm cho vật
+              nuôi. Vui lòng kiểm tra kỹ tình trạng bể và các chỉ số cảm biến trước khi xác nhận.
             </Typography>
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setDeviceToToggle(null)} disabled={isToggling} sx={{ color: theme.palette.text.secondary, fontWeight: 600, textTransform: "none" }}>Hủy</Button>
-          <Button onClick={handleConfirmToggle} variant="contained" color={deviceToToggle?.state ? "error" : "primary"} disabled={isToggling} sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none", textTransform: "none" }}>
+          <Button onClick={() => setDeviceToToggle(null)} disabled={isToggling} sx={{ color: theme.palette.text.secondary, fontWeight: 600, textTransform: "none" }}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleConfirmToggle}
+            variant="contained"
+            color={deviceToToggle?.state ? "error" : "primary"}
+            disabled={isToggling}
+            sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none", textTransform: "none" }}
+          >
             {isToggling ? "Đang xử lý..." : deviceToToggle?.state ? "Xác nhận tắt" : "Xác nhận bật"}
           </Button>
         </DialogActions>

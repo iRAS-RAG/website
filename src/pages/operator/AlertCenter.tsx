@@ -82,7 +82,7 @@ const AlertCenter = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("OPEN");
 
   const filterStatuses = statusFilter === "ALL" ? undefined : [statusFilter];
 
