@@ -33,6 +33,7 @@ export function SensorTypeDialog(props: {
   const [name, setName] = useState("");
   const [measureType, setMeasureType] = useState("");
   const [unitOfMeasure, setUnitOfMeasure] = useState("");
+  const [code, setCode] = useState("");
   const [saving, setSaving] = useState(false);
   const isEdit = Boolean(initial && onUpdate);
 
@@ -43,6 +44,7 @@ export function SensorTypeDialog(props: {
     setUnitOfMeasure(
       (initial as unknown as Record<string, string>)?.unitOfMeasure ?? "",
     );
+    setCode(initial?.code ?? "");
   }, [open, initial]);
 
   return (
@@ -83,6 +85,13 @@ export function SensorTypeDialog(props: {
             value={unitOfMeasure}
             onChange={(e) => setUnitOfMeasure(e.target.value)}
           />
+          <TextField
+            {...textFieldProps}
+            label="Mã code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            required
+          />
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -95,7 +104,7 @@ export function SensorTypeDialog(props: {
         </Button>
         <Button
           variant="contained"
-          disabled={!name || saving}
+          disabled={!name || !code || saving}
           sx={{
             borderRadius: "8px",
             fontWeight: 600,
@@ -107,19 +116,19 @@ export function SensorTypeDialog(props: {
             setSaving(true);
             try {
               if (isEdit && initial && onUpdate) {
-                // FIX: Xóa || undefined
                 await onUpdate(initial.id, {
                   name,
                   measureType,
                   unitOfMeasure,
+                  code,
                 });
                 onClose();
               } else if (onCreate) {
-                // FIX: Xóa || undefined
                 const created = await onCreate({
                   name,
                   measureType,
                   unitOfMeasure,
+                  code,
                 });
                 if (onCreated) onCreated(created);
                 onClose();
