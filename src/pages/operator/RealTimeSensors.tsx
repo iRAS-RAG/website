@@ -13,7 +13,7 @@ import { SensorCard } from "../../components/operator/SensorCard";
 // Hooks & API
 import { extractArray } from "../../api/client";
 import { realtimeApi } from "../../api/realtimeApi";
-import { getMasterBoardsByTank } from "../../api/masterboards";
+import { getMasterBoards, getMasterBoardsByTank } from "../../api/masterboards";
 import { getActiveBatch, type SafeThreshold } from "../../api/batches";
 import { simulationApi } from "../../api/simulationApi";
 import { useToast } from "../../components/common/toastContext";
@@ -137,6 +137,9 @@ const RealTimeSensors = () => {
   // Species-config safe thresholds from the active batch in this tank.
   const [activeBatchThresholds, setActiveBatchThresholds] = useState<SafeThreshold[]>([]);
 
+  // Set of tank IDs that have at least one masterboard.
+  const [tanksWithMasterboard, setTanksWithMasterboard] = useState<Set<string>>(new Set());
+
   // Fetch masterboard MAC for the selected tank
   useEffect(() => {
     if (!selectedTank) {
@@ -185,6 +188,22 @@ const RealTimeSensors = () => {
     })();
     return () => { cancelled = true; };
   }, [selectedTank]);
+
+  // Build set of tank IDs that have a masterboard (fetched once on mount).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const boards = await getMasterBoards();
+        if (!cancelled) {
+          setTanksWithMasterboard(new Set(boards.map((b) => b.fishTankId).filter(Boolean) as string[]));
+        }
+      } catch {
+        if (!cancelled) setTanksWithMasterboard(new Set());
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSimulationToggle = async () => {
     if (!masterBoardMac) return;
@@ -456,19 +475,44 @@ const RealTimeSensors = () => {
                         key={tank.id}
                         onClick={() => setSelectedTank(tank)}
                         sx={{
-                          p: 2, cursor: "pointer", borderRadius: "16px", position: "relative",
-                          minHeight: 140, display: "flex", flexDirection: "column", justifyContent: "flex-end",
+                          p: 2, cursor: "pointer", borderRadius: "14px",
+                          display: "flex", flexDirection: "column", justifyContent: "center", gap: 1,
+                          minHeight: 88,
                           border: selectedTank?.id === tank.id ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                           bgcolor: selectedTank?.id === tank.id ? theme.palette.primary.light + "20" : theme.palette.background.paper,
                           transition: "all 0.15s",
                           "&:hover": { borderColor: theme.palette.primary.light },
                         }}
                       >
-                        <Box sx={{ position: "absolute", top: 12, right: 12, width: 8, height: 8, borderRadius: "50%",
-                          bgcolor: tank.hasOpenAlert ? theme.palette.error.main : theme.palette.success.main }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.3 }}>
                           {tank.name}
                         </Typography>
+                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                          {(() => {
+                            const hasMb = tanksWithMasterboard.has(tank.id);
+                            const dotColor = tank.hasOpenAlert
+                              ? theme.palette.error.main
+                              : hasMb
+                                ? theme.palette.success.main
+                                : theme.palette.text.disabled;
+                            const label = tank.hasOpenAlert
+                              ? "Có cảnh báo"
+                              : hasMb
+                                ? "An toàn"
+                                : "Không có bộ mạch";
+                            const labelColor = tank.hasOpenAlert
+                              ? theme.palette.error.main
+                              : hasMb
+                                ? theme.palette.success.main
+                                : theme.palette.text.disabled;
+                            return (
+                              <>
+                                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0 }} />
+                                <Typography variant="caption" sx={{ color: labelColor, fontWeight: 600 }}>{label}</Typography>
+                              </>
+                            );
+                          })()}
+                        </Stack>
                       </Paper>
                     ))}
                     {/* Fill empty slots to keep grid stable */}
