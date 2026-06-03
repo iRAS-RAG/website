@@ -14,6 +14,7 @@ import { SensorCard } from "../../components/operator/SensorCard";
 import { extractArray } from "../../api/client";
 import { realtimeApi } from "../../api/realtimeApi";
 import { getMasterBoardsByTank } from "../../api/masterboards";
+import { getActiveBatch, type SafeThreshold } from "../../api/batches";
 import { simulationApi } from "../../api/simulationApi";
 import { useToast } from "../../components/common/toastContext";
 import { useLiveTelemetry } from "../../hooks/useLiveTelemetry";
@@ -88,28 +89,19 @@ const getSensorColor = (sensorTypeName: string) => {
   return "#64748B";
 };
 
-const getDefaultThreshold = (sensorTypeName: string) => {
-  const lower = sensorTypeName?.toLowerCase() || "";
-  if (lower.includes("nhiệt độ") || lower.includes("temp")) return { min: 26, max: 30 };
-  if (lower.includes("ph")) return { min: 6.5, max: 8.5 };
-  if (lower.includes("oxy") || lower.includes("do")) return { min: 4, max: 8 };
-  return { min: 0, max: 100 };
-};
-
 // --- CUSTOM DOT ---
 interface CustomDotProps {
   cx?: number;
   cy?: number;
   value?: number;
-  safeMin: number;
-  safeMax: number;
+  thresholds: { min: number; max: number } | null;
   defaultColor: string;
 }
 
 const renderCustomDot = (props: CustomDotProps) => {
-  const { cx, cy, value, safeMin, safeMax, defaultColor } = props;
+  const { cx, cy, value, thresholds: thr, defaultColor } = props;
   if (cx == null || cy == null || value == null) return null;
-  const isOut = value < safeMin || value > safeMax;
+  const isOut = thr != null && (value < thr.min || value > thr.max);
   return <circle cx={cx} cy={cy} r={isOut ? 7 : 5} fill={isOut ? "#EF4444" : defaultColor} stroke={isOut ? "#FEE2E2" : "#ffffff"} strokeWidth={isOut ? 4 : 2} />;
 };
 
@@ -142,6 +134,9 @@ const RealTimeSensors = () => {
   const [simulationLoading, setSimulationLoading] = useState(false);
   const [masterBoardMac, setMasterBoardMac] = useState<string | null>(null);
 
+  // Species-config safe thresholds from the active batch in this tank.
+  const [activeBatchThresholds, setActiveBatchThresholds] = useState<SafeThreshold[]>([]);
+
   // Fetch masterboard MAC for the selected tank
   useEffect(() => {
     if (!selectedTank) {
@@ -167,6 +162,26 @@ const RealTimeSensors = () => {
           } catch { /* ignore */ }
         }
       } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTank]);
+
+  // Fetch active-batch safe thresholds (species config) for the selected tank.
+  useEffect(() => {
+    if (!selectedTank) {
+      setActiveBatchThresholds([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const info = await getActiveBatch(selectedTank.id);
+        if (!cancelled) {
+          setActiveBatchThresholds(info?.safeThresholds ?? []);
+        }
+      } catch {
+        if (!cancelled) setActiveBatchThresholds([]);
+      }
     })();
     return () => { cancelled = true; };
   }, [selectedTank]);
@@ -208,13 +223,18 @@ const RealTimeSensors = () => {
     });
   }, [latestData]);
 
-  const thresholds = useMemo(() => {
-    if (!activeSensor) return { min: 0, max: 100 };
-    if (activeSensor.minThreshold != null && activeSensor.maxThreshold != null) {
-      return { min: activeSensor.minThreshold, max: activeSensor.maxThreshold };
+  // Species-config thresholds from the active batch (null when not configured).
+  const thresholds = useMemo((): { min: number; max: number } | null => {
+    if (!activeSensor) return null;
+    const sensorName = activeSensor.sensorTypeName?.toLowerCase() || "";
+    const speciesThreshold = activeBatchThresholds.find(
+      (t) => t.sensorTypeName?.toLowerCase() === sensorName,
+    );
+    if (speciesThreshold) {
+      return { min: speciesThreshold.minValue, max: speciesThreshold.maxValue };
     }
-    return getDefaultThreshold(activeSensor.sensorTypeName);
-  }, [activeSensor]);
+    return null;
+  }, [activeSensor, activeBatchThresholds]);
 
   const fetchChartData = useCallback(async () => {
     if (!currentSensorId || timeFilter === "10s") return;
@@ -376,17 +396,24 @@ const RealTimeSensors = () => {
   const dailyMin: number | null = activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
   const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
-  const isCurrentDanger = currentValue < thresholds.min || currentValue > thresholds.max;
+  const isCurrentDanger = thresholds !== null && (currentValue < thresholds.min || currentValue > thresholds.max);
 
   const yDomain = useMemo(() => {
     const values = displayChartData.map((d) => d.value).filter((v): v is number => v !== null);
-    const allValues = [...values, thresholds.min, thresholds.max, ...(dailyMin != null ? [dailyMin] : []), ...(dailyMax != null ? [dailyMax] : [])];
+    const allValues: number[] = [
+      ...values,
+      ...(thresholds ? [thresholds.min, thresholds.max] : []),
+      ...(dailyMin != null ? [dailyMin] : []),
+      ...(dailyMax != null ? [dailyMax] : []),
+    ];
     if (allValues.length === 0) return [0, 100];
     return [Math.floor(Math.min(...allValues) - 1), Math.ceil(Math.max(...allValues) + 1)];
   }, [displayChartData, thresholds, dailyMin, dailyMax]);
 
   const yAxisTicks = useMemo(() => {
-    const raw = [yDomain[0], thresholds.min, thresholds.max, yDomain[1]];
+    const raw = thresholds
+      ? [yDomain[0], thresholds.min, thresholds.max, yDomain[1]]
+      : [yDomain[0], yDomain[1]];
     return Array.from(new Set(raw.map((v) => Number(Number(v).toFixed(1))))).sort((a, b) => a - b);
   }, [yDomain, thresholds]);
 
@@ -620,7 +647,7 @@ const RealTimeSensors = () => {
                           tick={(props: { x?: string | number; y?: string | number; payload?: { value?: number | string } }) => {
                             const { x, y, payload } = props;
                             const tickValue = payload?.value ?? 0;
-                            const isThresholdTick = Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05;
+                            const isThresholdTick = thresholds !== null && (Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05);
                             return (
                               <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={isThresholdTick ? 12 : 11} fontWeight={isThresholdTick ? 700 : 400} fill={isThresholdTick ? "#10B981" : "#6B7280"}>
                                 {tickValue}
@@ -633,7 +660,9 @@ const RealTimeSensors = () => {
                           contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                           formatter={(val: number | undefined) => [`${val ?? ""} ${activeSensor.unitOfMeasure}`, activeSensor.sensorTypeName]}
                         />
-                        <ReferenceArea y1={thresholds.min} y2={thresholds.max} fill="#10B981" fillOpacity={0.08} stroke="#10B981" strokeOpacity={0.3} strokeDasharray="3 3" />
+                        {thresholds && (
+                          <ReferenceArea y1={thresholds.min} y2={thresholds.max} fill="#10B981" fillOpacity={0.08} stroke="#10B981" strokeOpacity={0.3} strokeDasharray="3 3" />
+                        )}
                         <Line
                           name={activeSensor.sensorTypeName}
                           type="monotone"
@@ -642,7 +671,7 @@ const RealTimeSensors = () => {
                           strokeWidth={2}
                           connectNulls
                           dot={(props: unknown) =>
-                            renderCustomDot({ ...(props as CustomDotProps), safeMin: thresholds.min, safeMax: thresholds.max, defaultColor: chartColor })
+                            renderCustomDot({ ...(props as CustomDotProps), thresholds, defaultColor: chartColor })
                           }
                           activeDot={{ r: 8 }}
                         />
@@ -667,19 +696,20 @@ const RealTimeSensors = () => {
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>Ngưỡng an toàn</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                      {thresholds.min} – {thresholds.max}
-                      <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary" }}>{activeSensor.unitOfMeasure}</Typography>
+                      {thresholds ? <>{thresholds.min} – {thresholds.max}{" "}<Typography component="span" variant="body2" sx={{ color: "text.secondary" }}>{activeSensor.unitOfMeasure}</Typography></> : "N/A"}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>Mức tối ưu</Typography>
+                    {thresholds && (
+                      <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>Mức tối ưu</Typography>
+                    )}
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>Ghi nhận hiện tại</Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: isCurrentDanger ? theme.palette.error.main : theme.palette.success.main }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
                       {currentValue.toFixed(2)}
                       <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>{activeSensor.unitOfMeasure}</Typography>
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: isCurrentDanger ? theme.palette.error.main : theme.palette.success.main }}>
-                      {isCurrentDanger ? "Vượt ngưỡng" : "Bình thường"}
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : "text.secondary" }}>
+                      {thresholds ? (isCurrentDanger ? "Vượt ngưỡng" : "Bình thường") : "—"}
                     </Typography>
                   </Box>
                   {dailyMin != null && (
