@@ -2,13 +2,13 @@ import {
   Avatar,
   Box,
   Chip,
-  CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   IconButton,
   InputAdornment,
+  LinearProgress,
   List,
   ListItemAvatar,
   ListItemButton,
@@ -440,10 +440,6 @@ const ActivityFeed: React.FC = () => {
     fetchLogs();
   }, [fetchLogs]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [actionFilter]);
-
   return (
     <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #E2E8F0", overflow: "hidden", bgcolor: "#fff" }}>
       {/* Header */}
@@ -485,7 +481,10 @@ const ActivityFeed: React.FC = () => {
               key={f.key}
               label={f.label}
               size="small"
-              onClick={() => setActionFilter(f.key)}
+              onClick={() => {
+                setActionFilter(f.key);
+                setPage(1);
+              }}
               sx={{
                 cursor: "pointer",
                 fontWeight: 600,
@@ -498,12 +497,11 @@ const ActivityFeed: React.FC = () => {
         </Stack>
       </Box>
 
-      {/* List */}
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
-          <CircularProgress size={26} />
-        </Box>
-      ) : logs.length === 0 ? (
+      {/* Progress bar — shown on top of existing list while loading */}
+      {loading && <LinearProgress sx={{ height: 3 }} />}
+
+      {/* List — always rendered to prevent layout shift */}
+      {logs.length === 0 && !loading ? (
         <Typography variant="body2" sx={{ color: "#94A3B8", py: 4, textAlign: "center" }}>
           Chưa có hoạt động nào phù hợp
         </Typography>
