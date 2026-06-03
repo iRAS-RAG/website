@@ -16,7 +16,7 @@ function toUi(item: Record<string, unknown>): SpeciesThreshold {
 }
 
 export async function getSpeciesThresholds(): Promise<SpeciesThreshold[]> {
-  const res = await apiFetch<unknown>("/config/thresholds");
+  const res = await apiFetch<unknown>("/config/thresholds?page=1&pageSize=100");
   if (Array.isArray(res)) return (res as unknown[]).map((i) => toUi(i as Record<string, unknown>));
 
   if (res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data")) {

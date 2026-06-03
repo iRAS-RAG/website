@@ -18,6 +18,18 @@ function toUi(item: Record<string, unknown>): SpeciesStageConfig {
     expectedDurationDays: item.expectedDurationDays !== undefined ? Number(item.expectedDurationDays) : undefined,
     expectedWeightKgPerFish: item.expectedWeightKgPerFish !== undefined ? Number(item.expectedWeightKgPerFish) : undefined,
     survivalRate: item.survivalRate !== undefined ? Number(item.survivalRate) : undefined,
+    thresholds: Array.isArray(item.thresholds)
+      ? (item.thresholds as unknown[]).map((t) => {
+          const th = t as Record<string, unknown>;
+          return {
+            sensorTypeId: String(th.sensorTypeId ?? ""),
+            sensorTypeName: String(th.sensorTypeName ?? ""),
+            minValue: Number(th.minValue ?? 0),
+            maxValue: Number(th.maxValue ?? 0),
+            unitOfMeasure: String(th.unitOfMeasure ?? ""),
+          };
+        })
+      : undefined,
   };
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSpecies } from "../api/species";
 
 function generateId() {
@@ -67,13 +67,18 @@ export default function useSpeciesConfigs() {
     return [];
   });
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    // Skip the second invocation in React StrictMode (dev double-fire).
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     let isMounted = true; // Tránh memory leak khi component unmount
 
     // Always attempt to refresh from API (update cache & UI)
     (async () => {
       try {
-        console.debug("useSpeciesConfigs: fetching species from API...");
         const items = await getSpecies();
         const configs = items.map((s) => ({
           id: s.id,

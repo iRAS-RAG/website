@@ -6,22 +6,24 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { Box, Button, Grid, IconButton, MenuItem, Select, TextField, Typography } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
-import useSensorTypes from "../../../hooks/useSensorTypes";
+import type { SensorType } from "../../../types/sensor-type";
 import type { Stage } from "../../../hooks/useSpeciesConfigs";
-import useSpeciesThresholds from "../../../hooks/useSpeciesThresholds";
-import type { SpeciesThresholdCreate } from "../../../types/species-threshold";
+import type { SpeciesThreshold, SpeciesThresholdCreate } from "../../../types/species-threshold";
 import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
 
 const ThresholdEditor: React.FC<{
   speciesId: string;
   stage: Stage;
+  sensorTypes: SensorType[];
+  sensorTypesLoading: boolean;
+  createThreshold: (payload: SpeciesThresholdCreate) => Promise<SpeciesThreshold>;
+  updateThreshold: (id: string, payload: Partial<SpeciesThresholdCreate>) => Promise<SpeciesThreshold | null>;
+  removeThreshold: (id: string) => Promise<boolean>;
   onSaveThreshold: (sensor: string, min: number | null, max: number | null, id?: string) => void;
   onRemoveThreshold?: (sensor: string) => void;
-}> = ({ speciesId, stage, onSaveThreshold, onRemoveThreshold }) => {
+}> = ({ speciesId, stage, sensorTypes, sensorTypesLoading, createThreshold, updateThreshold, removeThreshold, onSaveThreshold, onRemoveThreshold }) => {
   const toast = useToast();
-  const { items: sensorTypes, loading } = useSensorTypes();
-  const { create: createThreshold, update: updateThreshold, remove: removeThreshold } = useSpeciesThresholds();
 
   const configured = useMemo(() => stage.thresholds.map((t) => t.sensor), [stage.thresholds]);
 
@@ -254,7 +256,7 @@ const ThresholdEditor: React.FC<{
             <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
               <Select fullWidth value={newSensor} onChange={(e) => setNewSensor(String(e.target.value))} displayEmpty>
                 <MenuItem value="">Chọn cảm biến</MenuItem>
-                {loading ? (
+                {sensorTypesLoading ? (
                   <MenuItem value="">Đang tải...</MenuItem>
                 ) : (
                   sensorTypes.map((st) => (

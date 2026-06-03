@@ -39,18 +39,19 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { createGrowthStage, deleteGrowthStage } from "../../../api/growth-stages";
 import { createSpeciesStageConfig, deleteSpeciesStageConfig, reorderSpeciesStageConfigs, updateSpeciesStageConfig } from "../../../api/species-stage-configs";
 import useFeedTypes from "../../../hooks/useFeedTypes";
-import useGrowthStages from "../../../hooks/useGrowthStages";
 import type { SpeciesConfig, Stage } from "../../../hooks/useSpeciesConfigs";
 import type { SpeciesStageConfigCreate } from "../../../types/species-stage-config";
 import { autoSuggestIcon } from "../../../utils/iconMapper";
 import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
 import ThresholdEditor from "./ThresholdEditor";
+import useSensorTypes from "../../../hooks/useSensorTypes";
+import { createSpeciesThreshold, deleteSpeciesThreshold, updateSpeciesThreshold } from "../../../api/species-threshholds";
 
 type Props = {
   species: SpeciesConfig;
@@ -73,8 +74,14 @@ function arrayMove<T>(arr: T[], from: number, to: number) {
 const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThreshold, addStage, removeStage, onDeleteSpecies, onRenameSpecies, refreshStages }) => {
   const toast = useToast();
   const speciesIcon = autoSuggestIcon(species.name);
-  const { stages: growthStages, setStages: setGrowthStages, loading: growthLoading } = useGrowthStages(species.id);
+  // Derive growth stages from the species-stage-configs response — already includes growthStageId + name.
+  const growthStages = useMemo(
+    () => species.stages.map((s) => ({ id: s.growthStageId ?? "", name: s.name })),
+    [species.stages],
+  );
   const { feeds: feedTypes, loading: feedLoading } = useFeedTypes();
+  // Lift shared hooks to parent so they're called once, not once per stage.
+  const { items: sensorTypes, loading: sensorTypesLoading } = useSensorTypes();
 
   const savedOrderRef = useRef<string[]>([]);
 
@@ -248,12 +255,6 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       // Remove any species stages that reference this growth stage id so the UI updates immediately
       const toRemoveStages = (species.stages || []).filter((s) => s.growthStageId === growthStageId);
       toRemoveStages.forEach((s) => removeStage(species.id, s.id));
-      // Remove from local growth stages list so the dialog updates without refresh
-      try {
-        setGrowthStages((prev) => prev.filter((g) => g.id !== growthStageId));
-      } catch {
-        // ignore if setter not available
-      }
       toast.success("Xóa giai đoạn thành công");
     } catch {
       toast.error("Xóa giai đoạn thất bại");
@@ -564,6 +565,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                     <ThresholdEditor
                       speciesId={species.id}
                       stage={st}
+                      sensorTypes={sensorTypes}
+                      sensorTypesLoading={sensorTypesLoading}
+                      createThreshold={createSpeciesThreshold}
+                      updateThreshold={updateSpeciesThreshold}
+                      removeThreshold={deleteSpeciesThreshold}
                       onSaveThreshold={(sensor, min, max, id) => updateStageThreshold(species.id, st.id, sensor, min, max, id)}
                       onRemoveThreshold={(sensor) => {
                         const nextThresholds = (st.thresholds || []).filter((t) => t.sensor !== sensor);
@@ -616,10 +622,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
             <AddIcon fontSize="small" /> Thêm giai đoạn
           </DialogTitle>
           <DialogContent>
-            {growthLoading ? (
-              <CircularProgress />
-            ) : (
-              <>
+            <>
                 <List>
                   {growthStages.map((gs) => {
                     const already = (species.stages || []).some((s) => s.growthStageId === gs.id);
@@ -673,7 +676,6 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                   </Box>
                 </Box>
               </>
-            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDialogOpen(false)}>Hủy</Button>

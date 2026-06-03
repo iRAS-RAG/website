@@ -4,7 +4,6 @@ import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconBut
 import React, { useState } from "react";
 import { createSpecies, deleteSpecies, updateSpecies } from "../../api/species";
 import { getSpeciesStageConfigsBySpecies } from "../../api/species-stage-configs";
-import { getSpeciesThresholds } from "../../api/species-threshholds";
 import { useToast } from "../../components/common/toastContext";
 import SpeciesDetail from "../../components/supervisor/species-configs/SpeciesDetail";
 import SpeciesList from "../../components/supervisor/species-configs/SpeciesList";
@@ -32,47 +31,33 @@ const SpeciesConfigsTab: React.FC = () => {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
-  async function fetchStagesForSpecies(speciesId: string, speciesName: string) {
-    // Use per-species endpoint rather than SearchTerm query
+  async function fetchStagesForSpecies(speciesId: string, _speciesName: string) {
+    // The by-species endpoint now returns thresholds nested inside each config.
     const configs = await getSpeciesStageConfigsBySpecies(speciesId);
-    const thresholdsAll = await getSpeciesThresholds();
 
     return configs.map((c) => {
-      const cfg = c as Record<string, unknown>;
-      const mappedThresholds = (thresholdsAll || [])
-        .filter((t) => {
-          const speciesMatch = (t.speciesId && speciesId && t.speciesId === speciesId) || (t.speciesName && t.speciesName === speciesName);
-          const stageMatch = (t.growthStageId && c.growthStageId && t.growthStageId === c.growthStageId) || (t.growthStageName && t.growthStageName === c.growthStageName);
-          return speciesMatch && stageMatch;
-        })
-        .map((t) => ({
-          id: t.id ?? generateId(),
-          sensor: t.sensorTypeName ?? "",
-          sensorTypeId: t.sensorTypeId ?? "",
-          min: t.minValue ?? null,
-          max: t.maxValue ?? null,
-        }));
-
-      const feedTypeIds: string[] | undefined = Array.isArray(cfg.feedTypeIds) ? (cfg.feedTypeIds as string[]).map(String) : cfg.feedTypeId ? [String(cfg.feedTypeId)] : undefined;
-
-      const feedTypeNames: string[] | undefined = Array.isArray(cfg.feedTypeNames) ? (cfg.feedTypeNames as string[]).map(String) : cfg.feedTypeName ? [String(cfg.feedTypeName)] : undefined;
-
-      const feedTypeDisplay = (feedTypeNames && feedTypeNames.length > 0 ? feedTypeNames.join(", ") : undefined) ?? feedTypeIds?.[0] ?? String(cfg.feedTypeName ?? "");
+      const mappedThresholds = (c.thresholds ?? []).map((t) => ({
+        id: generateId(),
+        sensor: t.sensorTypeName,
+        sensorTypeId: t.sensorTypeId,
+        min: t.minValue,
+        max: t.maxValue,
+      }));
 
       return {
         id: generateId(),
-        name: String(cfg.growthStageName ?? ""),
+        name: c.growthStageName ?? "",
         growthStageId: c.growthStageId,
         configId: c.id,
-        feedType: feedTypeDisplay,
-        feedTypeIds: feedTypeIds,
-        feedPer100: Number(cfg.amountPer100Fish ?? 0),
-        frequencyPerDay: Number(cfg.frequencyPerDay ?? 0),
-        maxStockingDensity: Number(cfg.maxStockingDensity ?? 0),
-        expectedDurationDays: Number(cfg.expectedDurationDays ?? 0),
-        expectedWeightKgPerFish: Number(cfg.expectedWeightKgPerFish ?? 0),
-        survivalRate: Number(cfg.survivalRate ?? 1),
-        sequence: cfg.sequence as number | undefined,
+        feedType: (c.feedTypeNames?.join(", ")) ?? c.feedTypeIds?.[0] ?? "",
+        feedTypeIds: c.feedTypeIds,
+        feedPer100: c.amountPer100Fish ?? 0,
+        frequencyPerDay: c.frequencyPerDay ?? 0,
+        maxStockingDensity: c.maxStockingDensity ?? 0,
+        expectedDurationDays: c.expectedDurationDays ?? 0,
+        expectedWeightKgPerFish: c.expectedWeightKgPerFish ?? 0,
+        survivalRate: c.survivalRate ?? 1,
+        sequence: c.sequence,
         thresholds: mappedThresholds,
       };
     });

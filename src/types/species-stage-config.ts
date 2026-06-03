@@ -1,3 +1,11 @@
+export type StageThreshold = {
+  sensorTypeId: string;
+  sensorTypeName: string;
+  minValue: number;
+  maxValue: number;
+  unitOfMeasure: string;
+};
+
 export type SpeciesStageConfig = {
   id: string;
   speciesId?: string;
@@ -15,6 +23,8 @@ export type SpeciesStageConfig = {
   expectedDurationDays?: number;
   expectedWeightKgPerFish?: number;
   survivalRate?: number;
+  // Nested thresholds from the by-species endpoint
+  thresholds?: StageThreshold[];
 };
 
 export type SpeciesStageConfigCreate = {
