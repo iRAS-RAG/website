@@ -41,6 +41,8 @@ interface ChartPoint {
 }
 
 // --- FILTER CONFIG ---
+const LIVE_WINDOW_MS = 10_000; // must match useLiveTelemetry's WINDOW_MS
+
 const TIME_FILTERS: { label: string; value: TimeFilter; seconds: number }[] = [
   { label: "10s", value: "10s", seconds: 10 },
   { label: "1 phút", value: "1m", seconds: 60 },
@@ -132,6 +134,7 @@ const RealTimeSensors = () => {
 
   const [accumulatedLive, setAccumulatedLive] = useState<ChartPoint[]>([]);
   const lastAccumulatedTsRef = useRef<number>(0);
+  const pendingLiveRef = useRef<ChartPoint[]>([]);
 
   // ── Simulation (disconnect + fake dangerous data) ──
   const [isSimulating, setIsSimulating] = useState(false);
@@ -279,19 +282,40 @@ const RealTimeSensors = () => {
     }
   }, [currentSensorId, timeFilter]);
 
+  // Buffer incoming live points into a ref on each SignalR push (no state update → cheap).
   useEffect(() => {
-    if (!currentSensorId) return;
+    if (!currentSensorId || timeFilter !== "10s") return;
     const rawPoints = liveSeries.get(currentSensorId) ?? [];
     if (rawPoints.length === 0) return;
-    const newPoints = rawPoints.filter((p) => p.ts > lastAccumulatedTsRef.current).map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
+    const newPoints = rawPoints
+      .filter((p) => p.ts > lastAccumulatedTsRef.current)
+      .map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
     if (newPoints.length > 0) {
       lastAccumulatedTsRef.current = newPoints[newPoints.length - 1].ts;
-      setAccumulatedLive((prev) => [...prev, ...newPoints]);
+      pendingLiveRef.current.push(...newPoints);
     }
-  }, [liveSeries, currentSensorId]);
+  }, [liveSeries, currentSensorId, timeFilter]);
 
+  // Flush buffered points to chart state every 2 s, trimming to the live window.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const pending = pendingLiveRef.current;
+      if (pending.length === 0) return;
+      pendingLiveRef.current = [];
+      const cutoff = Date.now() - LIVE_WINDOW_MS;
+      setAccumulatedLive((prev) => {
+        const merged = [...prev, ...pending].filter((p) => (p.ts ?? 0) >= cutoff);
+        // Safety cap: keep at most 120 points even if the live window is larger
+        return merged.length > 120 ? merged.slice(-120) : merged;
+      });
+    }, 2_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Reset accumulation when sensor changes.
   useEffect(() => {
     setAccumulatedLive([]);
+    pendingLiveRef.current = [];
     lastAccumulatedTsRef.current = 0;
   }, [currentSensorId]);
 
@@ -304,13 +328,15 @@ const RealTimeSensors = () => {
     }
   }, [currentSensorId, timeFilter, fetchChartData]);
 
+  // Auto-refresh countdown (skipped for "10s" live view).
   useEffect(() => {
+    if (timeFilter === "10s") return;
     const total = TIME_FILTERS.find((f) => f.value === timeFilter)?.seconds ?? 3600;
     setCountdown(total);
     const id = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          if (timeFilter !== "10s" && currentSensorId) fetchChartData();
+          if (currentSensorId) fetchChartData();
           return total;
         }
         return prev - 1;
@@ -322,6 +348,12 @@ const RealTimeSensors = () => {
   const handleFilterChange = (filter: TimeFilter) => {
     setTimeFilter(filter);
     setSensorChartData([]);
+    if (filter === "10s") {
+      // Re-seed from the current live window when switching to live view.
+      lastAccumulatedTsRef.current = 0;
+      pendingLiveRef.current = [];
+      setAccumulatedLive([]);
+    }
   };
 
   const handleConfirmToggle = async () => {
@@ -548,11 +580,12 @@ const RealTimeSensors = () => {
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                     <Chip
-                      icon={<RefreshIcon sx={{ fontSize: 14 }} />}
-                      label={formatCountdown(countdown)}
+                      icon={timeFilter === "10s" ? undefined : <RefreshIcon sx={{ fontSize: 14 }} />}
+                      label={timeFilter === "10s" ? "Trực tiếp" : formatCountdown(countdown)}
                       size="small"
                       variant="outlined"
-                      sx={{ fontWeight: 600, fontSize: "0.75rem", color: theme.palette.text.secondary }}
+                      color={timeFilter === "10s" ? "success" : "default"}
+                      sx={{ fontWeight: 600, fontSize: "0.75rem", color: timeFilter === "10s" ? theme.palette.success.main : theme.palette.text.secondary }}
                     />
                     {TIME_FILTERS.map((f) => (
                       <Button
