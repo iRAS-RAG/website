@@ -3,6 +3,9 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import FastfoodIcon from "@mui/icons-material/Fastfood";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
+import { useEffect, useState } from "react";
+import { getMe } from "../../api/users";
+import type { User } from "../../types/user";
 import Sidebar, { type MenuItemType } from "../common/Sidebar";
 
 const menu: MenuItemType[] = [
@@ -14,7 +17,15 @@ const menu: MenuItemType[] = [
 ];
 
 export const SupervisorSidebar: React.FC = () => {
-  return <Sidebar menu={menu} activeStyle={"leftBorder"} userName={"Supervisor"} userRole={"Quản lý"} userInitials={"M"} />;
+  const [profile, setProfile] = useState<User | null>(null);
+
+  useEffect(() => {
+    getMe()
+      .then(setProfile)
+      .catch(() => {});
+  }, []);
+
+  return <Sidebar menu={menu} activeStyle="leftBorder" userName={profile?.name ?? ""} userRole={profile?.role ?? ""} userInitials={profile?.name ? profile.name.charAt(0).toUpperCase() : "U"} />;
 };
 
 export default SupervisorSidebar;

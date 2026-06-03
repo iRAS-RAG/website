@@ -1,4 +1,4 @@
-import { alpha, Avatar, Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Typography, useTheme } from "@mui/material";
+import { alpha, Avatar, Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import type { SxProps, SystemStyleObject } from "@mui/system";
 import type { JSX } from "react";
@@ -124,8 +124,20 @@ const Sidebar: React.FC<SidebarProps> = ({ menu, activeStyle = "simple", userNam
         <Divider sx={{ mb: 2, opacity: 0.6 }} />
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 1 }}>
           <Avatar sx={{ width: 36, height: 36, bgcolor: theme.palette.primary.main, color: "#fff", fontSize: "14px" }}>{userInitials}</Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>{userName}</Typography>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Tooltip title={userName} arrow disableInteractive>
+              <Typography
+                sx={{
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {userName}
+              </Typography>
+            </Tooltip>
             {userRole && <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>{userRole}</Typography>}
           </Box>
           <LogoutButton />
