@@ -10,6 +10,7 @@ import useSensorTypes from "../../../hooks/useSensorTypes";
 import type { Stage } from "../../../hooks/useSpeciesConfigs";
 import useSpeciesThresholds from "../../../hooks/useSpeciesThresholds";
 import type { SpeciesThresholdCreate } from "../../../types/species-threshold";
+import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
 
 const ThresholdEditor: React.FC<{
@@ -97,11 +98,15 @@ const ThresholdEditor: React.FC<{
 
   async function handleExistingDelete(sensor: string) {
     if (!onRemoveThreshold || deletingExisting[sensor]) return;
+    setDeleteTarget(sensor);
+  }
 
-    const confirmed = window.confirm(`Bạn có chắc muốn xóa ngưỡng cảm biến "${sensor}"?`);
-    if (!confirmed) return;
+  async function confirmDelete() {
+    const sensor = deleteTarget;
+    if (!sensor) return;
 
     setDeletingExisting((s) => ({ ...s, [sensor]: true }));
+    setDeleteTarget(null);
     try {
       const current = stage.thresholds.find((t) => t.sensor === sensor);
       if (current?.id) {
@@ -118,9 +123,12 @@ const ThresholdEditor: React.FC<{
     }
   }
 
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
   const [newSensor, setNewSensor] = useState<string>("");
   const [newMin, setNewMin] = useState<string>("");
   const [newMax, setNewMax] = useState<string>("");
+  const unconfiguredSensors = useMemo(() => sensorTypes.filter((s) => !configured.includes(s.name)), [sensorTypes, configured]);
 
   async function handleAdd() {
     if (!newSensor) return;
@@ -213,8 +221,27 @@ const ThresholdEditor: React.FC<{
           </Grid>
         ))}
 
+        {unconfiguredSensors.length > 0 && (
+          <Grid size={12}>
+            <Box sx={{ mt: 1, mb: 1, display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<SensorsIcon fontSize="small" />}
+                onClick={() => {
+                  for (const sensor of unconfiguredSensors) {
+                    onSaveThreshold(sensor.name, null, null);
+                  }
+                }}
+              >
+                {`Thêm tất cả cảm biến (${unconfiguredSensors.length})`}
+              </Button>
+            </Box>
+          </Grid>
+        )}
+
         <Grid size={12}>
-          <Box sx={{ mt: 2, mb: 1 }}>
+          <Box sx={{ mt: 1, mb: 1 }}>
             <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
               <AddIcon fontSize="small" />
               Thêm ngưỡng mới
@@ -252,6 +279,17 @@ const ThresholdEditor: React.FC<{
           </Box>
         </Grid>
       </Grid>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Xóa ngưỡng cảm biến"
+        content={`Bạn có chắc muốn xóa ngưỡng cảm biến "${deleteTarget ?? ""}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        color="error"
+      />
     </Box>
   );
 };
