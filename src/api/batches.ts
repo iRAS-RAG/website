@@ -129,6 +129,59 @@ export type BatchesQuery = {
   sortDir?: string;
 };
 
+// ─── Active batch with safe thresholds ────────────────────────────────────────
+
+export type SafeThreshold = {
+  sensorTypeId: string;
+  sensorTypeName: string;
+  unitOfMeasure: string;
+  minValue: number;
+  maxValue: number;
+};
+
+export type ActiveBatchInfo = {
+  farmingBatchName: string;
+  fishTankName: string;
+  speciesName: string;
+  currentQuantity: number;
+  tankVolume: number;
+  safeThresholds: SafeThreshold[];
+};
+
+/**
+ * Get the active batch for a tank, including species-config safe thresholds.
+ */
+export async function getActiveBatch(fishTankId: string): Promise<ActiveBatchInfo | null> {
+  try {
+    const res = await apiFetch<{ message?: string; data?: ActiveBatchInfo }>(`/batches/active?fishTankId=${encodeURIComponent(fishTankId)}`);
+    if (!res) return null;
+    const data = (res as Record<string, unknown>).data ?? res;
+    if (!data || typeof data !== "object") return null;
+    const d = data as Record<string, unknown>;
+    return {
+      farmingBatchName: String(d.farmingBatchName ?? ""),
+      fishTankName: String(d.fishTankName ?? ""),
+      speciesName: String(d.speciesName ?? ""),
+      currentQuantity: Number(d.currentQuantity ?? 0),
+      tankVolume: Number(d.tankVolume ?? 0),
+      safeThresholds: Array.isArray(d.safeThresholds)
+        ? (d.safeThresholds as unknown[]).map((t) => {
+            const th = t as Record<string, unknown>;
+            return {
+              sensorTypeId: String(th.sensorTypeId ?? ""),
+              sensorTypeName: String(th.sensorTypeName ?? ""),
+              unitOfMeasure: String(th.unitOfMeasure ?? ""),
+              minValue: Number(th.minValue ?? 0),
+              maxValue: Number(th.maxValue ?? 0),
+            };
+          })
+        : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getBatches(query?: BatchesQuery): Promise<{ items: Batch[]; total: number }> {
   const params = new URLSearchParams();
   if (query?.status) params.set("status", query.status);
