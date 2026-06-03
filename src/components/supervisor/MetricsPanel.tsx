@@ -1,4 +1,4 @@
-import { Box, Stack } from "@mui/material";
+import { Stack } from "@mui/material";
 import React from "react";
 import useSupervisorMetrics from "../../hooks/useSupervisorMetrics";
 import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
@@ -34,17 +34,10 @@ const MetricsPanel: React.FC = () => {
   // farm timeseries charts fetch their own data via `useFarmTimeseries`
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Stack spacing={3}>
-        <Box sx={{ width: "100%" }}>
-          <FarmSummaryChart />
-        </Box>
-
-        <Box sx={{ width: "100%" }}>
-          <FarmTimeseriesChart defaultMetric="feed" height={520} />
-        </Box>
-      </Stack>
-    </Box>
+    <Stack spacing={3}>
+      <FarmSummaryChart />
+      <FarmTimeseriesChart defaultMetric="feed" height={520} />
+    </Stack>
   );
 };
 

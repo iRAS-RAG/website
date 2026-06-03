@@ -1,14 +1,14 @@
 import { Box, Button, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+
 import React from "react";
 import LocalizedDateField from "../common/LocalizedDateField";
 
 interface Props {
   start?: string;
   end?: string;
-  groupBy?: "none" | "tank" | "batch";
   metric?: string;
   limit?: number;
-  onChange: (params: { start?: string; end?: string; groupBy?: string; metric?: string; limit?: number }) => void;
+  onChange: (params: { start?: string; end?: string; metric?: string; limit?: number }) => void;
 }
 
 function isoToDate(iso?: string) {
@@ -20,36 +20,25 @@ function isoToDate(iso?: string) {
   }
 }
 
-export default function FarmSummaryControls({ start, end, groupBy = "none", metric = "totalFeedKg", limit = 10, onChange }: Props) {
+export default function FarmSummaryControls({ start, end, metric = "totalFeedKg", limit = 10, onChange }: Props) {
   const [localStart, setLocalStart] = React.useState<string>(isoToDate(start));
   const [localEnd, setLocalEnd] = React.useState<string>(isoToDate(end));
-  const [localGroupBy, setLocalGroupBy] = React.useState<string>(groupBy);
   const [localMetric, setLocalMetric] = React.useState<string>(metric);
   const [localLimit, setLocalLimit] = React.useState<number>(limit);
 
   React.useEffect(() => setLocalStart(isoToDate(start)), [start]);
   React.useEffect(() => setLocalEnd(isoToDate(end)), [end]);
-  React.useEffect(() => setLocalGroupBy(groupBy), [groupBy]);
 
   const handleRefresh = () => {
     const startIso = localStart ? new Date(localStart).toISOString() : undefined;
     const endIso = localEnd ? new Date(localEnd).toISOString() : undefined;
-    onChange({ start: startIso, end: endIso, groupBy: localGroupBy, metric: localMetric, limit: Number(localLimit) });
+    onChange({ start: startIso, end: endIso, metric: localMetric, limit: Number(localLimit) });
   };
 
   return (
     <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
       <LocalizedDateField label="Từ ngày" value={localStart} onChange={setLocalStart} size="small" />
       <LocalizedDateField label="Đến ngày" value={localEnd} onChange={setLocalEnd} size="small" />
-
-      <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel id="groupby-label">Nhóm theo</InputLabel>
-        <Select labelId="groupby-label" value={localGroupBy} label="Nhóm theo" onChange={(e) => setLocalGroupBy(String(e.target.value))}>
-          <MenuItem value="none">Không</MenuItem>
-          <MenuItem value="tank">Bể</MenuItem>
-          <MenuItem value="batch">Lô</MenuItem>
-        </Select>
-      </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 180 }}>
         <InputLabel id="metric-label">Chỉ số</InputLabel>

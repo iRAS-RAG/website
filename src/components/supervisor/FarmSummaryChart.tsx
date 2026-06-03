@@ -17,9 +17,9 @@ const defaultEnd = new Date().toISOString();
 const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
 const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
-  const [params, setParams] = React.useState({ start: defaultStart, end: defaultEnd, groupBy: "none", metric: "totalFeedKg", limit: 10 });
+  const [params, setParams] = React.useState({ start: defaultStart, end: defaultEnd, metric: "totalFeedKg", limit: 10 });
 
-  const { loading, error, summary, refetch } = useFarmSummary(farmId, { start: params.start, end: params.end, groupBy: params.groupBy === "none" ? undefined : params.groupBy });
+  const { loading, error, summary, refetch } = useFarmSummary(farmId, { start: params.start, end: params.end });
 
   // Debounced refetch for SignalR events
   const refetchTimer = React.useRef<number | null>(null);
@@ -44,7 +44,7 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
     onMortality: scheduleRefetch,
   });
 
-  type ParamsType = { start: string; end: string; groupBy: string; metric: string; limit: number };
+  type ParamsType = { start: string; end: string; metric: string; limit: number };
   const handleControlsChange = (p: Partial<ParamsType>) => {
     setParams((prev) => ({ ...prev, ...p }));
   };
@@ -53,7 +53,7 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
     // ensure data refresh when controls change
     refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.start, params.end, params.groupBy]);
+  }, [params.start, params.end]);
 
   const batches = (summary?.batches ?? []).slice();
   const metricKey = params.metric;
@@ -102,12 +102,10 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Paper variant="outlined" sx={{ p: 3, borderRadius: "16px", mb: 3 }}>
-        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700 }}>
-          Tổng quan trang trại
-        </Typography>
+      <Paper elevation={0} sx={{ p: 3, borderRadius: "14px", border: "1px solid #E2E8F0", bgcolor: "#fff" }}>
+        <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 2 }}>Tổng quan trang trại</Typography>
 
-        <FarmSummaryControls start={params.start} end={params.end} groupBy={params.groupBy as "none" | "tank" | "batch"} metric={params.metric} limit={params.limit} onChange={handleControlsChange} />
+        <FarmSummaryControls start={params.start} end={params.end} metric={params.metric} limit={params.limit} onChange={handleControlsChange} />
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -119,58 +117,47 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
           <Box sx={{ py: 4, color: "#64748B" }}>Không có dữ liệu cho khoảng thời gian đã chọn.</Box>
         ) : (
           <>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-              <Box sx={{ flex: "1 1 25%", minWidth: 220 }}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Typography variant="caption">Tổng cám (kg)</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {formatNumber(summary.totalFeedKg, 2)}
-                  </Typography>
-                </Paper>
-              </Box>
-
-              <Box sx={{ flex: "1 1 25%", minWidth: 220 }}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Typography variant="caption">Tổng tử vong (con)</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {formatNumber(summary.totalDeathsCount, 0)}
-                  </Typography>
-                </Paper>
-              </Box>
-
-              <Box sx={{ flex: "1 1 25%", minWidth: 220 }}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Typography variant="caption">Số lượng hiện có (con)</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {formatNumber(summary.totalCurrentQuantity, 0)}
-                  </Typography>
-                </Paper>
-              </Box>
-
-              <Box sx={{ flex: "1 1 25%", minWidth: 220 }}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Typography variant="caption">FCR</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {summary.fcr === null || summary.fcr === undefined ? "—" : summary.fcr.toFixed(2)}
-                  </Typography>
-                </Paper>
-              </Box>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }, gap: 2 }}>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+                <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>Tổng cám</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0F172A" }}>
+                  {formatNumber(summary.totalFeedKg, 2)} kg
+                </Typography>
+              </Paper>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+                <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>Tử vong</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0F172A" }}>
+                  {formatNumber(summary.totalDeathsCount, 0)} con
+                </Typography>
+              </Paper>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+                <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>Số lượng hiện có</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0F172A" }}>
+                  {formatNumber(summary.totalCurrentQuantity, 0)} con
+                </Typography>
+              </Paper>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+                <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>FCR</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0F172A" }}>
+                  {summary.fcr === null || summary.fcr === undefined ? "—" : summary.fcr.toFixed(2)}
+                </Typography>
+              </Paper>
             </Box>
 
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+            <Box sx={{ mt: 3 }}>
+              <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 1.5 }}>
                 Các vụ nuôi hàng đầu theo {metricLabel(params.metric)}
               </Typography>
               {barData.length === 0 ? (
                 <Box sx={{ py: 4, color: "#64748B" }}>Không có dữ liệu để hiển thị biểu đồ.</Box>
               ) : (
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px" }}>
-                  <Box sx={{ height: 320 }}>
+                <Paper elevation={0} sx={{ p: 2, borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+                  <Box sx={{ height: Math.max(200, Math.min(600, barData.length * 48)) }}>
                     <ResponsiveContainer>
                       <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={160} />
+                        <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 12 }} />
                         <Tooltip />
                         <Legend />
                         <Bar dataKey="value" name={metricLabel(params.metric)} fill={COLORS[0]}>
@@ -185,16 +172,14 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
               )}
             </Box>
 
-            <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Các vụ nuôi
-              </Typography>
-              <Button size="small" onClick={exportCsv}>
+            <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>Các vụ nuôi</Typography>
+              <Button size="small" variant="outlined" onClick={exportCsv} sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.75rem", borderRadius: "8px" }}>
                 Xuất CSV
               </Button>
             </Box>
 
-            <TableContainer component={Paper} variant="outlined" sx={{ mt: 1, borderRadius: "12px" }}>
+            <TableContainer component={Paper} elevation={0} sx={{ mt: 1.5, borderRadius: "12px", border: "1px solid #E2E8F0" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -206,15 +191,27 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(summary?.batches ?? []).map((b) => (
-                    <TableRow key={b.batchId}>
-                      <TableCell>{b.batchName ?? b.batchId}</TableCell>
-                      <TableCell align="right">{b.currentQuantity ?? "—"}</TableCell>
-                      <TableCell align="right">{b.totalFeedKg ?? "—"}</TableCell>
-                      <TableCell align="right">{b.totalDeaths ?? "—"}</TableCell>
-                      <TableCell align="right">{b.fcr ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {(summary?.batches ?? [])
+                    .slice()
+                    .sort((a, b) => {
+                      const getVal = (batch: typeof a) => {
+                        if (metricKey === "totalFeedKg") return batch.totalFeedKg ?? 0;
+                        if (metricKey === "totalDeaths") return batch.totalDeaths ?? 0;
+                        if (metricKey === "currentQuantity") return batch.currentQuantity ?? 0;
+                        return batch.fcr ?? 0;
+                      };
+                      return Number(getVal(b)) - Number(getVal(a));
+                    })
+                    .slice(0, limit)
+                    .map((b) => (
+                      <TableRow key={b.batchId}>
+                        <TableCell>{b.batchName ?? b.batchId}</TableCell>
+                        <TableCell align="right">{b.currentQuantity ?? "—"}</TableCell>
+                        <TableCell align="right">{b.totalFeedKg ?? "—"}</TableCell>
+                        <TableCell align="right">{b.totalDeaths ?? "—"}</TableCell>
+                        <TableCell align="right">{b.fcr ?? "—"}</TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </TableContainer>

@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
+import { Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import React from "react";
 import useFarmTimeseries from "../../hooks/useFarmTimeseries";
 import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
@@ -7,7 +7,11 @@ import FarmTimeseriesControls from "./FarmTimeseriesControls";
 
 function mapSeries(ts?: { series: { groupId?: string; groupName?: string; points: { timestamp: string; value: number }[] }[] } | null) {
   if (!ts || !ts.series) return [] as { name: string; points: { timestamp: string; value: number }[] }[];
-  return ts.series.map((s) => ({ name: s.groupName || s.groupId || "Chuỗi", points: s.points }));
+  return ts.series.map((s) => {
+    let name = s.groupName || s.groupId || "Chuỗi";
+    if (name === "Farm") name = "Nông trại";
+    return { name, points: s.points };
+  });
 }
 
 const defaultEnd = new Date().toISOString();
@@ -58,10 +62,42 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
   });
 
   const handleControlsChange = (p: { start?: string; end?: string; groupBy?: string; metric?: string; interval?: string; aggregations?: string[] }) => {
-    setParams((prev) => ({ ...prev, ...(p as any) }));
+    setParams((prev) => {
+      // When switching to batch grouping, force a single aggregation to avoid chart clutter
+      if (p.groupBy === "batch" && p.groupBy !== prev.groupBy) {
+        return { ...prev, ...(p as any), aggregations: ["sum"] };
+      }
+      return { ...prev, ...(p as any) };
+    });
   };
 
-  const series = mapSeries(timeseries);
+  const series = React.useMemo(() => mapSeries(timeseries), [timeseries]);
+
+  // Multi-select filter for batch series
+  const allSeriesNames = React.useMemo(() => series.map((s) => s.name), [series]);
+  const [visibleSeries, setVisibleSeries] = React.useState<string[]>([]);
+  const initializedRef = React.useRef(false);
+
+  // Initialize visibleSeries once when data first arrives, or when groupBy changes
+  React.useEffect(() => {
+    if (allSeriesNames.length === 0) return;
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      setVisibleSeries(params.groupBy === "batch" && allSeriesNames.length > 10 ? allSeriesNames.slice(0, 10) : allSeriesNames);
+    }
+  }, [allSeriesNames, params.groupBy]);
+
+  // Reset initialization when groupBy mode changes
+  React.useEffect(() => {
+    initializedRef.current = false;
+  }, [params.groupBy]);
+
+  const filteredSeries = React.useMemo(() => {
+    if (params.groupBy === "batch" && visibleSeries.length < allSeriesNames.length) {
+      return series.filter((s) => visibleSeries.includes(s.name));
+    }
+    return series;
+  }, [series, visibleSeries, allSeriesNames, params.groupBy]);
 
   const exportCsv = () => {
     const headers = ["Thời gian", "Chuỗi", "Giá trị"];
@@ -83,10 +119,8 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Paper variant="outlined" sx={{ p: 3, borderRadius: "16px" }}>
-        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700 }}>
-          {metricLabel(params.metric)} theo thời gian
-        </Typography>
+      <Paper elevation={0} sx={{ p: 3, borderRadius: "14px", border: "1px solid #E2E8F0", bgcolor: "#fff" }}>
+        <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 2 }}>{metricLabel(params.metric)} theo thời gian</Typography>
 
         <FarmTimeseriesControls
           start={params.start}
@@ -97,6 +131,32 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
           aggregations={params.aggregations}
           onChange={handleControlsChange}
         />
+
+        {params.groupBy === "batch" && allSeriesNames.length > 1 && (
+          <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748B", whiteSpace: "nowrap" }}>Hiển thị lô:</Typography>
+            <Autocomplete
+              multiple
+              size="small"
+              options={allSeriesNames}
+              value={visibleSeries}
+              onChange={(_, newValue) => setVisibleSeries(newValue)}
+              disableCloseOnSelect
+              sx={{ minWidth: 280, maxWidth: "100%" }}
+              renderInput={(params) => <TextField {...params} label="Chọn lô" placeholder="Tìm lô..." />}
+              renderOption={(props, option, { selected }) => (
+                <li {...props}>
+                  <Checkbox checked={selected} size="small" sx={{ mr: 1 }} />
+                  {option}
+                </li>
+              )}
+              renderTags={(value, getTagProps) => value.slice(0, 3).map((name, index) => <Chip label={name} size="small" sx={{ height: 20, fontSize: "0.7rem" }} {...getTagProps({ index })} />)}
+            />
+            <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+              {visibleSeries.length}/{allSeriesNames.length} lô
+            </Typography>
+          </Box>
+        )}
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -109,11 +169,11 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
         ) : (
           <>
             <Box sx={{ mt: 2 }}>
-              <TimeseriesChart title={undefined} series={series} height={height} />
+              <TimeseriesChart title={undefined} series={filteredSeries} height={height} />
             </Box>
 
             <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
-              <Button size="small" onClick={exportCsv}>
+              <Button size="small" variant="outlined" onClick={exportCsv} sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.75rem", borderRadius: "8px" }}>
                 Xuất CSV
               </Button>
             </Box>
