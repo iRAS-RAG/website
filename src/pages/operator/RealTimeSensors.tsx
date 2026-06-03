@@ -675,8 +675,8 @@ const RealTimeSensors = () => {
                           }
                           activeDot={{ r: 8 }}
                         />
-                        {(timeFilter === "10s" || timeFilter === "1m" || timeFilter === "1h") && displayChartData.length > 12 && (
-                          <Brush dataKey="time" height={22} startIndex={Math.max(0, displayChartData.length - 12)} endIndex={displayChartData.length - 1} stroke="#10B981" fill="#F0FDF4" travellerWidth={8} gap={1} tickFormatter={() => ""} />
+                        {(timeFilter === "1m" || timeFilter === "1h") && displayChartData.length > 12 && (
+                          <Brush dataKey="time" height={22} startIndex={Math.max(0, displayChartData.length - 12)} endIndex={displayChartData.length - 1} stroke="#10B981" fill="#F0FDF4" travellerWidth={8} gap={1} tickFormatter={(v: string) => v} />
                         )}
                       </LineChart>
                     </ResponsiveContainer>
