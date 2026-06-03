@@ -6,10 +6,9 @@ import { createSpecies, deleteSpecies, updateSpecies } from "../../api/species";
 import { getSpeciesStageConfigsBySpecies } from "../../api/species-stage-configs";
 import { getSpeciesThresholds } from "../../api/species-threshholds";
 import { useToast } from "../../components/common/toastContext";
-import * as SpeciesDetailModule from "../../components/supervisor/species-configs/SpeciesDetail";
+import SpeciesDetail from "../../components/supervisor/species-configs/SpeciesDetail";
 import SpeciesList from "../../components/supervisor/species-configs/SpeciesList";
 import useSpeciesConfigs from "../../hooks/useSpeciesConfigs";
-const SpeciesDetail = (SpeciesDetailModule as any).default ?? (SpeciesDetailModule as any).SpeciesDetail ?? (SpeciesDetailModule as any);
 
 import { autoSuggestIcon, SPECIES_ICONS } from "../../utils/iconMapper";
 
@@ -39,6 +38,7 @@ const SpeciesConfigsTab: React.FC = () => {
     const thresholdsAll = await getSpeciesThresholds();
 
     return configs.map((c) => {
+      const cfg = c as Record<string, unknown>;
       const mappedThresholds = (thresholdsAll || [])
         .filter((t) => {
           const speciesMatch = (t.speciesId && speciesId && t.speciesId === speciesId) || (t.speciesName && t.speciesName === speciesName);
@@ -53,34 +53,26 @@ const SpeciesConfigsTab: React.FC = () => {
           max: t.maxValue ?? null,
         }));
 
-      // Normalize feed type arrays (backend now returns feedTypeIds/feedTypeNames)
-      const feedTypeIds: string[] | undefined = Array.isArray((c as any).feedTypeIds) ? (c as any).feedTypeIds.map(String) : (c as any).feedTypeId ? [String((c as any).feedTypeId)] : undefined;
+      const feedTypeIds: string[] | undefined = Array.isArray(cfg.feedTypeIds) ? (cfg.feedTypeIds as string[]).map(String) : cfg.feedTypeId ? [String(cfg.feedTypeId)] : undefined;
 
-      const feedTypeNames: string[] | undefined = Array.isArray((c as any).feedTypeNames)
-        ? (c as any).feedTypeNames.map(String)
-        : (c as any).feedTypeName
-          ? [String((c as any).feedTypeName)]
-          : undefined;
+      const feedTypeNames: string[] | undefined = Array.isArray(cfg.feedTypeNames) ? (cfg.feedTypeNames as string[]).map(String) : cfg.feedTypeName ? [String(cfg.feedTypeName)] : undefined;
 
-      const feedTypeDisplay = (feedTypeNames && feedTypeNames.length > 0 ? feedTypeNames.join(", ") : undefined) ?? feedTypeIds?.[0] ?? (c as any).feedTypeName ?? "";
+      const feedTypeDisplay = (feedTypeNames && feedTypeNames.length > 0 ? feedTypeNames.join(", ") : undefined) ?? feedTypeIds?.[0] ?? String(cfg.feedTypeName ?? "");
 
       return {
         id: generateId(),
-        name: c.growthStageName ?? "",
+        name: String(cfg.growthStageName ?? ""),
         growthStageId: c.growthStageId,
         configId: c.id,
-        // keep legacy single-value `feedType` for existing components,
-        // and also expose `feedTypeIds` for multi-feed support
         feedType: feedTypeDisplay,
         feedTypeIds: feedTypeIds,
-        feedPer100: c.amountPer100Fish ?? 0,
-        frequencyPerDay: c.frequencyPerDay ?? 0,
-        maxStockingDensity: c.maxStockingDensity ?? 0,
-        expectedDurationDays: c.expectedDurationDays ?? 0,
-        expectedWeightKgPerFish: (c as any).expectedWeightKgPerFish ?? 0,
-        survivalRate: (c as any).survivalRate ?? 1,
-        // preserve ordering metadata
-        sequence: (c as any).sequence,
+        feedPer100: Number(cfg.amountPer100Fish ?? 0),
+        frequencyPerDay: Number(cfg.frequencyPerDay ?? 0),
+        maxStockingDensity: Number(cfg.maxStockingDensity ?? 0),
+        expectedDurationDays: Number(cfg.expectedDurationDays ?? 0),
+        expectedWeightKgPerFish: Number(cfg.expectedWeightKgPerFish ?? 0),
+        survivalRate: Number(cfg.survivalRate ?? 1),
+        sequence: cfg.sequence as number | undefined,
         thresholds: mappedThresholds,
       };
     });

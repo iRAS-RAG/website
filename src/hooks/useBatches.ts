@@ -9,6 +9,7 @@ import {
   startBatch as apiStartBatch,
   terminateBatch as apiTerminateBatch,
   updateBatch as apiUpdateBatch,
+  updateBatchSchedule as apiUpdateBatchSchedule,
   getBatchOperationLogs,
   getBatchPerformance,
   getBatches,
@@ -111,9 +112,9 @@ export default function useBatches(options: UseBatchesOptions = {}) {
   };
 
   // Mark batch as terminated
-  const terminateBatch = async (id: string, reason: string): Promise<Batch | null> => {
+  const terminateBatch = async (id: string): Promise<Batch | null> => {
     try {
-      const terminated = await apiTerminateBatch(id, reason);
+      const terminated = await apiTerminateBatch(id);
       if (terminated) {
         setBatches((prev) => prev.map((b) => (b.id === id ? terminated : b)));
       }
@@ -137,6 +138,21 @@ export default function useBatches(options: UseBatchesOptions = {}) {
       const message = err instanceof Error ? err.message : "Failed to delete batch";
       setError(message);
       return false;
+    }
+  };
+
+  // Update batch schedule (for PAUSED batches)
+  const updateBatchSchedule = async (id: string, payload: { startDate?: string; speciesId?: string; initialQuantity?: number }): Promise<Batch | null> => {
+    try {
+      const updated = await apiUpdateBatchSchedule(id, payload);
+      if (updated) {
+        setBatches((prev) => prev.map((b) => (b.id === id ? updated : b)));
+      }
+      return updated;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update batch schedule";
+      setError(message);
+      throw err;
     }
   };
 
@@ -167,6 +183,7 @@ export default function useBatches(options: UseBatchesOptions = {}) {
     loadBatches,
     createBatch,
     updateBatch,
+    updateBatchSchedule,
     harvestBatch,
     startBatch,
     terminateBatch,

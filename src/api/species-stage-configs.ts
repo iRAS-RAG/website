@@ -95,6 +95,16 @@ export async function deleteSpeciesStageConfig(id: string): Promise<boolean> {
   return true;
 }
 
+export async function reorderSpeciesStageConfigs(speciesId: string, orderedIds: string[]): Promise<SpeciesStageConfig[]> {
+  const res = await apiFetch<unknown>(`/config/species-stage-configs/reorder`, {
+    method: "PUT",
+    body: { speciesId, orderedIds },
+  });
+  const items = Array.isArray(res) ? res : res && typeof res === "object" && Object.prototype.hasOwnProperty.call(res, "data") ? (res as Record<string, unknown>).data : null;
+  if (Array.isArray(items)) return (items as unknown[]).map((i) => toUi(i as Record<string, unknown>)).sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+  return [];
+}
+
 export default {
   getSpeciesStageConfigs,
   getSpeciesStageConfigsBySpecies,
@@ -102,4 +112,5 @@ export default {
   createSpeciesStageConfig,
   updateSpeciesStageConfig,
   deleteSpeciesStageConfig,
+  reorderSpeciesStageConfigs,
 };

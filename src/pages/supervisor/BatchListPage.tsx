@@ -134,7 +134,9 @@ const BatchListPage: React.FC = () => {
       sortable: false,
       render: (row) => (
         <Typography variant="body2" sx={{ color: "#64748B" }}>
-          {row.status === "PAUSED" ? "N/A" : `${calculateAge(row.startDate)} ngày`}
+          {row.status === "PAUSED" || (row.status === "TERMINATED" && (!row.actualHarvestDate || new Date(row.actualHarvestDate) < new Date(row.startDate)))
+            ? "N/A"
+            : `${calculateAge(row.startDate)} ngày`}
         </Typography>
       ),
     },
@@ -164,7 +166,7 @@ const BatchListPage: React.FC = () => {
     },
     {
       field: "actualHarvestDate",
-      label: "Ngày thu hoạch",
+      label: "Ngày thu hoạch/kết thúc",
       sortable: true,
       render: (row) => (
         <Typography variant="body2" sx={{ color: "#64748B" }}>
@@ -322,6 +324,7 @@ const BatchListPage: React.FC = () => {
               <Tab label="Đang nuôi" value="ACTIVE" />
               <Tab label="Chưa bắt đầu" value="PAUSED" />
               <Tab label="Đã thu hoạch" value="HARVESTED" />
+              <Tab label="Kết thúc" value="TERMINATED" />
             </Tabs>
             <Divider />
 
