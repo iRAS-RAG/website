@@ -88,7 +88,7 @@ const BatchManagement = () => {
   // Left-panel filters
   const [searchText, setSearchText] = useState("");
   const [tankFilter, setTankFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("0"); // default: ACTIVE
 
   // Date range filters
   const [feedDateFrom, setFeedDateFrom] = useState<Dayjs | null>(null);
