@@ -372,8 +372,6 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
           return (
             <Accordion
               key={st.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, idx)}
               onDragOver={(e) => handleDragOver(e, idx)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, idx)}
@@ -407,7 +405,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                     >
                       {idx + 1}
                     </Box>
-                    <Box sx={{ display: "inline-flex", alignItems: "center", color: "#94A3B8", cursor: "grab" }}>
+                    <Box draggable onDragStart={(e) => handleDragStart(e, idx)} sx={{ display: "inline-flex", alignItems: "center", color: "#94A3B8", cursor: "grab" }}>
                       <DragIndicatorIcon fontSize="small" />
                     </Box>
                     <Typography sx={{ fontWeight: 600, color: "#334155" }}>{st.name}</Typography>
@@ -483,7 +481,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                                   }}
                                 >
                                   <Checkbox size="small" checked={isSelected} />
-                                  <ListItemText primary={f.name} />
+                                  <ListItemText
+                                    primary={f.name}
+                                    secondary={f.proteinPercentage != null ? `${f.proteinPercentage}% đạm` : undefined}
+                                    secondaryTypographyProps={{ variant: "caption", sx: { color: "#94A3B8" } }}
+                                  />
                                 </MenuItem>
                               );
                             }),

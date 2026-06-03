@@ -20,6 +20,14 @@ export type Role = "Admin" | "Supervisor" | "Operator";
 
 export const roles = ["Admin", "Supervisor", "Operator"] as const;
 
+function buildDisplayName(raw: Record<string, unknown>): string {
+  const firstName = String(raw["firstName"] ?? "");
+  const lastName = String(raw["lastName"] ?? "");
+  if (firstName && lastName) return `${lastName} ${firstName}`.trim();
+  if (firstName || lastName) return (firstName || lastName).trim();
+  return "Guest";
+}
+
 export const currentUser: { id: string; name: string; role: Role | null } = {
   id: "",
   name: "Guest",
@@ -31,26 +39,26 @@ function roleOrDefault(r: unknown): Role | null {
   return null;
 }
 
-(() => {
-  const access = jwt.getAccessToken();
-  if (!access) return;
-  const info = jwt.getUserFromToken(access) || ({} as Record<string, unknown>);
-  currentUser.id = (info.id as string) || "";
-  currentUser.name = (info.name as string) || "Guest";
-  currentUser.role = roleOrDefault(info.role as unknown);
-})();
-
-addTokenListener((access) => {
-  if (!access) {
+function updateCurrentUser(token: string | null) {
+  if (!token) {
     currentUser.id = "";
     currentUser.name = "Guest";
     currentUser.role = null;
     return;
   }
-  const info = jwt.getUserFromToken(access) || ({} as Record<string, unknown>);
-  currentUser.id = (info.id as string) || "";
-  currentUser.name = (info.name as string) || "Guest";
-  currentUser.role = roleOrDefault(info.role as unknown);
+  const info = jwt.getUserFromToken(token);
+  currentUser.id = info.id ?? "";
+  currentUser.name = buildDisplayName(info.raw);
+  currentUser.role = roleOrDefault(info.role);
+}
+
+(() => {
+  const access = jwt.getAccessToken();
+  if (access) updateCurrentUser(access);
+})();
+
+addTokenListener((access) => {
+  updateCurrentUser(access);
 });
 
 export function setCurrentUser(user: { id: string; name: string; role: Role | null }) {

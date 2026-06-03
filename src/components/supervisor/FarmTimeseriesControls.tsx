@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Select } from "@mui/material";
+import { Box, Button, Checkbox, FormControl, InputLabel, ListItemText, MenuItem, OutlinedInput, Select, Typography } from "@mui/material";
 import React from "react";
 import LocalizedDateField from "../common/LocalizedDateField";
 
@@ -78,28 +78,35 @@ export default function FarmTimeseriesControls({ start, end, groupBy = "none", m
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={{ minWidth: 220 }}>
-        <InputLabel id="agg-label">Hàm gộp</InputLabel>
-        <Select
-          labelId="agg-label"
-          multiple
-          value={localAggs}
-          onChange={(e) => setLocalAggs(typeof e.target.value === "string" ? e.target.value.split(",") : (e.target.value as string[]))}
-          input={<OutlinedInput label="Hàm gộp" />}
-          renderValue={(selected) => (selected as string[]).map((s) => AGG_OPTIONS.find((o) => o.value === s)?.label ?? s).join(", ")}
-        >
-          {AGG_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              <Checkbox checked={localAggs.indexOf(opt.value) > -1} />
-              <ListItemText primary={opt.label} />
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", width: "100%" }}>
+        <FormControl size="small" sx={{ minWidth: 220 }} disabled={localGroupBy === "batch"}>
+          <InputLabel id="agg-label">Hàm gộp</InputLabel>
+          <Select
+            labelId="agg-label"
+            multiple
+            value={localAggs}
+            onChange={(e) => setLocalAggs(typeof e.target.value === "string" ? e.target.value.split(",") : (e.target.value as string[]))}
+            input={<OutlinedInput label="Hàm gộp" />}
+            renderValue={(selected) => (selected as string[]).map((s) => AGG_OPTIONS.find((o) => o.value === s)?.label ?? s).join(", ")}
+          >
+            {AGG_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                <Checkbox checked={localAggs.indexOf(opt.value) > -1} />
+                <ListItemText primary={opt.label} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        {localGroupBy === "batch" && (
+          <Typography variant="caption" sx={{ color: "#94A3B8", fontStyle: "italic" }}>
+            Chỉ hỗ trợ 1 hàm gộp khi nhóm theo lô/bể
+          </Typography>
+        )}
 
-      <Button variant="contained" onClick={handleRefresh}>
-        Cập nhật
-      </Button>
+        <Button variant="contained" onClick={handleRefresh}>
+          Cập nhật
+        </Button>
+      </Box>
     </Box>
   );
 }

@@ -51,8 +51,11 @@ export const useOperatorBatches = () => {
                 ...prev,
                 currentQuantity: detailed.currentQuantity ?? prev.currentQuantity,
                 tankVolume: detailed.tankVolume ?? prev.tankVolume,
-                estimatedHarvestCount: detailed.estimatedHarvestCount ?? (prev as any).estimatedHarvestCount,
-                estimatedHarvestWeightKg: detailed.estimatedHarvestWeightKg ?? (prev as any).estimatedHarvestWeightKg,
+                estimatedHarvestCount: detailed.estimatedHarvestCount ?? prev.estimatedHarvestCount,
+                estimatedHarvestWeightKg: detailed.estimatedHarvestWeightKg ?? prev.estimatedHarvestWeightKg,
+                actualHarvestCount: detailed.actualHarvestCount ?? prev.actualHarvestCount,
+                actualHarvestWeightKg: detailed.actualHarvestWeightKg ?? prev.actualHarvestWeightKg,
+                fcr: detailed.fcr ?? prev.fcr,
               } as IOperatorFarmingBatch;
             });
           }
@@ -104,14 +107,20 @@ export const useOperatorBatches = () => {
             if (!prev) return prev;
             const newCurrentQuantity = detailed.currentQuantity ?? prev.currentQuantity;
             const newTankVolume = detailed.tankVolume ?? prev.tankVolume;
-            const newEstimatedHarvestCount = detailed.estimatedHarvestCount ?? (prev as any).estimatedHarvestCount;
-            const newEstimatedHarvestWeightKg = detailed.estimatedHarvestWeightKg ?? (prev as any).estimatedHarvestWeightKg;
+            const newEstimatedHarvestCount = detailed.estimatedHarvestCount ?? prev.estimatedHarvestCount;
+            const newEstimatedHarvestWeightKg = detailed.estimatedHarvestWeightKg ?? prev.estimatedHarvestWeightKg;
+            const newActualHarvestCount = detailed.actualHarvestCount ?? prev.actualHarvestCount;
+            const newActualHarvestWeightKg = detailed.actualHarvestWeightKg ?? prev.actualHarvestWeightKg;
+            const newFcr = detailed.fcr ?? prev.fcr;
 
             const unchanged =
               newCurrentQuantity === prev.currentQuantity &&
               newTankVolume === prev.tankVolume &&
-              newEstimatedHarvestCount === (prev as any).estimatedHarvestCount &&
-              newEstimatedHarvestWeightKg === (prev as any).estimatedHarvestWeightKg;
+              newEstimatedHarvestCount === prev.estimatedHarvestCount &&
+              newEstimatedHarvestWeightKg === prev.estimatedHarvestWeightKg &&
+              newActualHarvestCount === prev.actualHarvestCount &&
+              newActualHarvestWeightKg === prev.actualHarvestWeightKg &&
+              newFcr === prev.fcr;
 
             if (unchanged) return prev;
 
@@ -121,6 +130,9 @@ export const useOperatorBatches = () => {
               tankVolume: newTankVolume,
               estimatedHarvestCount: newEstimatedHarvestCount,
               estimatedHarvestWeightKg: newEstimatedHarvestWeightKg,
+              actualHarvestCount: newActualHarvestCount,
+              actualHarvestWeightKg: newActualHarvestWeightKg,
+              fcr: newFcr,
             } as IOperatorFarmingBatch;
           });
         }

@@ -84,14 +84,6 @@ export default function TankDetail({
             variant="outlined"
             sx={{ fontWeight: 500 }}
           />
-          {tank.farmName && (
-            <Typography
-              variant="caption"
-              sx={{ display: "block", color: "text.secondary", mt: 0.75 }}
-            >
-              Trang trại: {tank.farmName}
-            </Typography>
-          )}
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button

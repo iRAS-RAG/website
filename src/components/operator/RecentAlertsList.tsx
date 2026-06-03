@@ -47,13 +47,16 @@ export const RecentAlertsList = ({
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Fetch more than limit so scroll is useful; limit only controls visible height
+  const FETCH_SIZE = Math.max(limit, 20);
+
   useEffect(() => {
     let mounted = true;
     const fetch = async () => {
       try {
         const res = await alertApi.getAll({
           page: 1,
-          pageSize: limit,
+          pageSize: FETCH_SIZE,
           statuses: ["OPEN"],
           tankId,
         });
@@ -77,7 +80,7 @@ export const RecentAlertsList = ({
       mounted = false;
       clearInterval(interval);
     };
-  }, [tankId, limit]);
+  }, [tankId, FETCH_SIZE]);
 
   return (
     <Paper
@@ -119,7 +122,18 @@ export const RecentAlertsList = ({
           Không có cảnh báo nào đang mở
         </Typography>
       ) : (
-        <List dense disablePadding>
+        <List
+          dense
+          disablePadding
+          sx={{
+            maxHeight: `${limit * 68}px`,
+            overflowY: "auto",
+            pr: 0.5,
+            "&::-webkit-scrollbar": { width: 4 },
+            "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
+            "&::-webkit-scrollbar-thumb": { bgcolor: "#CBD5E1", borderRadius: 2 },
+          }}
+        >
           {alerts.map((a) => (
             <ListItem
               key={a.id}

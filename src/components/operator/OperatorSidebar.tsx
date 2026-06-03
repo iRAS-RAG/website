@@ -5,6 +5,9 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 // import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import WaterIcon from "@mui/icons-material/Water";
+import { useEffect, useState } from "react";
+import { getMe } from "../../api/users";
+import type { User } from "../../types/user";
 import Sidebar, { type MenuItemType } from "../common/Sidebar";
 
 const menuItems: MenuItemType[] = [
@@ -13,7 +16,7 @@ const menuItems: MenuItemType[] = [
     icon: <DashboardIcon />,
     path: "/operator/dashboard",
   },
-  { text: "Lô nuôi", icon: <WaterIcon />, path: "/operator/tanks" },
+  { text: "Vụ nuôi", icon: <WaterIcon />, path: "/operator/tanks" },
   {
     text: "Cảm biến bể ",
     icon: <SensorsIcon />,
@@ -34,13 +37,21 @@ const menuItems: MenuItemType[] = [
 ];
 
 export const OperatorSidebar = () => {
+  const [profile, setProfile] = useState<User | null>(null);
+
+  useEffect(() => {
+    getMe()
+      .then(setProfile)
+      .catch(() => {});
+  }, []);
+
   return (
     <Sidebar
       menu={menuItems}
-      activeStyle="primary"
-      userName={"Operator"}
-      userRole={"Kỹ thuật viên"}
-      userInitials={"A"}
+      activeStyle="leftBorder"
+      userName={profile?.name ?? ""}
+      userRole={profile?.role ?? ""}
+      userInitials={profile?.name ? profile.name.charAt(0).toUpperCase() : "U"}
       zIndex={1200}
     />
   );

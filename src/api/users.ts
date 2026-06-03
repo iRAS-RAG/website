@@ -16,18 +16,10 @@ export function toUiUser(item: Record<string, unknown>): User {
 export async function getUsers(): Promise<User[]> {
   const items = await apiFetch<unknown[]>("/users");
   if (!Array.isArray(items)) return [];
-  return (items as unknown[]).map((i) =>
-    toUiUser(i as Record<string, unknown>),
-  );
+  return (items as unknown[]).map((i) => toUiUser(i as Record<string, unknown>));
 }
 
-export async function createUser(payload: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-  password?: string;
-}): Promise<User> {
+export async function createUser(payload: { firstName: string; lastName: string; email: string; role: string; password?: string }): Promise<User> {
   const body: Record<string, unknown> = {
     email: payload.email,
     firstName: payload.firstName,
@@ -98,6 +90,11 @@ export async function disableUser(id: string): Promise<boolean> {
 export async function restoreUser(id: string): Promise<boolean> {
   await apiFetch(`/users/${id}`, { method: "PUT", body: { isDeleted: false } });
   return true;
+}
+
+export async function getMe(): Promise<User> {
+  const data = await apiFetch<Record<string, unknown>>("/users/me");
+  return toUiUser(data);
 }
 
 export default { getUsers, createUser, updateUser, deleteUser, resetPassword };

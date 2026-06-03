@@ -120,11 +120,32 @@ function toPlannedStage(item: Record<string, unknown>): PlannedStage {
 /**
  * Get all batches with optional status filter
  */
-export async function getBatches(status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED"): Promise<Batch[]> {
-  const query = status ? `?status=${status}` : "";
-  const res = await apiFetch<unknown>(`/batches${query}`);
+export type BatchesQuery = {
+  status?: "ACTIVE" | "HARVESTED" | "PAUSED" | "TERMINATED";
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  sortBy?: string;
+  sortDir?: string;
+};
+
+export async function getBatches(query?: BatchesQuery): Promise<{ items: Batch[]; total: number }> {
+  const params = new URLSearchParams();
+  if (query?.status) params.set("status", query.status);
+  if (query?.page) params.set("page", String(query.page));
+  if (query?.pageSize) params.set("pageSize", String(query.pageSize));
+  if (query?.searchTerm) params.set("searchTerm", query.searchTerm);
+  if (query?.sortBy) params.set("sortBy", query.sortBy);
+  if (query?.sortDir) params.set("sortDir", query.sortDir);
+  const res = await apiFetch<unknown>(`/batches?${params.toString()}`);
   const items = extractArray(res);
-  return items.map((i) => toBatch(i as Record<string, unknown>));
+  let total = 0;
+  if (res && typeof res === "object") {
+    const obj = res as Record<string, unknown>;
+    const meta = obj["meta"] as Record<string, unknown> | undefined;
+    total = (meta?.totalItems as number) ?? items.length;
+  }
+  return { items: items.map((i) => toBatch(i as Record<string, unknown>)), total };
 }
 
 /**

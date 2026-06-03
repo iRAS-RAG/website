@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Avatar, Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isSupervisor } from "../../api/auth";
@@ -9,9 +9,56 @@ import { useSupervisorDashboard } from "../../hooks/useSupervisorDashboard";
 import FeedTypesTab from "./FeedTypesTab";
 import SpeciesConfigsTab from "./SpeciesConfigsTab";
 
+// Icons
+import AgricultureIcon from "@mui/icons-material/Agriculture";
+import FastfoodIcon from "@mui/icons-material/Fastfood";
+import PeopleIcon from "@mui/icons-material/People";
+import PetsIcon from "@mui/icons-material/Pets";
+
+// ─── KPI Card ────────────────────────────────────────────────────────────────
+
+interface KpiCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: React.ElementType;
+  color: string;
+}
+
+const KpiCard: React.FC<KpiCardProps> = ({ title, value, subtitle, icon: Icon, color }) => (
+  <Paper
+    elevation={0}
+    sx={{
+      p: 2.5,
+      borderRadius: "14px",
+      border: "1px solid #E2E8F0",
+      borderTop: `4px solid ${color}`,
+      bgcolor: "#fff",
+      height: "100%",
+    }}
+  >
+    <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5 }}>{title}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>
+          {value}
+        </Typography>
+        {subtitle && (
+          <Typography variant="caption" sx={{ color: "#94A3B8", mt: 0.5, display: "block" }}>
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+      <Avatar sx={{ bgcolor: `${color}15`, color, width: 48, height: 48, borderRadius: "12px" }}>
+        <Icon />
+      </Avatar>
+    </Stack>
+  </Paper>
+);
+
 // --- COMPONENT TỔNG QUAN (OVERVIEW) ---
 const OverviewSection: React.FC = () => {
-  const { loading } = useSupervisorDashboard();
+  const { stats, loading } = useSupervisorDashboard();
 
   if (loading) {
     return (
@@ -31,13 +78,28 @@ const OverviewSection: React.FC = () => {
   return (
     <Box>
       {/* HEADER */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
           Tổng quan hệ thống
         </Typography>
         <Typography variant="body2" sx={{ color: "#64748B" }}>
-          Chào mừng trở lại, Người giám sát! Dưới đây là tóm tắt hoạt động của hệ thống hôm nay.
+          Tổng quan tình trạng hoạt động của toàn trang trại iRAS-RAG
         </Typography>
+      </Box>
+
+      {/* KPI Cards */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+          gap: 2.5,
+          mb: 3,
+        }}
+      >
+        <KpiCard title="Nhân viên" value={stats.totalEmployees} subtitle="Tổng số nhân viên" icon={PeopleIcon} color="#9333EA" />
+        <KpiCard title="Vụ nuôi đang hoạt động" value={stats.activeBatches} subtitle="Đang nuôi" icon={AgricultureIcon} color="#2A85FF" />
+        <KpiCard title="Loại cám" value={stats.totalFeedTypes} subtitle="Tổng loại cám" icon={FastfoodIcon} color="#F59E0B" />
+        <KpiCard title="Loài thủy sản" value={stats.totalSpecies} subtitle="Tổng loài" icon={PetsIcon} color="#10B981" />
       </Box>
 
       <MetricsPanel />
