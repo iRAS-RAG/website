@@ -1,28 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  CircularProgress,
-  FormControl,
-  InputAdornment,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import { Box, CircularProgress, FormControl, InputAdornment, MenuItem, Pagination, Paper, Select, Stack, TextField, Typography } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
-import { TankPulseCard } from "../../components/operator/TankPulseCard";
 import { RecentAlertsList } from "../../components/operator/RecentAlertsList";
+import { TankPulseCard } from "../../components/operator/TankPulseCard";
 
-import { useOperatorDashboard, type DayFilter } from "../../hooks/useOperatorDashboard";
 import { getTanks } from "../../api/tanks";
+import { useOperatorDashboard, type DayFilter } from "../../hooks/useOperatorDashboard";
 import type { Tank } from "../../types/tank";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -40,28 +28,15 @@ interface TooltipPayloadItem {
   payload: { name: string; value: number; color: string };
 }
 
-const CustomTooltip = ({
-  active,
-  payload,
-  total,
-}: {
-  active?: boolean;
-  payload?: TooltipPayloadItem[];
-  total: number;
-}) => {
+const CustomTooltip = ({ active, payload, total }: { active?: boolean; payload?: TooltipPayloadItem[]; total: number }) => {
   if (!active || !payload?.length) return null;
   const { name, value, color } = payload[0].payload;
   const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
   return (
-    <Paper
-      elevation={3}
-      sx={{ p: 1.5, borderRadius: "10px", minWidth: 140, border: "1px solid #E2E8F0" }}
-    >
+    <Paper elevation={3} sx={{ p: 1.5, borderRadius: "10px", minWidth: 140, border: "1px solid #E2E8F0" }}>
       <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
         <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: color, flexShrink: 0 }} />
-        <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E293B" }}>
-          {name}
-        </Typography>
+        <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E293B" }}>{name}</Typography>
       </Stack>
       <Typography sx={{ fontSize: "0.78rem", color: "#64748B" }}>
         {value} ({pct}%)
@@ -89,14 +64,7 @@ interface PieChartCardProps {
 
 const EMPTY_SLICE: PieSlice[] = [{ name: "Không có dữ liệu", value: 1, color: "#E2E8F0" }];
 
-const PieChartCard: React.FC<PieChartCardProps> = ({
-  title,
-  data,
-  total,
-  totalLabel,
-  dayFilter,
-  onDayFilterChange,
-}) => {
+const PieChartCard: React.FC<PieChartCardProps> = ({ title, data, total, totalLabel, dayFilter, onDayFilterChange }) => {
   const hasData = total > 0;
   const chartData = hasData ? data.filter((d) => d.value > 0) : EMPTY_SLICE;
 
@@ -115,16 +83,10 @@ const PieChartCard: React.FC<PieChartCardProps> = ({
     >
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>
-          {title}
-        </Typography>
+        <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</Typography>
         {dayFilter !== undefined && onDayFilterChange && (
           <FormControl size="small" sx={{ minWidth: 110 }}>
-            <Select
-              value={dayFilter}
-              onChange={(e) => onDayFilterChange(e.target.value as DayFilter)}
-              sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.75, px: 1.5 } }}
-            >
+            <Select value={dayFilter} onChange={(e) => onDayFilterChange(e.target.value as DayFilter)} sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.75, px: 1.5 } }}>
               {DAY_OPTIONS.map((o) => (
                 <MenuItem key={o.value} value={o.value} sx={{ fontSize: "0.8rem" }}>
                   {o.label}
@@ -139,26 +101,12 @@ const PieChartCard: React.FC<PieChartCardProps> = ({
       <Box sx={{ height: 180 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius="45%"
-              outerRadius="72%"
-              paddingAngle={hasData ? 2 : 0}
-              dataKey="value"
-              stroke="none"
-            >
+            <Pie data={chartData} cx="50%" cy="50%" innerRadius="45%" outerRadius="72%" paddingAngle={hasData ? 2 : 0} dataKey="value" stroke="none">
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}
             </Pie>
-            {hasData && (
-              <Tooltip
-                content={<CustomTooltip total={total} />}
-                wrapperStyle={{ outline: "none" }}
-              />
-            )}
+            {hasData && <Tooltip content={<CustomTooltip total={total} />} wrapperStyle={{ outline: "none" }} />}
           </PieChart>
         </ResponsiveContainer>
       </Box>
@@ -166,14 +114,9 @@ const PieChartCard: React.FC<PieChartCardProps> = ({
       {/* Summary rows */}
       <Stack spacing={0.75}>
         {/* Total row */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center"
-          sx={{ pb: 0.75, borderBottom: "1px solid #F1F5F9" }}>
-          <Typography sx={{ fontSize: "0.78rem", color: "#64748B", fontWeight: 600 }}>
-            {totalLabel}
-          </Typography>
-          <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "#0F172A" }}>
-            {total}
-          </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 0.75, borderBottom: "1px solid #F1F5F9" }}>
+          <Typography sx={{ fontSize: "0.78rem", color: "#64748B", fontWeight: 600 }}>{totalLabel}</Typography>
+          <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "#0F172A" }}>{total}</Typography>
         </Stack>
         {/* Each slice */}
         {data.map((slice) => (
@@ -183,14 +126,8 @@ const PieChartCard: React.FC<PieChartCardProps> = ({
               <Typography sx={{ fontSize: "0.75rem", color: "#64748B" }}>{slice.name}</Typography>
             </Stack>
             <Stack direction="row" alignItems="center" spacing={0.75}>
-              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#1E293B" }}>
-                {slice.value}
-              </Typography>
-              {total > 0 && (
-                <Typography sx={{ fontSize: "0.68rem", color: "#94A3B8" }}>
-                  ({((slice.value / total) * 100).toFixed(0)}%)
-                </Typography>
-              )}
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#1E293B" }}>{slice.value}</Typography>
+              {total > 0 && <Typography sx={{ fontSize: "0.68rem", color: "#94A3B8" }}>({((slice.value / total) * 100).toFixed(0)}%)</Typography>}
             </Stack>
           </Stack>
         ))}
@@ -203,7 +140,6 @@ const PieChartCard: React.FC<PieChartCardProps> = ({
 
 const OperatorDashboard = () => {
   const [tanks, setTanks] = useState<Tank[]>([]);
-  const [tanksLoading, setTanksLoading] = useState(true);
 
   const [alertDays, setAlertDays] = useState<DayFilter>("all");
   const [batchDays, setBatchDays] = useState<DayFilter>("all");
@@ -217,15 +153,10 @@ const OperatorDashboard = () => {
   useEffect(() => {
     getTanks()
       .then(setTanks)
-      .catch((err) => console.error("Không thể tải danh sách bể:", err))
-      .finally(() => setTanksLoading(false));
+      .catch((err) => console.error("Không thể tải danh sách bể:", err));
   }, []);
 
-  const { alertStats, batchStats, deviceStats, batches, loading } = useOperatorDashboard(
-    undefined,
-    alertDays,
-    batchDays,
-  );
+  const { alertStats, batchStats, deviceStats, batches, loading } = useOperatorDashboard(undefined, alertDays, batchDays);
 
   const filteredTanks = useMemo(() => {
     const q = tankSearch.toLowerCase().trim();
@@ -290,28 +221,9 @@ const OperatorDashboard = () => {
               mb: 3,
             }}
           >
-            <PieChartCard
-              title="Tổng quan cảnh báo"
-              data={alertPieData}
-              total={alertStats.total}
-              totalLabel="Tổng số cảnh báo"
-              dayFilter={alertDays}
-              onDayFilterChange={setAlertDays}
-            />
-            <PieChartCard
-              title="Tổng quan vụ nuôi"
-              data={batchPieData}
-              total={batchStats.total}
-              totalLabel="Tổng số vụ nuôi"
-              dayFilter={batchDays}
-              onDayFilterChange={setBatchDays}
-            />
-            <PieChartCard
-              title="Tổng quan thiết bị"
-              data={devicePieData}
-              total={deviceStats.total}
-              totalLabel="Tổng số thiết bị"
-            />
+            <PieChartCard title="Tổng quan cảnh báo" data={alertPieData} total={alertStats.total} totalLabel="Tổng số cảnh báo" dayFilter={alertDays} onDayFilterChange={setAlertDays} />
+            <PieChartCard title="Tổng quan vụ nuôi" data={batchPieData} total={batchStats.total} totalLabel="Tổng số vụ nuôi" dayFilter={batchDays} onDayFilterChange={setBatchDays} />
+            <PieChartCard title="Tổng quan thiết bị" data={devicePieData} total={deviceStats.total} totalLabel="Tổng số thiết bị" />
           </Box>
 
           {/* ── ZONE 2 + 3: Tank Grid + Side Panel ── */}
@@ -340,7 +252,10 @@ const OperatorDashboard = () => {
                 fullWidth
                 placeholder="Tìm kiếm theo tên bể..."
                 value={tankSearch}
-                onChange={(e) => { setTankSearch(e.target.value); setTankPage(1); }}
+                onChange={(e) => {
+                  setTankSearch(e.target.value);
+                  setTankPage(1);
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -348,17 +263,11 @@ const OperatorDashboard = () => {
                     </InputAdornment>
                   ),
                 }}
-                sx={{ mb: 1.5, bgcolor: "#fff", borderRadius: "10px",
-                  "& .MuiOutlinedInput-root": { borderRadius: "10px" },
-                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "#E2E8F0" },
-                }}
+                sx={{ mb: 1.5, bgcolor: "#fff", borderRadius: "10px", "& .MuiOutlinedInput-root": { borderRadius: "10px" }, "& .MuiOutlinedInput-notchedOutline": { borderColor: "#E2E8F0" } }}
               />
 
               {filteredTanks.length === 0 ? (
-                <Paper
-                  elevation={0}
-                  sx={{ p: 4, borderRadius: "14px", border: "1px dashed #CBD5E1", textAlign: "center", bgcolor: "#fff" }}
-                >
+                <Paper elevation={0} sx={{ p: 4, borderRadius: "14px", border: "1px dashed #CBD5E1", textAlign: "center", bgcolor: "#fff" }}>
                   <Typography variant="body2" sx={{ color: "#94A3B8" }}>
                     {tankSearch ? "Không tìm thấy bể phù hợp" : "Chưa có bể nào được cấu hình"}
                   </Typography>
@@ -374,27 +283,13 @@ const OperatorDashboard = () => {
                   >
                     {pagedTanks.map((tank) => {
                       const tankBatch = batches.find((b) => b.fishTankId === tank.id);
-                      return (
-                        <TankPulseCard
-                          key={tank.id}
-                          tankId={tank.id}
-                          tankName={tank.name}
-                          batch={tankBatch}
-                          onClick={() => navigate("/operator/sensors")}
-                        />
-                      );
+                      return <TankPulseCard key={tank.id} tankId={tank.id} tankName={tank.name} batch={tankBatch} onClick={() => navigate("/operator/sensors")} />;
                     })}
                   </Box>
 
                   {totalTankPages > 1 && (
                     <Stack alignItems="center" mt={2}>
-                      <Pagination
-                        count={totalTankPages}
-                        page={tankPage}
-                        onChange={(_, p) => setTankPage(p)}
-                        size="small"
-                        color="primary"
-                      />
+                      <Pagination count={totalTankPages} page={tankPage} onChange={(_, p) => setTankPage(p)} size="small" color="primary" />
                     </Stack>
                   )}
                 </>
