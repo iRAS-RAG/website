@@ -1,6 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
 import BlockIcon from "@mui/icons-material/Block";
-import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
@@ -58,8 +57,6 @@ const UserManagement: React.FC = () => {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
 
-  const [openDelete, setOpenDelete] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openDisable, setOpenDisable] = useState(false);
   const [disablingId, setDisablingId] = useState<string | null>(null);
   const [openRestore, setOpenRestore] = useState(false);
@@ -76,7 +73,6 @@ const UserManagement: React.FC = () => {
     updateUrlWithParams,
     load,
     createOrUpdate,
-    remove,
     disable,
     restore,
   } = useUserManagement();
@@ -93,11 +89,6 @@ const UserManagement: React.FC = () => {
     setGeneralError(null); // Reset lỗi
     setEditing(user);
     setOpenForm(true);
-  }, []);
-
-  const confirmDelete = useCallback((id: string) => {
-    setDeletingId(id);
-    setOpenDelete(true);
   }, []);
 
   const confirmDisable = useCallback((id: string) => {
@@ -233,23 +224,12 @@ const UserManagement: React.FC = () => {
                 </IconButton>
               )}
 
-              <IconButton
-                size="small"
-                onClick={() => confirmDelete(r.id)}
-                sx={{
-                  color: "#94A3B8",
-                  "&:hover": { color: "#EF4444", bgcolor: "#FEF2F2" },
-                }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
             </Stack>
           ),
         },
       ] as Column<User>[],
     [
       openEdit,
-      confirmDelete,
       confirmDisable,
       confirmRestore,
       tableParams?.isDeleted,
@@ -289,18 +269,6 @@ const UserManagement: React.FC = () => {
       // Nếu là lỗi hệ thống (500) hoặc rớt mạng -> Đóng form và báo ở Table
       setOpenForm(false);
       setGeneralError("Yêu cầu thất bại (Request failed)");
-    }
-  }
-
-  async function handleDelete() {
-    if (!deletingId) return;
-    try {
-      await remove(deletingId);
-      setOpenDelete(false);
-      toast.success("Xóa người dùng thành công");
-    } catch (e: unknown) {
-      console.error("Xóa người dùng thất bại", e);
-      toast.error("Xóa người dùng thất bại");
     }
   }
 
@@ -628,37 +596,6 @@ const UserManagement: React.FC = () => {
             </DialogActions>
           </Dialog>
 
-          <Dialog
-            open={openDelete}
-            onClose={() => setOpenDelete(false)}
-            PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
-          >
-            <DialogTitle sx={{ fontWeight: 700, color: "#0F172A" }}>
-              Xóa người dùng
-            </DialogTitle>
-            <DialogContent>
-              <Typography sx={{ color: "#475569" }}>
-                Bạn có chắc chắn muốn xóa người dùng này khỏi hệ thống? Hành
-                động này không thể hoàn tác.
-              </Typography>
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => setOpenDelete(false)}
-                sx={{ color: "#64748B", fontWeight: 600 }}
-              >
-                Hủy
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={handleDelete}
-                sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none" }}
-              >
-                Xóa
-              </Button>
-            </DialogActions>
-          </Dialog>
         </Box>
       </Box>
     </Box>

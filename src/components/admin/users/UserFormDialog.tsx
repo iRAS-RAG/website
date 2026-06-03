@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import React, { useState } from "react";
 import type { Role } from "../../../api/auth";
-import { roles } from "../../../api/auth";
+import { currentUser, roles } from "../../../api/auth";
 import type { ApiError } from "../../../api/client";
 import type { User } from "../../../types/user";
 import { translateRole } from "../../../utils/roles";
@@ -55,6 +55,11 @@ const UserFormDialog: React.FC<{
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Admins cannot create other admin accounts. When editing, keep the current role.
+  const availableRoles = !initial && currentUser.role === "Admin"
+    ? roles.filter((r) => r !== "Admin")
+    : roles;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
@@ -156,7 +161,7 @@ const UserFormDialog: React.FC<{
             onChange={(e) => setRole(e.target.value)}
             error={Boolean(fieldErrors.role)}
           >
-            {roles.map((r: Role) => (
+            {availableRoles.map((r: string) => (
               <MenuItem key={r} value={r}>
                 {translateRole(r)}
               </MenuItem>
