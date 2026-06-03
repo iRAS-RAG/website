@@ -643,7 +643,7 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                         }
                       >
                         <ListItemButton disabled={already} onClick={() => handleAddStage(gs)}>
-                          <ListItemText primary={already ? `${gs.name} — Đã cấu hình` : gs.name} secondary={gs.description ?? undefined} />
+                          <ListItemText primary={already ? `${gs.name} — Đã cấu hình` : gs.name} />
                         </ListItemButton>
                       </ListItem>
                     );

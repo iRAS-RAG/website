@@ -14,7 +14,6 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
-import type { Role } from "../../../api/auth";
 import { currentUser, roles } from "../../../api/auth";
 import type { ApiError } from "../../../api/client";
 import type { User } from "../../../types/user";
