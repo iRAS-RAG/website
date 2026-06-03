@@ -13,6 +13,8 @@ import { SensorCard } from "../../components/operator/SensorCard";
 // Hooks & API
 import { extractArray } from "../../api/client";
 import { realtimeApi } from "../../api/realtimeApi";
+import { getMasterBoardsByTank } from "../../api/masterboards";
+import { simulationApi } from "../../api/simulationApi";
 import { useToast } from "../../components/common/toastContext";
 import { useLiveTelemetry } from "../../hooks/useLiveTelemetry";
 import { useRealTimeTanks } from "../../hooks/useRealTimeTanks";
@@ -20,10 +22,12 @@ import { useRealTimeTanks } from "../../hooks/useRealTimeTanks";
 // Icons
 import AirIcon from "@mui/icons-material/Air";
 import BoltIcon from "@mui/icons-material/Bolt";
+import DangerousIcon from "@mui/icons-material/Dangerous";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PowerOffIcon from "@mui/icons-material/PowerOff";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ScienceIcon from "@mui/icons-material/Science";
+import SensorOccupiedIcon from "@mui/icons-material/SensorOccupied";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
@@ -128,6 +132,66 @@ const RealTimeSensors = () => {
 
   const [accumulatedLive, setAccumulatedLive] = useState<ChartPoint[]>([]);
   const lastAccumulatedTsRef = useRef<number>(0);
+
+  // ── Simulation (disconnect + fake dangerous data) ──
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulatingMac, setSimulatingMac] = useState<string | null>(null);
+  const [simulationLoading, setSimulationLoading] = useState(false);
+  const [masterBoardMac, setMasterBoardMac] = useState<string | null>(null);
+
+  // Fetch masterboard MAC for the selected tank
+  useEffect(() => {
+    if (!selectedTank) {
+      setMasterBoardMac(null);
+      setIsSimulating(false);
+      setSimulatingMac(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const boards = await getMasterBoardsByTank(selectedTank.id);
+        const mac = boards.find((b: { macAddress?: string }) => b.macAddress)?.macAddress ?? null;
+        if (!cancelled) setMasterBoardMac(mac);
+        if (!cancelled && mac) {
+          // Check simulation status
+          try {
+            const status = await simulationApi.getSimulationStatus(mac);
+            if (!cancelled) {
+              setIsSimulating(status.isSimulating);
+              if (status.isSimulating) setSimulatingMac(mac);
+            }
+          } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTank]);
+
+  const handleSimulationToggle = async () => {
+    if (!masterBoardMac) return;
+    setSimulationLoading(true);
+    try {
+      if (isSimulating) {
+        await simulationApi.stopSimulation(masterBoardMac);
+        setIsSimulating(false);
+        setSimulatingMac(null);
+        toast.success("Đã dừng mô phỏng. Dữ liệu thực sẽ được xử lý lại.");
+      } else {
+        await simulationApi.startSimulation(masterBoardMac);
+        setIsSimulating(true);
+        setSimulatingMac(masterBoardMac);
+        toast.warning("Đã kích hoạt mô phỏng dữ liệu nguy hiểm! Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C. Biểu đồ vẫn cập nhật bình thường.");
+      }
+      // Refetch latest data to refresh UI
+      refetch(true);
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể chuyển đổi chế độ mô phỏng");
+    } finally {
+      setSimulationLoading(false);
+    }
+  };
 
   const currentSensorId = latestData.some((s) => s.sensorId === selectedSensorId) ? selectedSensorId : null;
   const activeSensor = latestData.find((s) => s.sensorId === currentSensorId);
@@ -368,6 +432,58 @@ const RealTimeSensors = () => {
               </Box>
             );
           })()}
+
+          {/* ── Simulation (disconnect) button ── */}
+          {selectedTank && (
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                mb: 2.5,
+                borderRadius: "16px",
+                borderColor: isSimulating ? theme.palette.error.main : theme.palette.divider,
+                bgcolor: isSimulating ? "#FEF2F2" : theme.palette.background.paper,
+              }}
+            >
+              <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  {isSimulating ? (
+                    <DangerousIcon sx={{ color: theme.palette.error.main, fontSize: 28 }} />
+                  ) : (
+                    <SensorOccupiedIcon sx={{ color: theme.palette.warning.main, fontSize: 28 }} />
+                  )}
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: isSimulating ? theme.palette.error.main : theme.palette.text.primary }}>
+                      {isSimulating ? "ĐANG MÔ PHỎNG DỮ LIỆU NGUY HIỂM" : "Công cụ mô phỏng"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                      {isSimulating
+                        ? `Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C (nguy hiểm). Biểu đồ vẫn cập nhật bình thường. MAC: ${simulatingMac}`
+                        : masterBoardMac
+                          ? `Bấm "Mô phỏng dữ liệu nguy hiểm" để thay nhiệt độ thực bằng giá trị ngẫu nhiên 50-60°C. Biểu đồ vẫn chạy bình thường.`
+                          : "Bể này chưa có MasterBoard với địa chỉ MAC để mô phỏng."}
+                    </Typography>
+                  </Box>
+                </Box>
+                {masterBoardMac && (
+                  <Button
+                    variant={isSimulating ? "outlined" : "contained"}
+                    color={isSimulating ? "error" : "warning"}
+                    onClick={handleSimulationToggle}
+                    disabled={simulationLoading}
+                    startIcon={isSimulating ? undefined : <DangerousIcon />}
+                    sx={{ borderRadius: "8px", fontWeight: 700, textTransform: "none", boxShadow: "none", whiteSpace: "nowrap" }}
+                  >
+                    {simulationLoading
+                      ? "Đang xử lý..."
+                      : isSimulating
+                        ? "Kết nối lại (dừng mô phỏng)"
+                        : "Mô phỏng mất kết nối"}
+                  </Button>
+                )}
+              </Stack>
+            </Paper>
+          )}
 
           {/* ── Sensor cards — slider ── */}
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>

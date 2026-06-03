@@ -66,7 +66,7 @@ export const useOperatorDashboard = (
       try {
         const [alertsRes, batchesData, devices] = await Promise.all([
           alertApi.getAll({ page: 1, pageSize: 100, tankId }).catch(() => null),
-          getBatches().catch(() => [] as Batch[]),
+          getBatches().then((r) => (r as { items: Batch[]; total: number }).items).catch(() => [] as Batch[]),
           getControlDevices().catch(() => []),
         ]);
 
