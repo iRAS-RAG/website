@@ -13,7 +13,7 @@ const menuItems: MenuItemType[] = [
     icon: <DashboardIcon />,
     path: "/operator/dashboard",
   },
-  { text: "Lô nuôi", icon: <WaterIcon />, path: "/operator/tanks" },
+  { text: "Vụ nuôi", icon: <WaterIcon />, path: "/operator/tanks" },
   {
     text: "Cảm biến bể ",
     icon: <SensorsIcon />,
