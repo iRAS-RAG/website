@@ -51,4 +51,10 @@ export const documentApi = {
       method: "DELETE",
     });
   },
+
+  resyncDocument: async (id: string) => {
+    return await apiFetch(`/documents/${id}/resync`, {
+      method: "POST",
+    });
+  },
 };

@@ -1,4 +1,25 @@
 // src/types/document.ts
+export const DocumentRagStatus = {
+  Pending: "Pending",
+  Processing: "Processing",
+  Indexed: "Indexed",
+  Failed: "Failed",
+} as const;
+
+export type DocumentRagStatus = (typeof DocumentRagStatus)[keyof typeof DocumentRagStatus];
+
+// SignalR sends the enum as an integer — map it back to the string variant
+const RAG_STATUS_FROM_INT: Record<number, DocumentRagStatus> = {
+  0: "Pending",
+  1: "Processing",
+  2: "Indexed",
+  3: "Failed",
+};
+
+export function ragStatusFromInt(value: number): DocumentRagStatus {
+  return RAG_STATUS_FROM_INT[value] ?? "Pending";
+}
+
 export interface DocumentItem {
   id: string;
   title: string;
@@ -9,7 +30,7 @@ export interface DocumentItem {
   uploadedByUserId: string;
   uploadedByUserEmail: string;
   uploadedAt: string;
-  status?: string | number; // Có thể BE sẽ trả về status nhúng AI (0: Đang nhúng, 1: Sẵn sàng, 2: Lỗi)
+  ragStatus: DocumentRagStatus;
 }
 
 export interface DocumentListParams {
