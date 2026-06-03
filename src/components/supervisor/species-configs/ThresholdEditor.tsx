@@ -113,7 +113,7 @@ const ThresholdEditor: React.FC<{
         await removeThreshold(current.id);
       }
 
-      onRemoveThreshold(sensor);
+      onRemoveThreshold?.(sensor);
       toast.success("Xóa ngưỡng cảm biến thành công");
     } catch (e) {
       console.error("Failed to delete threshold", e);

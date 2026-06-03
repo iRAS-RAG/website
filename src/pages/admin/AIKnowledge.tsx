@@ -2,6 +2,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import SyncIcon from "@mui/icons-material/Sync";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
@@ -9,6 +10,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -28,7 +30,8 @@ import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
 import { useToast } from "../../components/common/toastContext";
 import useDocuments from "../../hooks/useDocuments";
-import type { DocumentItem } from "../../types/document";
+import { useDocumentSignalR } from "../../hooks/useDocumentSignalR";
+import { DocumentRagStatus, type DocumentItem } from "../../types/document";
 
 // Helpers chung
 const getFileIcon = (type?: string) => {
@@ -41,10 +44,20 @@ const getFileIcon = (type?: string) => {
   return <DescriptionIcon sx={{ color: "#94A3B8" }} />;
 };
 
+const RAG_STATUS_CONFIG = {
+  [DocumentRagStatus.Pending]:    { label: "Chờ xử lý", color: "default" },
+  [DocumentRagStatus.Processing]: { label: "Đang nhúng", color: "info" },
+  [DocumentRagStatus.Indexed]:    { label: "Sẵn sàng",  color: "success" },
+  [DocumentRagStatus.Failed]:     { label: "Lỗi",       color: "error" },
+} as const;
+
 const AIKnowledge: React.FC = () => {
   const toast = useToast();
-  const { data, meta, loading, params, setParams, upload, remove } =
+  const { data, meta, loading, params, setParams, upload, remove, resync, patchRagStatus } =
     useDocuments();
+
+  const documentIds = useMemo(() => data.map((d) => d.id), [data]);
+  const { joinDocument } = useDocumentSignalR(documentIds, patchRagStatus);
 
   const [openUpload, setOpenUpload] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -92,6 +105,21 @@ const AIKnowledge: React.FC = () => {
         },
       },
       {
+        field: "ragStatus",
+        label: "Trạng thái",
+        render: (r) => {
+          const cfg = RAG_STATUS_CONFIG[r.ragStatus] ?? RAG_STATUS_CONFIG[DocumentRagStatus.Pending];
+          return (
+            <Chip
+              label={cfg.label}
+              color={cfg.color}
+              size="small"
+              icon={r.ragStatus === DocumentRagStatus.Processing ? <CircularProgress size={12} color="inherit" /> : undefined}
+            />
+          );
+        },
+      },
+      {
         field: "uploadedAt",
         label: "Ngày tải lên",
         render: (r) => (
@@ -124,10 +152,20 @@ const AIKnowledge: React.FC = () => {
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
+            {r.ragStatus === DocumentRagStatus.Failed && (
+              <IconButton
+                size="small"
+                sx={{ color: "#F59E0B", "&:hover": { color: "#D97706", bgcolor: "#FFFBEB" } }}
+                title="Đồng bộ lại"
+                onClick={() => resync(r.id)}
+              >
+                <SyncIcon fontSize="small" />
+              </IconButton>
+            )}
             <IconButton
               color="error"
               onClick={() => {
-                setDocumentToDelete(r); // Đã fix: dùng 'r' thay vì 'row'
+                setDocumentToDelete(r);
                 setDeleteDialogOpen(true);
               }}
             >
@@ -137,7 +175,7 @@ const AIKnowledge: React.FC = () => {
         ),
       },
     ],
-    [],
+    [resync],
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,7 +190,9 @@ const AIKnowledge: React.FC = () => {
       return toast.error("Vui lòng chọn file và nhập tiêu đề");
     setIsUploading(true);
     try {
-      await upload(file, title);
+      const res = await upload(file, title);
+      const newId = (res as Record<string, unknown>)?.id as string | undefined;
+      if (newId) joinDocument(newId);
       toast.success("Tải lên tài liệu thành công!");
       setOpenUpload(false);
       setFile(null);

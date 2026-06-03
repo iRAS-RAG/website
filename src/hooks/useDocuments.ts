@@ -1,6 +1,7 @@
 // src/hooks/useDocuments.ts
 import { useState, useEffect, useCallback } from "react";
 import { documentApi } from "../api/documents";
+import { DocumentRagStatus } from "../types/document";
 import type {
   DocumentItem,
   DocumentListParams,
@@ -49,13 +50,25 @@ export default function useDocuments(
   }, [load]);
 
   const upload = async (file: File, title: string) => {
-    await documentApi.uploadDocument(file, title);
-    await load(); // Tải lại danh sách sau khi upload
+    const res = await documentApi.uploadDocument(file, title);
+    await load();
+    return res;
   };
 
   const remove = async (id: string) => {
     await documentApi.deleteDocument(id);
-    await load(); // Tải lại danh sách sau khi xóa
+    await load();
+  };
+
+  const patchRagStatus = useCallback((id: string, ragStatus: DocumentRagStatus) => {
+    console.log("[useDocuments] patchRagStatus", { id, ragStatus });
+    setData((prev) =>
+      prev.map((doc) => (doc.id === id ? { ...doc, ragStatus } : doc)),
+    );
+  }, []);
+
+  const resync = async (id: string) => {
+    await documentApi.resyncDocument(id);
   };
 
   return {
@@ -67,5 +80,7 @@ export default function useDocuments(
     load,
     upload,
     remove,
+    resync,
+    patchRagStatus,
   };
 }
