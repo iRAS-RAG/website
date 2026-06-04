@@ -22,6 +22,7 @@ function toUi(item: Record<string, unknown>): SpeciesStageConfig {
       ? (item.thresholds as unknown[]).map((t) => {
           const th = t as Record<string, unknown>;
           return {
+            id: String(th.id ?? ""),
             sensorTypeId: String(th.sensorTypeId ?? ""),
             sensorTypeName: String(th.sensorTypeName ?? ""),
             minValue: Number(th.minValue ?? 0),

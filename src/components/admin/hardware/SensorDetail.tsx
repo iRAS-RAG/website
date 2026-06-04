@@ -4,6 +4,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PinDropIcon from "@mui/icons-material/PinDrop";
 import ScaleIcon from "@mui/icons-material/Scale";
 import StraightenIcon from "@mui/icons-material/Straighten";
+import ToggleOffIcon from "@mui/icons-material/ToggleOff";
 import { Box, Button, CircularProgress, Divider, Paper, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { getSensorType } from "../../../api/sensor-types";
@@ -123,6 +124,40 @@ export default function SensorDetail({ sensor, onEdit, onDelete }: Props) {
               {sensorType?.code || "—"}
             </Typography>
           </Paper>
+
+          {/* minPossibleValue / maxPossibleValue */}
+          {sensorType?.unitOfMeasure === "0/1" ? (
+            <Paper elevation={0} variant="outlined" sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 0.5, mb: 1, letterSpacing: 0.5 }}>
+                <ToggleOffIcon fontSize="small" />
+                NHỊ PHÂN (0 / 1)
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Tắt (0) / Bật (1)
+              </Typography>
+            </Paper>
+          ) : (
+            <>
+              <Paper elevation={0} variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 0.5, mb: 1, letterSpacing: 0.5 }}>
+                  <StraightenIcon fontSize="small" />
+                  GIÁ TRỊ TỐI THIỂU
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {sensorType ? `${sensorType.minPossibleValue} ${sensorType.unitOfMeasure ?? ""}`.trim() : "—"}
+                </Typography>
+              </Paper>
+              <Paper elevation={0} variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 0.5, mb: 1, letterSpacing: 0.5 }}>
+                  <StraightenIcon fontSize="small" />
+                  GIÁ TRỊ TỐI ĐA
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {sensorType ? `${sensorType.maxPossibleValue} ${sensorType.unitOfMeasure ?? ""}`.trim() : "—"}
+                </Typography>
+              </Paper>
+            </>
+          )}
         </Box>
       )}
     </Box>

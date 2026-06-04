@@ -140,9 +140,14 @@ export default function useSpeciesConfigs() {
           ...sp,
           stages: sp.stages.map((st) => {
             if (st.id !== stageId) return st;
-            const other = st.thresholds.filter((t) => t.sensor !== sensor);
-            other.push({ id, sensor, min, max });
-            return { ...st, thresholds: other };
+            const idx = st.thresholds.findIndex((t) => t.sensor === sensor);
+            const thresholds = [...st.thresholds];
+            if (idx !== -1) {
+              thresholds[idx] = { id, sensor, min, max };
+            } else {
+              thresholds.push({ id, sensor, min, max });
+            }
+            return { ...st, thresholds };
           }),
         };
       }),

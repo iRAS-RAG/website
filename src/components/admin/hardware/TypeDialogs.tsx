@@ -34,6 +34,8 @@ export function SensorTypeDialog(props: {
   const [measureType, setMeasureType] = useState("");
   const [unitOfMeasure, setUnitOfMeasure] = useState("");
   const [code, setCode] = useState("");
+  const [minPossibleValue, setMinPossibleValue] = useState("");
+  const [maxPossibleValue, setMaxPossibleValue] = useState("");
   const [saving, setSaving] = useState(false);
   const isEdit = Boolean(initial && onUpdate);
 
@@ -45,6 +47,8 @@ export function SensorTypeDialog(props: {
       (initial as unknown as Record<string, string>)?.unitOfMeasure ?? "",
     );
     setCode(initial?.code ?? "");
+    setMinPossibleValue(initial?.minPossibleValue !== undefined ? String(initial.minPossibleValue) : "");
+    setMaxPossibleValue(initial?.maxPossibleValue !== undefined ? String(initial.maxPossibleValue) : "");
   }, [open, initial]);
 
   return (
@@ -83,7 +87,13 @@ export function SensorTypeDialog(props: {
             {...textFieldProps}
             label="Đơn vị"
             value={unitOfMeasure}
-            onChange={(e) => setUnitOfMeasure(e.target.value)}
+            onChange={(e) => {
+              setUnitOfMeasure(e.target.value);
+              if (e.target.value === "0/1") {
+                setMinPossibleValue("0");
+                setMaxPossibleValue("1");
+              }
+            }}
           />
           <TextField
             {...textFieldProps}
@@ -91,6 +101,26 @@ export function SensorTypeDialog(props: {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             required
+          />
+          <TextField
+            {...textFieldProps}
+            label="Giá trị tối thiểu"
+            value={minPossibleValue}
+            onChange={(e) => setMinPossibleValue(e.target.value)}
+            type="number"
+            required
+            disabled={unitOfMeasure === "0/1"}
+            helperText={unitOfMeasure === "0/1" ? "Cảm biến nhị phân — cố định ở 0" : ""}
+          />
+          <TextField
+            {...textFieldProps}
+            label="Giá trị tối đa"
+            value={maxPossibleValue}
+            onChange={(e) => setMaxPossibleValue(e.target.value)}
+            type="number"
+            required
+            disabled={unitOfMeasure === "0/1"}
+            helperText={unitOfMeasure === "0/1" ? "Cảm biến nhị phân — cố định ở 1" : ""}
           />
         </Stack>
       </DialogContent>
@@ -121,6 +151,8 @@ export function SensorTypeDialog(props: {
                   measureType,
                   unitOfMeasure,
                   code,
+                  minPossibleValue: Number(minPossibleValue),
+                  maxPossibleValue: Number(maxPossibleValue),
                 });
                 onClose();
               } else if (onCreate) {
@@ -129,6 +161,8 @@ export function SensorTypeDialog(props: {
                   measureType,
                   unitOfMeasure,
                   code,
+                  minPossibleValue: Number(minPossibleValue),
+                  maxPossibleValue: Number(maxPossibleValue),
                 });
                 if (onCreated) onCreated(created);
                 onClose();

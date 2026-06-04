@@ -4,7 +4,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import SensorsIcon from "@mui/icons-material/Sensors";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import { Box, Button, Grid, IconButton, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Box, Button, Grid, IconButton, MenuItem, Select, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
 import type { SensorType } from "../../../types/sensor-type";
 import type { Stage } from "../../../hooks/useSpeciesConfigs";
@@ -81,6 +81,19 @@ const ThresholdEditor: React.FC<{
     return `Tối đa: ${maxPossible}${unit ? ` ${unit}` : ""}`;
   }
 
+  /** Check if a sensor type is binary (only 0 or 1). */
+  function isBinarySensor(sensorName: string): boolean {
+    const st = sensorTypes.find((s) => s.name === sensorName);
+    return st?.unitOfMeasure === "0/1";
+  }
+
+  /** Map a binary threshold's min/max to a selection key: "0", "1", or "both". */
+  function binarySelectionKey(min: number | null, max: number | null): string {
+    if (min === 0 && max === 0) return "0";
+    if (min === 1 && max === 1) return "1";
+    return "both";
+  }
+
   async function handleExistingSave(sensor: string) {
     const e = edits[sensor];
     const min = e?.min === "" ? null : Number(e?.min);
@@ -89,8 +102,8 @@ const ThresholdEditor: React.FC<{
     const current = stage.thresholds.find((t) => t.sensor === sensor);
     if (!current) return;
 
-    // Validate min < max before sending API request
-    if (min !== null && max !== null && min >= max) {
+    // Validate min < max before sending API request (skip for binary sensors where min == max is valid)
+    if (min !== null && max !== null && min >= max && !isBinarySensor(sensor)) {
       toast.warning("Giá trị Min phải nhỏ hơn Max");
       return;
     }
@@ -171,6 +184,7 @@ const ThresholdEditor: React.FC<{
   const [newSensor, setNewSensor] = useState<string>("");
   const [newMin, setNewMin] = useState<string>("");
   const [newMax, setNewMax] = useState<string>("");
+  const [binChoice, setBinChoice] = useState<string>("both");
   const unconfiguredSensors = useMemo(() => sensorTypes.filter((s) => !configured.includes(s.name)), [sensorTypes, configured]);
 
   async function handleAdd() {
@@ -236,48 +250,98 @@ const ThresholdEditor: React.FC<{
   return (
     <Box sx={{ mt: 1 }}>
       <Grid container spacing={1}>
-        {stage.thresholds.map((t) => (
-          <Grid size={12} key={t.sensor}>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-                <TextField label={labelWithIcon(<SensorsIcon fontSize="small" />, "Cảm biến")} value={t.sensor} fullWidth disabled />
+        {stage.thresholds.map((t) => {
+          const binary = isBinarySensor(t.sensor);
+          const binVal = binarySelectionKey(
+            edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min ?? t.min),
+            edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max ?? t.max),
+          );
+          return (
+            <Grid size={12} key={t.sensor}>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
+                  <TextField label={labelWithIcon(<SensorsIcon fontSize="small" />, "Cảm biến")} value={t.sensor} fullWidth disabled />
+                </Box>
+                {binary ? (
+                  <>
+                    <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+                        <TrendingDownIcon fontSize="inherit" /> TRẠNG THÁI BÌNH THƯỜNG
+                      </Typography>
+                      <ToggleButtonGroup
+                        value={binVal}
+                        exclusive
+                        size="small"
+                        onChange={(_, val) => {
+                          if (!val) return;
+                          setEdits((s) => {
+                            const base = s[t.sensor] ?? { min: "", max: "" };
+                            if (val === "0") return { ...s, [t.sensor]: { ...base, min: "0", max: "0" } };
+                            if (val === "1") return { ...s, [t.sensor]: { ...base, min: "1", max: "1" } };
+                            return { ...s, [t.sensor]: { ...base, min: "0", max: "1" } };
+                          });
+                        }}
+                      >
+                        <ToggleButton value="0" sx={{ textTransform: "none", px: 2 }}>0 (Tắt)</ToggleButton>
+                        <ToggleButton value="1" sx={{ textTransform: "none", px: 2 }}>1 (Bật)</ToggleButton>
+                        <ToggleButton value="both" sx={{ textTransform: "none", px: 2 }}>Cả hai</ToggleButton>
+                      </ToggleButtonGroup>
+                    </Box>
+                    <Box sx={{ flex: "0 0 60px", display: "flex", justifyContent: "flex-end" }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={!savingExisting[t.sensor] ? <SaveIcon fontSize="small" /> : undefined}
+                        onClick={() => void handleExistingSave(t.sensor)}
+                        disabled={!!savingExisting[t.sensor] || !!deletingExisting[t.sensor]}
+                      >
+                        Lưu
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
+                      <TextField
+                        label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")}
+                        value={edits[t.sensor]?.min ?? (t.min === null ? "" : String(t.min ?? ""))}
+                        onChange={(e) => handleExistingChange(t.sensor, "min", e.target.value)}
+                        error={!!getInlineError(t.sensor, edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min), "min")}
+                        helperText={getInlineError(t.sensor, edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min), "min") || getRangeHint(t.sensor, "min")}
+                        fullWidth
+                      />
+                    </Box>
+                    <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
+                      <TextField
+                        label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")}
+                        value={edits[t.sensor]?.max ?? (t.max === null ? "" : String(t.max ?? ""))}
+                        onChange={(e) => handleExistingChange(t.sensor, "max", e.target.value)}
+                        error={!!getInlineError(t.sensor, edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max), "max")}
+                        helperText={getInlineError(t.sensor, edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max), "max") || getRangeHint(t.sensor, "max")}
+                        fullWidth
+                      />
+                    </Box>
+                  </>
+                )}
+                <Box sx={{ flex: "0 0 60px", display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                  {!binary && (
+                    <Button
+                      variant="outlined"
+                      startIcon={!savingExisting[t.sensor] ? <SaveIcon fontSize="small" /> : undefined}
+                      onClick={() => void handleExistingSave(t.sensor)}
+                      disabled={!!savingExisting[t.sensor] || !!deletingExisting[t.sensor]}
+                    >
+                      Lưu
+                    </Button>
+                  )}
+                  <IconButton onClick={() => void handleExistingDelete(t.sensor)} disabled={!!deletingExisting[t.sensor] || !!savingExisting[t.sensor]}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
               </Box>
-              <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-                <TextField
-                  label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")}
-                  value={edits[t.sensor]?.min ?? (t.min === null ? "" : String(t.min ?? ""))}
-                  onChange={(e) => handleExistingChange(t.sensor, "min", e.target.value)}
-                  error={!!getInlineError(t.sensor, edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min), "min")}
-                  helperText={getInlineError(t.sensor, edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min), "min") || getRangeHint(t.sensor, "min")}
-                  fullWidth
-                />
-              </Box>
-              <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-                <TextField
-                  label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")}
-                  value={edits[t.sensor]?.max ?? (t.max === null ? "" : String(t.max ?? ""))}
-                  onChange={(e) => handleExistingChange(t.sensor, "max", e.target.value)}
-                  error={!!getInlineError(t.sensor, edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max), "max")}
-                  helperText={getInlineError(t.sensor, edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max), "max") || getRangeHint(t.sensor, "max")}
-                  fullWidth
-                />
-              </Box>
-              <Box sx={{ flex: "0 0 120px", display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                <Button
-                  variant="outlined"
-                  startIcon={!savingExisting[t.sensor] ? <SaveIcon fontSize="small" /> : undefined}
-                  onClick={() => void handleExistingSave(t.sensor)}
-                  disabled={!!savingExisting[t.sensor] || !!deletingExisting[t.sensor]}
-                >
-                  Lưu
-                </Button>
-                <IconButton onClick={() => void handleExistingDelete(t.sensor)} disabled={!!deletingExisting[t.sensor] || !!savingExisting[t.sensor]}>
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            </Box>
-          </Grid>
-        ))}
+            </Grid>
+          );
+        })}
 
         {unconfiguredSensors.length > 0 && (
           <Grid size={12}>
@@ -310,7 +374,12 @@ const ThresholdEditor: React.FC<{
         <Grid size={12}>
           <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
             <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-              <Select fullWidth value={newSensor} onChange={(e) => setNewSensor(String(e.target.value))} displayEmpty>
+              <Select fullWidth value={newSensor} onChange={(e) => {
+                setNewSensor(String(e.target.value));
+                setNewMin("");
+                setNewMax("");
+                setBinChoice("both");
+              }} displayEmpty>
                 <MenuItem value="">Chọn cảm biến</MenuItem>
                 {sensorTypesLoading ? (
                   <MenuItem value="">Đang tải...</MenuItem>
@@ -323,23 +392,68 @@ const ThresholdEditor: React.FC<{
                 )}
               </Select>
             </Box>
-            <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-              <TextField label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")} value={newMin} onChange={(e) => setNewMin(e.target.value)}
-                error={!!getInlineError(newSensor, newMin === "" ? null : Number(newMin), "min")}
-                helperText={newSensor ? (getInlineError(newSensor, newMin === "" ? null : Number(newMin), "min") || getRangeHint(newSensor, "min")) : ""}
-                fullWidth />
-            </Box>
-            <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-              <TextField label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")} value={newMax} onChange={(e) => setNewMax(e.target.value)}
-                error={!!getInlineError(newSensor, newMax === "" ? null : Number(newMax), "max")}
-                helperText={newSensor ? (getInlineError(newSensor, newMax === "" ? null : Number(newMax), "max") || getRangeHint(newSensor, "max")) : ""}
-                fullWidth />
-            </Box>
-            <Box sx={{ flex: "0 0 120px" }}>
-              <Button variant="contained" startIcon={<AddIcon fontSize="small" />} onClick={handleAdd} disabled={!newSensor} fullWidth>
-                Thêm
-              </Button>
-            </Box>
+            {newSensor && isBinarySensor(newSensor) ? (
+              <>
+                <Box sx={{ flex: "1 1 50%", minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+                    <TrendingDownIcon fontSize="inherit" /> TRẠNG THÁI BÌNH THƯỜNG
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={binChoice}
+                    exclusive
+                    size="small"
+                    onChange={(_, val) => { if (val) setBinChoice(val); }}
+                  >
+                    <ToggleButton value="0" sx={{ textTransform: "none", px: 2 }}>0 (Tắt)</ToggleButton>
+                    <ToggleButton value="1" sx={{ textTransform: "none", px: 2 }}>1 (Bật)</ToggleButton>
+                    <ToggleButton value="both" sx={{ textTransform: "none", px: 2 }}>Cả hai</ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+                <Box sx={{ flex: "0 0 120px" }}>
+                  <Button variant="contained" startIcon={<AddIcon fontSize="small" />} onClick={() => {
+                    if (!newSensor || !newSensor) return;
+                    const min = binChoice === "0" ? 0 : binChoice === "1" ? 1 : 0;
+                    const max = binChoice === "0" ? 0 : binChoice === "1" ? 1 : 1;
+                    const sensor = sensorTypes.find((s) => s.name === newSensor);
+                    if (!sensor) { toast.warning("Không tìm thấy loại cảm biến"); return; }
+                    (async () => {
+                      try {
+                        const payload = { speciesId, growthStageId: stage.growthStageId ?? "", sensorTypeId: sensor.id, minValue: min, maxValue: max };
+                        const created = await createThreshold(payload);
+                        onSaveThreshold(newSensor, min, max, created?.id);
+                        toast.success("Thêm ngưỡng cảm biến thành công");
+                      } catch { toast.error("Không thể lưu ngưỡng lên máy chủ"); }
+                    })();
+                    setNewSensor("");
+                    setNewMin("");
+                    setNewMax("");
+                    setBinChoice("both");
+                  }} disabled={!newSensor} fullWidth>
+                    Thêm
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <>
+                <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
+                  <TextField label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")} value={newMin} onChange={(e) => setNewMin(e.target.value)}
+                    error={!!getInlineError(newSensor, newMin === "" ? null : Number(newMin), "min")}
+                    helperText={newSensor ? (getInlineError(newSensor, newMin === "" ? null : Number(newMin), "min") || getRangeHint(newSensor, "min")) : ""}
+                    fullWidth />
+                </Box>
+                <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
+                  <TextField label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")} value={newMax} onChange={(e) => setNewMax(e.target.value)}
+                    error={!!getInlineError(newSensor, newMax === "" ? null : Number(newMax), "max")}
+                    helperText={newSensor ? (getInlineError(newSensor, newMax === "" ? null : Number(newMax), "max") || getRangeHint(newSensor, "max")) : ""}
+                    fullWidth />
+                </Box>
+                <Box sx={{ flex: "0 0 120px" }}>
+                  <Button variant="contained" startIcon={<AddIcon fontSize="small" />} onClick={handleAdd} disabled={!newSensor} fullWidth>
+                    Thêm
+                  </Button>
+                </Box>
+              </>
+            )}
           </Box>
         </Grid>
       </Grid>

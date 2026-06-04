@@ -37,7 +37,7 @@ const SpeciesConfigsTab: React.FC = () => {
 
     return configs.map((c) => {
       const mappedThresholds = (c.thresholds ?? []).map((t) => ({
-        id: generateId(),
+        id: t.id,
         sensor: t.sensorTypeName,
         sensorTypeId: t.sensorTypeId,
         min: t.minValue,

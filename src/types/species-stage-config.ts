@@ -1,4 +1,5 @@
 export type StageThreshold = {
+  id: string;
   sensorTypeId: string;
   sensorTypeName: string;
   minValue: number;
