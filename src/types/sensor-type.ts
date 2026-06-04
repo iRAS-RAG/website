@@ -4,6 +4,8 @@ export type SensorType = {
   measureType?: string;
   unitOfMeasure?: string;
   code?: string;
+  minPossibleValue: number;
+  maxPossibleValue: number;
 };
 
 export type SensorTypeCreate = {

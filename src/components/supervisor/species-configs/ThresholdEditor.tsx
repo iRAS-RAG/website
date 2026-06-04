@@ -51,6 +51,36 @@ const ThresholdEditor: React.FC<{
     setEdits((s) => ({ ...s, [sensor]: { min: s[sensor]?.min ?? "", max: s[sensor]?.max ?? "", [field]: value } }));
   }
 
+  /** Look up the sensor type definition for range validation. */
+  function getSensorTypeRange(sensorName: string) {
+    const sensorType = sensorTypes.find((s) => s.name === sensorName);
+    return {
+      sensorType,
+      minPossible: sensorType?.minPossibleValue ?? -Infinity,
+      maxPossible: sensorType?.maxPossibleValue ?? Infinity,
+    };
+  }
+
+  /** Returns an inline error message if the value exceeds the sensor's absolute possible range. */
+  function getInlineError(sensorName: string, value: number | null, field: "min" | "max"): string | null {
+    if (value === null) return null;
+    const { sensorType, minPossible, maxPossible } = getSensorTypeRange(sensorName);
+    if (!sensorType) return null;
+    const unit = sensorType.unitOfMeasure ?? "";
+    if (field === "min" && value < minPossible) return `Min không thể nhỏ hơn ${minPossible}${unit ? ` ${unit}` : ""}`;
+    if (field === "max" && value > maxPossible) return `Max không thể lớn hơn ${maxPossible}${unit ? ` ${unit}` : ""}`;
+    return null;
+  }
+
+  /** Helper text showing the allowed absolute range for a sensor. */
+  function getRangeHint(sensorName: string, field: "min" | "max"): string {
+    const { sensorType, minPossible, maxPossible } = getSensorTypeRange(sensorName);
+    if (!sensorType) return "";
+    const unit = sensorType.unitOfMeasure ?? "";
+    if (field === "min") return `Tối thiểu: ${minPossible}${unit ? ` ${unit}` : ""}`;
+    return `Tối đa: ${maxPossible}${unit ? ` ${unit}` : ""}`;
+  }
+
   async function handleExistingSave(sensor: string) {
     const e = edits[sensor];
     const min = e?.min === "" ? null : Number(e?.min);
@@ -62,6 +92,17 @@ const ThresholdEditor: React.FC<{
     // Validate min < max before sending API request
     if (min !== null && max !== null && min >= max) {
       toast.warning("Giá trị Min phải nhỏ hơn Max");
+      return;
+    }
+
+    // Validate against sensor type's absolute possible range
+    const { sensorType: st, minPossible, maxPossible } = getSensorTypeRange(sensor);
+    if (min !== null && st && min < minPossible) {
+      toast.warning(`Giá trị Min (${min}) thấp hơn ngưỡng tối thiểu cho phép (${minPossible} ${st.unitOfMeasure ?? ""}).`);
+      return;
+    }
+    if (max !== null && st && max > maxPossible) {
+      toast.warning(`Giá trị Max (${max}) vượt quá ngưỡng tối đa cho phép (${maxPossible} ${st.unitOfMeasure ?? ""}).`);
       return;
     }
 
@@ -142,6 +183,17 @@ const ThresholdEditor: React.FC<{
       return;
     }
 
+    // Validate against sensor type's absolute possible range
+    const { sensorType: st, minPossible, maxPossible } = getSensorTypeRange(newSensor);
+    if (min !== null && st && min < minPossible) {
+      toast.warning(`Giá trị Min (${min}) thấp hơn ngưỡng tối thiểu cho phép (${minPossible} ${st.unitOfMeasure ?? ""}).`);
+      return;
+    }
+    if (max !== null && st && max > maxPossible) {
+      toast.warning(`Giá trị Max (${max}) vượt quá ngưỡng tối đa cho phép (${maxPossible} ${st.unitOfMeasure ?? ""}).`);
+      return;
+    }
+
     const sensor = sensorTypes.find((s) => s.name === newSensor);
     if (!sensor) {
       onSaveThreshold(newSensor, min, max);
@@ -195,6 +247,8 @@ const ThresholdEditor: React.FC<{
                   label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")}
                   value={edits[t.sensor]?.min ?? (t.min === null ? "" : String(t.min ?? ""))}
                   onChange={(e) => handleExistingChange(t.sensor, "min", e.target.value)}
+                  error={!!getInlineError(t.sensor, edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min), "min")}
+                  helperText={getInlineError(t.sensor, edits[t.sensor]?.min === "" ? null : Number(edits[t.sensor]?.min), "min") || getRangeHint(t.sensor, "min")}
                   fullWidth
                 />
               </Box>
@@ -203,6 +257,8 @@ const ThresholdEditor: React.FC<{
                   label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")}
                   value={edits[t.sensor]?.max ?? (t.max === null ? "" : String(t.max ?? ""))}
                   onChange={(e) => handleExistingChange(t.sensor, "max", e.target.value)}
+                  error={!!getInlineError(t.sensor, edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max), "max")}
+                  helperText={getInlineError(t.sensor, edits[t.sensor]?.max === "" ? null : Number(edits[t.sensor]?.max), "max") || getRangeHint(t.sensor, "max")}
                   fullWidth
                 />
               </Box>
@@ -268,10 +324,16 @@ const ThresholdEditor: React.FC<{
               </Select>
             </Box>
             <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-              <TextField label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")} value={newMin} onChange={(e) => setNewMin(e.target.value)} fullWidth />
+              <TextField label={labelWithIcon(<TrendingDownIcon fontSize="small" />, "Min")} value={newMin} onChange={(e) => setNewMin(e.target.value)}
+                error={!!getInlineError(newSensor, newMin === "" ? null : Number(newMin), "min")}
+                helperText={newSensor ? (getInlineError(newSensor, newMin === "" ? null : Number(newMin), "min") || getRangeHint(newSensor, "min")) : ""}
+                fullWidth />
             </Box>
             <Box sx={{ flex: "1 1 25%", minWidth: 0 }}>
-              <TextField label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")} value={newMax} onChange={(e) => setNewMax(e.target.value)} fullWidth />
+              <TextField label={labelWithIcon(<TrendingUpIcon fontSize="small" />, "Max")} value={newMax} onChange={(e) => setNewMax(e.target.value)}
+                error={!!getInlineError(newSensor, newMax === "" ? null : Number(newMax), "max")}
+                helperText={newSensor ? (getInlineError(newSensor, newMax === "" ? null : Number(newMax), "max") || getRangeHint(newSensor, "max")) : ""}
+                fullWidth />
             </Box>
             <Box sx={{ flex: "0 0 120px" }}>
               <Button variant="contained" startIcon={<AddIcon fontSize="small" />} onClick={handleAdd} disabled={!newSensor} fullWidth>

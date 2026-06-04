@@ -8,6 +8,8 @@ function toUi(item: Record<string, unknown>): SensorType {
     measureType: item.measureType ? String(item.measureType) : undefined,
     unitOfMeasure: item.unitOfMeasure ? String(item.unitOfMeasure) : undefined,
     code: item.code ? String(item.code) : undefined,
+    minPossibleValue: Number(item.minPossibleValue ?? 0),
+    maxPossibleValue: Number(item.maxPossibleValue ?? 0),
   };
 }
 
