@@ -1,3 +1,4 @@
+import Autocomplete from "@mui/material/Autocomplete";
 import DescriptionIcon from "@mui/icons-material/Description";
 import FactoryIcon from "@mui/icons-material/Factory";
 import LocalDiningIcon from "@mui/icons-material/LocalDining";
@@ -13,9 +14,10 @@ type Props = {
   initial?: FeedType | null;
   onClose: () => void;
   onSave: (values: Values) => Promise<void> | void;
+  manufacturerOptions?: string[];
 };
 
-const FeedFormDialog: React.FC<Props> = ({ open, initial = null, onClose, onSave }) => {
+const FeedFormDialog: React.FC<Props> = ({ open, initial = null, onClose, onSave, manufacturerOptions = [] }) => {
   const [form, setForm] = useState({ name: "", protein: "", description: "", manufacturer: "" });
 
   useEffect(() => {
@@ -76,15 +78,22 @@ const FeedFormDialog: React.FC<Props> = ({ open, initial = null, onClose, onSave
             multiline
             minRows={2}
           />
-          <TextField
-            label={
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <FactoryIcon fontSize="small" />
-                Nhà sản xuất
-              </span>
-            }
-            value={form.manufacturer}
-            onChange={(e) => setForm((p) => ({ ...p, manufacturer: e.target.value }))}
+          <Autocomplete
+            freeSolo
+            options={manufacturerOptions}
+            inputValue={form.manufacturer}
+            onInputChange={(_, val) => setForm((p) => ({ ...p, manufacturer: val }))}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <FactoryIcon fontSize="small" />
+                    Nhà sản xuất
+                  </span>
+                }
+              />
+            )}
             fullWidth
           />
         </Stack>

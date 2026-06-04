@@ -302,7 +302,7 @@ const FeedTypesTab: React.FC = () => {
       </Paper>
 
       {/* DIALOGS */}
-      <FeedFormDialog open={formOpen} initial={editing} onClose={() => setFormOpen(false)} onSave={handleSave} />
+      <FeedFormDialog open={formOpen} initial={editing} onClose={() => setFormOpen(false)} onSave={handleSave} manufacturerOptions={manufacturerOptions} />
       <ConfirmDeleteDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDeleteConfirmed} />
     </Box>
   );
