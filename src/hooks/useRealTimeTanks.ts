@@ -226,5 +226,6 @@ export const useRealTimeTanks = () => {
     chartData,
     loading,
     refetch: fetchTankDetails,
+    refreshMetadata,
   };
 };

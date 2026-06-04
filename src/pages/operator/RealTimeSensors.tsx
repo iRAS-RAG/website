@@ -122,7 +122,7 @@ const RealTimeSensors = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const { tanks, selectedTank, setSelectedTank, latestData, devices, loading, refetch } = useRealTimeTanks();
+  const { tanks, selectedTank, setSelectedTank, latestData, devices, loading, refetch, refreshMetadata } = useRealTimeTanks();
   const liveSeries = useLiveTelemetry(selectedTank?.id ?? null);
 
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
@@ -239,6 +239,8 @@ const RealTimeSensors = () => {
     }
   }, [tanks, tanksWithMasterboard, setSelectedTank]);
 
+  const [simConfirmOpen, setSimConfirmOpen] = useState(false);
+
   const handleSimulationToggle = async () => {
     if (!masterBoardMac) return;
     setSimulationLoading(true);
@@ -252,10 +254,12 @@ const RealTimeSensors = () => {
         await simulationApi.startSimulation(masterBoardMac);
         setIsSimulating(true);
         setSimulatingMac(masterBoardMac);
-        toast.warning("Đã kích hoạt mô phỏng dữ liệu nguy hiểm! Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C. Biểu đồ vẫn cập nhật bình thường.");
+        toast.warning("Đã kích hoạt mô phỏng dữ liệu nguy hiểm! Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C.");
       }
-      // Refetch latest data to refresh UI
-      refetch(true);
+      // Immediately refresh latest-data to update the stats cards
+      refreshMetadata();
+      // Also do a full refetch for chart history
+      setTimeout(() => refetch(true), 500);
     } catch (err) {
       console.error(err);
       toast.error("Không thể chuyển đổi chế độ mô phỏng");
@@ -381,12 +385,18 @@ const RealTimeSensors = () => {
     return () => clearInterval(id);
   }, []);
 
-  // Reset accumulation when sensor changes.
+  // Immediately populate chart from SignalR buffer when sensor changes,
+  // instead of waiting up to 2s for the next flush interval.
   useEffect(() => {
-    setAccumulatedLive([]);
+    const rawPoints = liveSeries.get(currentSensorId ?? "") ?? [];
+    const cutoff = Date.now() - LIVE_WINDOW_MS;
+    const initial = rawPoints
+      .filter((p) => (p.ts ?? 0) >= cutoff)
+      .map((p) => ({ time: p.time, value: p.value }));
+    setAccumulatedLive(initial);
     pendingLiveRef.current = [];
-    lastAccumulatedTsRef.current = 0;
-  }, [currentSensorId]);
+    lastAccumulatedTsRef.current = rawPoints.length > 0 ? rawPoints[rawPoints.length - 1].ts ?? 0 : 0;
+  }, [currentSensorId, liveSeries]);
 
   const displayChartData: ChartPoint[] = timeFilter === "10s" ? accumulatedLive : sensorChartData;
 
@@ -611,7 +621,10 @@ const RealTimeSensors = () => {
                   <Button
                     variant={isSimulating ? "outlined" : "contained"}
                     color={isSimulating ? "error" : "warning"}
-                    onClick={handleSimulationToggle}
+                    onClick={() => {
+                      if (isSimulating) handleSimulationToggle();
+                      else setSimConfirmOpen(true);
+                    }}
                     disabled={simulationLoading}
                     startIcon={isSimulating ? undefined : <DangerousIcon />}
                     sx={{ borderRadius: "8px", fontWeight: 700, textTransform: "none", boxShadow: "none", whiteSpace: "nowrap" }}
@@ -622,6 +635,51 @@ const RealTimeSensors = () => {
               </Stack>
             </Paper>
           )}
+
+          {/* ── Confirmation dialog before starting simulation ── */}
+          <Dialog open={simConfirmOpen} onClose={() => setSimConfirmOpen(false)} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
+              <DangerousIcon color="warning" />
+              Xác nhận mô phỏng mất kết nối
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2}>
+                <Typography>
+                  Hành động này sẽ <strong>ngắt kết nối thực tế</strong> với board mạch chủ của bể <strong>{selectedTank?.name}</strong> và thay thế dữ liệu cảm biến thực bằng{" "}
+                  <strong>dữ liệu giả lập nguy hiểm</strong> (nhiệt độ 50-60°C).
+                </Typography>
+                <Box sx={{ bgcolor: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 2, p: 2 }}>
+                  <Typography variant="body2" sx={{ color: "#991B1B", fontWeight: 600, mb: 0.5 }}>
+                    ⚠️ Lưu ý quan trọng:
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#7F1D1D" }}>
+                    - Hệ thống sẽ ngừng nhận dữ liệu từ cảm biến thật của bể này.
+                    <br />
+                    - Các thao tác điều khiển thiết bị (bơm, quạt, sục khí...) sẽ không hoạt động.
+                    <br />
+                    - Dữ liệu giả lập sẽ hiển thị trên biểu đồ và có thể kích hoạt cảnh báo.
+                    <br />- Nhấn <strong>"Kết nối lại"</strong> để khôi phục trạng thái thực tế.
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setSimConfirmOpen(false)} sx={{ color: "#64748B", fontWeight: 600, textTransform: "none" }}>
+                Hủy
+              </Button>
+              <Button
+                variant="contained"
+                color="warning"
+                onClick={() => {
+                  setSimConfirmOpen(false);
+                  handleSimulationToggle();
+                }}
+                sx={{ borderRadius: "8px", fontWeight: 600, textTransform: "none" }}
+              >
+                Xác nhận mô phỏng
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* ── Sensor cards — slider ── */}
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
@@ -649,13 +707,7 @@ const RealTimeSensors = () => {
                     {visibleSensors.map((sensor) => {
                       const sensorIsBinary = sensor.unitOfMeasure === "0/1";
                       const rawVal = sensor.latestData?.latestAvg;
-                      const displayValue = sensorIsBinary
-                        ? rawVal !== undefined && rawVal !== null
-                          ? rawVal >= 0.5
-                            ? "An toàn"
-                            : "Bất thường"
-                          : "--"
-                        : (rawVal?.toFixed(2) ?? "--");
+                      const displayValue = sensorIsBinary ? (rawVal !== undefined && rawVal !== null ? (rawVal >= 0.5 ? "An toàn" : "Bất thường") : "--") : (rawVal?.toFixed(2) ?? "--");
                       const statusLabel = sensorIsBinary
                         ? rawVal !== undefined && rawVal !== null
                           ? rawVal >= 0.5
@@ -665,13 +717,7 @@ const RealTimeSensors = () => {
                         : sensor.latestData?.isWarning
                           ? "Cảnh báo"
                           : "An toàn";
-                      const statusCol = sensorIsBinary
-                        ? rawVal !== undefined && rawVal !== null && rawVal >= 0.5
-                          ? "success"
-                          : "error"
-                        : sensor.latestData?.isWarning
-                          ? "error"
-                          : "success";
+                      const statusCol = sensorIsBinary ? (rawVal !== undefined && rawVal !== null && rawVal >= 0.5 ? "success" : "error") : sensor.latestData?.isWarning ? "error" : "success";
                       return (
                         <SensorCard
                           key={sensor.sensorId}
@@ -754,15 +800,21 @@ const RealTimeSensors = () => {
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 1.5 }}>
                       <Stack direction="row" alignItems="center" spacing={0.5}>
                         <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#10B981", flexShrink: 0 }} />
-                        <Typography variant="caption" color="text.secondary">An toàn (1)</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          An toàn (1)
+                        </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="center" spacing={0.5}>
                         <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#EF4444", flexShrink: 0 }} />
-                        <Typography variant="caption" color="text.secondary">Bất thường (0)</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Bất thường (0)
+                        </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="center" spacing={0.5}>
                         <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#E2E8F0", flexShrink: 0 }} />
-                        <Typography variant="caption" color="text.secondary">Không có dữ liệu</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Không có dữ liệu
+                        </Typography>
                       </Stack>
                     </Stack>
                     {/* Timeline bar */}
@@ -770,20 +822,18 @@ const RealTimeSensors = () => {
                       {displayChartData.map((point, i) => {
                         const color = point.value === null ? "#E2E8F0" : point.value >= 0.5 ? "#10B981" : "#EF4444";
                         const label = point.value === null ? "Không có dữ liệu" : point.value >= 0.5 ? "An toàn (1)" : "Bất thường (0)";
-                        return (
-                          <Box
-                            key={i}
-                            sx={{ flex: 1, bgcolor: color, minWidth: 1, transition: "background-color 0.3s" }}
-                            title={`${point.time}: ${label}`}
-                          />
-                        );
+                        return <Box key={i} sx={{ flex: 1, bgcolor: color, minWidth: 1, transition: "background-color 0.3s" }} title={`${point.time}: ${label}`} />;
                       })}
                     </Box>
                     {/* Time labels */}
                     {displayChartData.length > 0 && (
                       <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.75 }}>
-                        <Typography variant="caption" color="text.secondary">{displayChartData[0].time}</Typography>
-                        <Typography variant="caption" color="text.secondary">{displayChartData[displayChartData.length - 1].time}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {displayChartData[0].time}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {displayChartData[displayChartData.length - 1].time}
+                        </Typography>
                       </Box>
                     )}
                   </Box>
@@ -803,7 +853,15 @@ const RealTimeSensors = () => {
                           const tickValue = payload?.value ?? 0;
                           const isThresholdTick = thresholds !== null && (Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05);
                           return (
-                            <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={isThresholdTick ? 12 : 11} fontWeight={isThresholdTick ? 700 : 400} fill={isThresholdTick ? "#10B981" : "#6B7280"}>
+                            <text
+                              x={x}
+                              y={y}
+                              textAnchor="end"
+                              dominantBaseline="middle"
+                              fontSize={isThresholdTick ? 12 : 11}
+                              fontWeight={isThresholdTick ? 700 : 400}
+                              fill={isThresholdTick ? "#10B981" : "#6B7280"}
+                            >
                               {tickValue}
                             </text>
                           );
@@ -905,7 +963,7 @@ const RealTimeSensors = () => {
                     </Box>
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
-                        Ghi nhận hiện tại
+                        Giá trị gần nhất
                       </Typography>
                       <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
                         {currentValue.toFixed(2)}
@@ -923,6 +981,9 @@ const RealTimeSensors = () => {
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
                       Thấp nhất hôm nay
+                      <Typography component="span" variant="caption" sx={{ color: "#94A3B8", fontWeight: 400, textTransform: "none", ml: 0.5, fontSize: "9px" }}>
+                        (tb theo phút)
+                      </Typography>
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.info.main }}>
                       {dailyMin.toFixed(2)}
@@ -936,6 +997,9 @@ const RealTimeSensors = () => {
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
                       Cao nhất hôm nay
+                      <Typography component="span" variant="caption" sx={{ color: "#94A3B8", fontWeight: 400, textTransform: "none", ml: 0.5, fontSize: "9px" }}>
+                        (tb theo phút)
+                      </Typography>
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.warning.main }}>
                       {dailyMax.toFixed(2)}
