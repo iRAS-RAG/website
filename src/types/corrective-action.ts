@@ -9,6 +9,8 @@ export interface ICorrectiveAction {
   actionTaken: string;
   notes: string;
   timestamp: string;
+  sensorTypeName?: string;
+  fishTankName?: string;
 }
 
 export interface ICreateCorrectiveAction {

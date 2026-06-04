@@ -45,7 +45,7 @@ interface ChartPoint {
 const LIVE_WINDOW_MS = 10_000; // must match useLiveTelemetry's WINDOW_MS
 
 const TIME_FILTERS: { label: string; value: TimeFilter; seconds: number }[] = [
-  { label: "10s", value: "10s", seconds: 10 },
+  { label: "2s", value: "10s", seconds: 2 },
   { label: "1 phút", value: "1m", seconds: 60 },
   { label: "1 giờ", value: "1h", seconds: 3600 },
   { label: "1 ngày", value: "1d", seconds: 86400 },
@@ -338,16 +338,37 @@ const RealTimeSensors = () => {
       };
 
       const raw = extractArray(res) as RawLog[];
-      const points: ChartPoint[] = raw
-        .map((d) => {
-          const ts = d.recordedAt || d.createdAt || d.created_at || d.timestamp;
-          const val = d.value ?? d.averageValue ?? d.data ?? null;
-          return {
-            time: ts ? dayjs(ts).format(timeFormat) : "",
-            value: val !== null ? Number(Number(val).toFixed(2)) : null,
-          };
-        })
-        .filter((d) => d.time);
+
+      // Build lookup from API data: formatted-time → value
+      const apiLookup = new Map<string, number | null>();
+      (raw as RawLog[]).forEach((d) => {
+        const ts = d.recordedAt || d.createdAt || d.created_at || d.timestamp;
+        if (!ts) return;
+        const val = d.value ?? d.averageValue ?? d.data ?? null;
+        const key = dayjs(ts).format(timeFormat);
+        if (!apiLookup.has(key)) {
+          apiLookup.set(key, val !== null ? Number(Number(val).toFixed(2)) : null);
+        }
+      });
+
+      // Generate a complete skeleton of expected time slots so every interval
+      // appears on the X-axis — null slots show as explicit gaps (no dot, line break)
+      // instead of a misleading straight line connecting two distant real points.
+      const skeleton: ChartPoint[] = [];
+      const slotMs = intervalMin * 60 * 1000;
+      const fromMs = dayjs(fromDate).valueOf();
+      const toMs = now.valueOf();
+      for (let t = fromMs; t <= toMs + slotMs; t += slotMs) {
+        const label = dayjs(t).format(timeFormat);
+        skeleton.push({ time: label, value: apiLookup.get(label) ?? null });
+      }
+      // Deduplicate by label (keep first occurrence)
+      const seen = new Set<string>();
+      const points = skeleton.filter((p) => {
+        if (seen.has(p.time)) return false;
+        seen.add(p.time);
+        return true;
+      });
 
       setSensorChartData(points);
     } catch (err) {
@@ -458,18 +479,49 @@ const RealTimeSensors = () => {
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
   const isCurrentDanger = thresholds !== null && (currentValue < thresholds.min || currentValue > thresholds.max);
 
+  // Sensor-type absolute domain hints (min, max) for a reasonable Y-axis range.
+  // Prevents threshold values being crowded at domain boundary.
+  const sensorTypeDomain = useMemo((): [number, number] | null => {
+    if (!activeSensor) return null;
+    const lower = activeSensor.sensorTypeName?.toLowerCase() || "";
+    if (lower.includes("nhiệt độ") || lower.includes("temp")) return [0, 50];
+    if (lower.includes("ph")) return [0, 14];
+    if (lower.includes("tds")) return [0, 1000];
+    if (lower.includes("oxy") || lower.includes("do")) return [0, 20];
+    if (lower.includes("ammonia") || lower.includes("nh3")) return [0, 10];
+    if (lower.includes("lưu lượng")) return [0, 200];
+    if (lower.includes("mực nước")) return [0, 500];
+    return null;
+  }, [activeSensor]);
+
   const yDomain = useMemo(() => {
     if (isBinary) return [-0.1, 1.1];
     const values = displayChartData.map((d) => d.value).filter((v): v is number => v !== null);
     const allValues: number[] = [...values, ...(thresholds ? [thresholds.min, thresholds.max] : []), ...(dailyMin != null ? [dailyMin] : []), ...(dailyMax != null ? [dailyMax] : [])];
-    if (allValues.length === 0) return [0, 100];
-    return [Math.floor(Math.min(...allValues) - 1), Math.ceil(Math.max(...allValues) + 1)];
-  }, [displayChartData, thresholds, dailyMin, dailyMax, isBinary]);
+    if (allValues.length === 0) return sensorTypeDomain ?? [0, 100];
+    const dataMin = Math.min(...allValues);
+    const dataMax = Math.max(...allValues);
+    const range = Math.max(dataMax - dataMin, 1);
+    const pad = Math.ceil(range * 0.08);
+    // Clamp to sensor-type absolute domain when available
+    const absMin = sensorTypeDomain ? sensorTypeDomain[0] : dataMin - pad;
+    const absMax = sensorTypeDomain ? sensorTypeDomain[1] : dataMax + pad;
+    return [Math.max(absMin, Math.floor(dataMin - pad)), Math.min(absMax, Math.ceil(dataMax + pad))];
+  }, [displayChartData, thresholds, dailyMin, dailyMax, isBinary, sensorTypeDomain]);
 
   const yAxisTicks = useMemo(() => {
     if (isBinary) return [0, 1];
-    const raw = thresholds ? [yDomain[0], thresholds.min, thresholds.max, yDomain[1]] : [yDomain[0], yDomain[1]];
-    return Array.from(new Set(raw.map((v) => Number(Number(v).toFixed(1))))).sort((a, b) => a - b);
+    const domainRange = yDomain[1] - yDomain[0];
+    const minGap = domainRange * 0.12; // 12% of domain = minimum gap to show a tick
+    const thrTicks = thresholds ? [thresholds.min, thresholds.max] : [];
+    const candidates = [yDomain[0], ...thrTicks, yDomain[1]];
+    // Drop domain-boundary ticks that would overlap with a threshold tick
+    const filtered = candidates.filter((v) => {
+      const isDomainBoundary = v === yDomain[0] || v === yDomain[1];
+      if (!isDomainBoundary) return true;
+      return thrTicks.every((t) => Math.abs(v - t) >= minGap);
+    });
+    return Array.from(new Set(filtered.map((v) => Number(v.toFixed(1))))).sort((a, b) => a - b);
   }, [yDomain, thresholds, isBinary]);
 
   const binaryStats = useMemo(() => {
@@ -788,7 +840,7 @@ const RealTimeSensors = () => {
               </Stack>
 
               {/* Chart area */}
-              <Box sx={{ height: 320, width: "100%", mb: 2 }}>
+              <Box sx={{ height: timeFilter === "1h" ? 360 : 320, width: "100%", mb: 2 }}>
                 {chartLoading ? (
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                     <CircularProgress size={32} />
@@ -840,9 +892,35 @@ const RealTimeSensors = () => {
                 ) : (
                   /* ── Analog sensor line chart ── */
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={displayChartData} margin={{ top: 32, right: 24, left: 0, bottom: 8 }}>
+                    <LineChart data={displayChartData} margin={{ top: 32, right: 24, left: 0, bottom: timeFilter === "1h" ? 42 : 8 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={8} />
+                      <XAxis
+                        dataKey="time"
+                        axisLine={false}
+                        tickLine={false}
+                        dy={8}
+                        tick={(props: { x?: number; y?: number; payload?: { value?: string } }) => {
+                          const { x = 0, y = 0, payload } = props;
+                          const raw = payload?.value ?? "";
+                          // For 1h filter, time is "DD/MM HH:mm" — split into 2 lines
+                          const parts = timeFilter === "1h" ? raw.match(/^(\d+\/\d+)\s+(\d+:\d+)$/) : null;
+                          if (parts) {
+                            return (
+                              <g transform={`translate(${x},${y})`}>
+                                <text textAnchor="middle" fill="#6B7280" fontSize={11}>
+                                  <tspan x={0} dy={8}>{parts[2]}</tspan>
+                                  <tspan x={0} dy={14}>{parts[1]}</tspan>
+                                </text>
+                              </g>
+                            );
+                          }
+                          return (
+                            <g transform={`translate(${x},${y})`}>
+                              <text textAnchor="middle" fill="#6B7280" fontSize={11} dy={8}>{raw}</text>
+                            </g>
+                          );
+                        }}
+                      />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
@@ -879,7 +957,7 @@ const RealTimeSensors = () => {
                         dataKey="value"
                         stroke={chartColor}
                         strokeWidth={2}
-                        connectNulls
+                        connectNulls={false}
                         dot={(props: unknown) => renderCustomDot({ ...(props as CustomDotProps), thresholds, defaultColor: chartColor })}
                         activeDot={{ r: 8 }}
                       />
@@ -943,11 +1021,11 @@ const RealTimeSensors = () => {
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
                         Ngưỡng an toàn
                       </Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.success.main }}>
                         {thresholds ? (
                           <>
-                            {thresholds.min} – {thresholds.max}{" "}
-                            <Typography component="span" variant="body2" sx={{ color: "text.secondary" }}>
+                            {thresholds.min} – {thresholds.max}
+                            <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
                               {activeSensor.unitOfMeasure}
                             </Typography>
                           </>

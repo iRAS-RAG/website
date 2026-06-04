@@ -459,6 +459,7 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
               />
               <TextField
                 fullWidth
+                size="small"
                 label="Ngày thu hoạch dự kiến"
                 value={estimatedHarvestDate || (estimatingHarvest ? "Đang tính..." : "—")}
                 InputProps={{ readOnly: true }}

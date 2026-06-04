@@ -75,12 +75,29 @@ const MaintenanceLog: React.FC = () => {
     const fetchAllAlerts = async () => {
       setLoadingAlerts(true);
       try {
-        const res = await apiFetch<unknown>("/alerts?page=1&pageSize=100", {
-          method: "GET",
-        });
-        const resObj = res as { data?: IAlertOption[] };
-        const alertsData = Array.isArray(res) ? res : resObj?.data || [];
-        setAlertsList(alertsData as IAlertOption[]);
+        // Fetch Acknowledged (for dropdown) + all recent (for alertMap) in parallel
+        const [ackedRes, allRes] = await Promise.allSettled([
+          apiFetch<unknown>("/alerts?page=1&pageSize=100&statuses=Acknowledged", { method: "GET" }),
+          apiFetch<unknown>("/alerts?page=1&pageSize=100", { method: "GET" }),
+        ]);
+
+        const extractItems = (res: unknown): IAlertOption[] => {
+          const rawData = (res as any)?.data;
+          if (Array.isArray(rawData)) return rawData;
+          if (Array.isArray(rawData?.items)) return rawData.items;
+          if (Array.isArray(res)) return res as IAlertOption[];
+          return [];
+        };
+
+        const ackedItems = ackedRes.status === "fulfilled" ? extractItems(ackedRes.value) : [];
+        const allItems = allRes.status === "fulfilled" ? extractItems(allRes.value) : [];
+
+        // Merge: use a Map by id to deduplicate (Acknowledged items take priority)
+        const merged = new Map<string, IAlertOption>();
+        allItems.forEach((a) => merged.set(a.id.toLowerCase(), a));
+        ackedItems.forEach((a) => merged.set(a.id.toLowerCase(), a));
+
+        setAlertsList(Array.from(merged.values()));
       } catch (err) {
         console.error("Lỗi khi tải danh sách cảnh báo:", err);
       } finally {
@@ -123,11 +140,12 @@ const MaintenanceLog: React.FC = () => {
   // Luôn giữ lại alert đang được pre-select (từ navigation hoặc edit mode)
   const availableAlerts = useMemo(() => {
     return alertsList.filter((alert) => {
-      // Luôn bao gồm alert đang được chọn (dù từ edit hay redirect từ AlertDetailModal)
+      // Always include the currently pre-selected alert (from edit or redirect)
       if (formData.alertId && formData.alertId.toLowerCase() === alert.id.toLowerCase()) {
         return true;
       }
-      return !alert.hasCorrectiveAction && String(alert.status).toUpperCase() !== "DISMISSED";
+      // Only show ACKNOWLEDGED (Đang xử lý) alerts that don't have a corrective action yet
+      return !alert.hasCorrectiveAction && String(alert.status).toUpperCase() === "ACKNOWLEDGED";
     });
   }, [alertsList, formData.alertId]);
 
@@ -398,25 +416,29 @@ const MaintenanceLog: React.FC = () => {
                   {logs.map((row) => (
                     <TableRow key={row.id} hover>
                       <TableCell>
-                        {alertMap[(row.alertId || "").toLowerCase()] ? (
-                          <Chip
-                            label={alertMap[(row.alertId || "").toLowerCase()]}
-                            size="small"
-                            color="error"
-                            variant="outlined"
-                            sx={{ fontWeight: 500, borderRadius: "6px" }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontFamily: "monospace",
-                              color: "text.disabled",
-                            }}
-                          >
-                            ID: {row.alertId.substring(0, 8)}...
-                          </Typography>
-                        )}
+                        {(() => {
+                          // Priority: fields embedded in the log (from backend DTO) > alertMap fallback
+                          const label =
+                            (row.fishTankName && row.sensorTypeName)
+                              ? `${row.fishTankName} - ${row.sensorTypeName}`
+                              : alertMap[(row.alertId || "").toLowerCase()];
+                          return label ? (
+                            <Chip
+                              label={label}
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                              sx={{ fontWeight: 500, borderRadius: "6px" }}
+                            />
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              sx={{ fontFamily: "monospace", color: "text.disabled" }}
+                            >
+                              ID: {row.alertId.substring(0, 8)}...
+                            </Typography>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell
                         sx={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}
