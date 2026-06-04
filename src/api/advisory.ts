@@ -16,6 +16,15 @@ export interface AdvisoryFeedbackRequest {
   question?: string | null;
 }
 
+// Phản hồi từ POST /api/advisory/diagnose-mortality
+export interface MortalityDiagnosisResponse {
+  answer: string;
+  intent: string;
+  confidence?: number | null;
+  citations?: string[] | null;
+  answerBasis?: string | null;
+}
+
 export const advisoryApi = {
   // Danh sách bể nuôi để người dùng chọn trước khi tư vấn
   getTanks: async () => {
@@ -37,6 +46,18 @@ export const advisoryApi = {
     return await apiFetch<{ message: string }>("/advisory/chat/feedback", {
       method: "POST",
       body: data,
+    });
+  },
+
+  // Chẩn đoán nguyên nhân cá chết — tự động thu thập dữ liệu mortality, feeding, alerts
+  diagnoseMortality: async (tankId: string, batchId?: string, timeRange?: string) => {
+    return await apiFetch<MortalityDiagnosisResponse>("/advisory/diagnose-mortality", {
+      method: "POST",
+      body: {
+        tankId,
+        batchId: batchId ?? null,
+        timeRange: timeRange ?? null,
+      },
     });
   },
 };
