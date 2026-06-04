@@ -108,16 +108,6 @@ const AlertCenter = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertData | null>(null);
 
-  const openAlertId: string | undefined = (location.state as { openAlertId?: string } | null)?.openAlertId;
-
-  useEffect(() => {
-    if (!openAlertId) return;
-    navigate(location.pathname, { replace: true, state: {} });
-    alertApi.getById(openAlertId).then((alert: IAlert) => {
-      handleOpenDetail(alert);
-    }).catch(() => {});
-  }, [openAlertId]);
-
   const handleOpenDetail = (alert: IAlert) => {
     setSelectedAlert({
       id: alert.id,
@@ -134,6 +124,18 @@ const AlertCenter = () => {
     });
     setDetailOpen(true);
   };
+
+  const openAlertId: string | undefined = (location.state as { openAlertId?: string } | null)?.openAlertId;
+
+  useEffect(() => {
+    if (!openAlertId) return;
+    alertApi.getById(openAlertId).then((alert: IAlert) => {
+      handleOpenDetail(alert);
+      // Clear the nav state so it doesn't retrigger on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- openAlertId is the only trigger; navigate/location are stable
+  }, [openAlertId]);
 
   return (
     <Box

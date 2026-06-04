@@ -31,7 +31,7 @@ const SpeciesConfigsTab: React.FC = () => {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
-  async function fetchStagesForSpecies(speciesId: string, _speciesName: string) {
+  async function fetchStagesForSpecies(speciesId: string) {
     // The by-species endpoint now returns thresholds nested inside each config.
     const configs = await getSpeciesStageConfigsBySpecies(speciesId);
 
@@ -80,7 +80,7 @@ const SpeciesConfigsTab: React.FC = () => {
 
       let createdStages: Awaited<ReturnType<typeof fetchStagesForSpecies>> = [];
       try {
-        createdStages = await fetchStagesForSpecies(created.id, created.name);
+        createdStages = await fetchStagesForSpecies(created.id);
       } catch (e) {
         console.error("Failed to fetch created species stages", e);
         toast.error("Tải cấu hình loài thất bại");
@@ -134,7 +134,7 @@ const SpeciesConfigsTab: React.FC = () => {
     }
 
     try {
-      const stages = await fetchStagesForSpecies(sp.id, sp.name);
+      const stages = await fetchStagesForSpecies(sp.id);
       const next = speciesConfigs.map((s) => (s.id === id ? { ...s, stages } : s));
       setSpeciesConfigs(next);
     } catch (e) {
@@ -150,7 +150,7 @@ const SpeciesConfigsTab: React.FC = () => {
     if (!sp) return;
 
     try {
-      const stages = await fetchStagesForSpecies(sp.id, sp.name);
+      const stages = await fetchStagesForSpecies(sp.id);
       const next = speciesConfigs.map((s) => (s.id === speciesId ? { ...s, stages } : s));
       setSpeciesConfigs(next);
     } catch (e) {

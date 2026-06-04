@@ -28,8 +28,17 @@ const metricLabel = (k?: string) => {
   }
 };
 
+type TimeseriesParams = {
+  start: string;
+  end: string;
+  metric: "feed" | "mortality";
+  interval: "day" | "hour";
+  groupBy: "none" | "tank" | "batch";
+  aggregations: string[];
+};
+
 const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; height?: number }> = ({ farmId, defaultMetric = "feed", height = 420 }) => {
-  const [params, setParams] = React.useState({ start: defaultStart, end: defaultEnd, metric: defaultMetric, interval: "day", groupBy: "none", aggregations: ["sum"] as string[] });
+  const [params, setParams] = React.useState<TimeseriesParams>({ start: defaultStart, end: defaultEnd, metric: defaultMetric, interval: "day", groupBy: "none", aggregations: ["sum"] });
 
   const { loading, error, timeseries, refetch } = useFarmTimeseries(farmId, {
     start: params.start,
@@ -61,13 +70,13 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
     onMortality: scheduleRefetch,
   });
 
-  const handleControlsChange = (p: { start?: string; end?: string; groupBy?: string; metric?: string; interval?: string; aggregations?: string[] }) => {
+  const handleControlsChange = (p: Partial<TimeseriesParams>) => {
     setParams((prev) => {
       // When switching to batch grouping, force a single aggregation to avoid chart clutter
       if (p.groupBy === "batch" && p.groupBy !== prev.groupBy) {
-        return { ...prev, ...(p as any), aggregations: ["sum"] };
+        return { ...prev, ...p, aggregations: ["sum"] };
       }
-      return { ...prev, ...(p as any) };
+      return { ...prev, ...p };
     });
   };
 
@@ -125,9 +134,9 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
         <FarmTimeseriesControls
           start={params.start}
           end={params.end}
-          groupBy={params.groupBy as any}
-          metric={params.metric as any}
-          interval={params.interval as any}
+          groupBy={params.groupBy}
+          metric={params.metric}
+          interval={params.interval}
           aggregations={params.aggregations}
           onChange={handleControlsChange}
         />

@@ -71,6 +71,7 @@ export const useOperatorBatches = () => {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load; selectedBatch identity is stable enough
   }, []);
 
   useEffect(() => {

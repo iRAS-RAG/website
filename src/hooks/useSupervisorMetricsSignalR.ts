@@ -5,7 +5,7 @@ import { getAccessToken } from "../api/jwt";
 
 const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/supervisor-metrics";
 
-export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeeding?: (payload: any) => void; onMortality?: (payload: any) => void }) {
+export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeeding?: (payload: Record<string, unknown>) => void; onMortality?: (payload: Record<string, unknown>) => void }) {
   const connRef = useRef<HubConnection | null>(null);
   const [connected, setConnected] = useState(false);
   const handlersRef = useRef(handlers);
@@ -18,7 +18,7 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
     let cancelled = false;
 
     const buildAndRegister = (transport?: number) => {
-      const opts: any = { accessTokenFactory: () => getAccessToken() ?? "" };
+      const opts: Record<string, unknown> = { accessTokenFactory: () => getAccessToken() ?? "" };
       if (transport) opts.transport = transport;
       const conn = new HubConnectionBuilder().withUrl(HUB_URL, opts).withAutomaticReconnect().build();
 
@@ -33,7 +33,7 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
       conn.onreconnected(async () => {
         try {
           if (farmId) await conn.invoke("JoinFarmGroup", farmId);
-        } catch (e) {
+        } catch {
           // ignore
         }
       });
@@ -75,7 +75,7 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
               // ignore
             }
           }
-        } catch (e) {
+        } catch {
           setConnected(false);
         }
       });
@@ -93,7 +93,7 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
     if (!conn) return;
     try {
       await conn.invoke("JoinFarmGroup", id);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, []);

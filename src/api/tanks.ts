@@ -111,7 +111,7 @@ export async function getTankRecommendedInitials(id: string): Promise<Record<str
       const arr = res as Array<Record<string, unknown>>;
       const map: Record<string, number | null> = {};
       for (const item of arr) {
-        const sid = String(item.speciesId ?? item.species_id ?? (item.species as any)?.id ?? "");
+        const sid = String(item.speciesId ?? item.species_id ?? (item.species as Record<string, unknown>)?.id ?? "");
         const raw = (item.recommendedInitial as unknown) ?? (item.recommended_initial as unknown) ?? null;
         map[sid] = raw === null || raw === undefined ? null : Number(raw as unknown as number);
       }

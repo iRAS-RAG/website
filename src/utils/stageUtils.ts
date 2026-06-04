@@ -61,8 +61,8 @@ export function filterFeedTypesForStage(feedTypes: IFeedType[] | undefined, stag
   const allowed = new Set(stage.feedTypeNames.map((n) => normalize(n)));
 
   return feedTypes.filter((ft) => {
-    const name = normalize((ft as any).name ?? "");
-    const id = normalize(String((ft as any).id ?? ""));
+    const name = normalize((ft as unknown as Record<string, unknown>).name as string ?? "");
+    const id = normalize(String((ft as unknown as Record<string, unknown>).id ?? ""));
     return allowed.has(name) || allowed.has(id);
   });
 }

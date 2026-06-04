@@ -140,6 +140,7 @@ const MaintenanceLog: React.FC = () => {
     setFormData({ alertId: navState.alertId, actionTaken: "", notes: "" });
     setIsModalOpen(true);
     navigate(location.pathname, { replace: true, state: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate and location.pathname are stable
   }, [navState?.openCreate, navState?.alertId]);
 
   // Handlers mở modal Thêm/Sửa

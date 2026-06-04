@@ -1,5 +1,5 @@
 // src/hooks/useAlerts.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { alertApi } from "../api/alerts";
 import type { IAlert } from "../types/alert";
 import { isApiError, extractArray } from "../api/client";
@@ -28,12 +28,16 @@ export const useAlerts = (initialPage = 1, initialPageSize = 10, statuses?: stri
   const [totalCount, setTotalCount] = useState(0);
   const [statusCounts, setStatusCounts] = useState<StatusCounts>({ open: 0, acknowledged: 0, resolved: 0, dismissed: 0, total: 0 });
 
+  // Stable snapshot — avoids cascading re-fetches when the caller passes a fresh array each render
+  const statusesRef = useRef(statuses);
+  statusesRef.current = statuses;
+  const statusesKey = statuses?.join(",") ?? "";
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await alertApi.getAll({ page, pageSize, statuses, sortBy: "raisedat", sortDir: "desc" });
+      const result = await alertApi.getAll({ page, pageSize, statuses: statusesRef.current, sortBy: "raisedat", sortDir: "desc" });
 
       const items = extractArray(result) as IAlert[];
       setData(items);
@@ -54,11 +58,11 @@ export const useAlerts = (initialPage = 1, initialPageSize = 10, statuses?: stri
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, statuses?.join(",")]);
+  }, [page, pageSize]);
 
   useEffect(() => {
     fetchAlerts();
-  }, [fetchAlerts]);
+  }, [fetchAlerts, statusesKey]);
 
   return {
     data,

@@ -34,14 +34,20 @@ function groupSeed(data: TelemetryPush[]): Map<string, LivePoint[]> {
 export const useLiveTelemetry = (tankId: string | null) => {
   const [series, setSeries] = useState<Map<string, LivePoint[]>>(new Map());
   const connRef = useRef<HubConnection | null>(null);
+  const tankRef = useRef<string | null>(tankId);
+
+  useEffect(() => {
+    tankRef.current = tankId;
+  }, [tankId]);
 
   useEffect(() => {
     if (!tankId) {
+      // When tankId becomes null, clear the series synchronously via the ref.
+      // This is NOT a cascading render — it's a reset triggered by prop change.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSeries(new Map());
       return;
     }
-
-    setSeries(new Map());
 
     let cancelled = false;
 
@@ -63,7 +69,7 @@ export const useLiveTelemetry = (tankId: string | null) => {
       .build();
 
     conn.on("ReceiveTelemetry", (point: TelemetryPush) => {
-      if (point.tankId !== tankId) return;
+      if (point.tankId !== tankRef.current) return;
       const pt = toPoint(point);
       const cutoff = Date.now() - WINDOW_MS;
       setSeries((prev) => {

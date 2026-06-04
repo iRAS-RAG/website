@@ -292,7 +292,7 @@ export async function harvestBatch(id: string, payload: HarvestBatchPayload): Pr
     const body: Record<string, unknown> = {
       harvestDate: payload.harvestDate,
       force: payload.force ?? false,
-      actualHarvestWeightKg: (payload as any).actualHarvestWeightKg,
+      actualHarvestWeightKg: (payload as Record<string, unknown>).actualHarvestWeightKg,
     };
     const res = await apiFetch<Record<string, unknown>>(`/batches/${id}/harvest`, { method: "POST", body });
     if (!res) return null;

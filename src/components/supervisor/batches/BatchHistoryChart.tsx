@@ -4,6 +4,7 @@ import useBatchHistory from "../../../hooks/useBatchHistory";
 import useSupervisorMetricsSignalR from "../../../hooks/useSupervisorMetricsSignalR";
 import TimeseriesChart from "../../common/charts/TimeseriesChart";
 import BatchHistoryControls from "./BatchHistoryControls";
+import type { BatchHistoryDto, TimeSeriesPointDto } from "../../../api/supervisorMetrics";
 
 const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 
@@ -22,15 +23,21 @@ const metricLabel = (k?: string) => {
   }
 };
 
-function mapHistory(h?: { feedSeries?: any[]; mortalitySeries?: any[]; countSeries?: any[]; fcrSeries?: any[] } | null) {
-  if (!h) return [] as { name: string; points: { timestamp: string; value: number }[] }[];
-  const out: { name: string; points: { timestamp: string; value: number }[] }[] = [];
-  if (h.feedSeries && h.feedSeries.length > 0) out.push({ name: metricLabel("feed"), points: h.feedSeries });
-  if (h.mortalitySeries && h.mortalitySeries.length > 0) out.push({ name: metricLabel("mortality"), points: h.mortalitySeries });
-  if (h.countSeries && h.countSeries.length > 0) out.push({ name: metricLabel("count"), points: h.countSeries });
-  if (h.fcrSeries && h.fcrSeries.length > 0) out.push({ name: metricLabel("fcr"), points: h.fcrSeries });
+function mapHistory(h?: BatchHistoryDto | null) {
+  const out: { name: string; points: TimeSeriesPointDto[] }[] = [];
+  if (h?.feedSeries?.length) out.push({ name: metricLabel("feed"), points: h.feedSeries });
+  if (h?.mortalitySeries?.length) out.push({ name: metricLabel("mortality"), points: h.mortalitySeries });
+  if (h?.countSeries?.length) out.push({ name: metricLabel("count"), points: h.countSeries });
+  if (h?.fcrSeries?.length) out.push({ name: metricLabel("fcr"), points: h.fcrSeries });
   return out;
 }
+
+type HistoryParams = {
+  start: string;
+  end: string;
+  metrics: string[];
+  interval: "day" | "hour";
+};
 
 const defaultEnd = new Date().toISOString();
 const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -42,7 +49,7 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
   defaultMetrics = ["feed", "mortality"],
   height = 420,
 }) => {
-  const [params, setParams] = React.useState({ start: ds, end: de, metrics: defaultMetrics, interval: "day" as string });
+  const [params, setParams] = React.useState<HistoryParams>({ start: ds, end: de, metrics: defaultMetrics, interval: "day" });
 
   const { loading, error, history, refetch } = useBatchHistory(batchId, {
     start: params.start,
@@ -51,13 +58,13 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
     interval: params.interval,
   });
 
-  const refetchTimer = React.useRef<number | null>(null);
+  const refetchTimer = React.useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const scheduleRefetch = React.useCallback(() => {
     if (refetchTimer.current) window.clearTimeout(refetchTimer.current);
     refetchTimer.current = window.setTimeout(() => {
       refetch();
       refetchTimer.current = null;
-    }, 1500) as unknown as number;
+    }, 1500);
   }, [refetch]);
 
   React.useEffect(() => {
@@ -68,11 +75,11 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
 
   useSupervisorMetricsSignalR(DEFAULT_FARM_ID, { onFeeding: scheduleRefetch, onMortality: scheduleRefetch });
 
-  const handleControlsChange = (p: { start?: string; end?: string; metrics?: string[]; interval?: string }) => {
-    setParams((prev) => ({ ...prev, ...(p as any) }));
+  const handleControlsChange = (p: Partial<HistoryParams>) => {
+    setParams((prev) => ({ ...prev, ...p }));
   };
 
-  const series = mapHistory(history as any);
+  const series = mapHistory(history);
 
   const exportCsv = () => {
     const headers = ["Thời gian", "Chuỗi", "Giá trị"];
@@ -81,16 +88,16 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
     if (!history) return;
 
     if (history.feedSeries) {
-      history.feedSeries.forEach((p: any) => rows.push([p.timestamp, metricLabel("feed"), String(p.value ?? "")]));
+      history.feedSeries.forEach((p: TimeSeriesPointDto) => rows.push([p.timestamp, metricLabel("feed"), String(p.value ?? "")]));
     }
     if (history.mortalitySeries) {
-      history.mortalitySeries.forEach((p: any) => rows.push([p.timestamp, metricLabel("mortality"), String(p.value ?? "")]));
+      history.mortalitySeries.forEach((p: TimeSeriesPointDto) => rows.push([p.timestamp, metricLabel("mortality"), String(p.value ?? "")]));
     }
     if (history.countSeries) {
-      history.countSeries.forEach((p: any) => rows.push([p.timestamp, metricLabel("count"), String(p.value ?? "")]));
+      history.countSeries.forEach((p: TimeSeriesPointDto) => rows.push([p.timestamp, metricLabel("count"), String(p.value ?? "")]));
     }
     if (history.fcrSeries) {
-      history.fcrSeries.forEach((p: any) => rows.push([p.timestamp, metricLabel("fcr"), String(p.value ?? "")]));
+      history.fcrSeries.forEach((p: TimeSeriesPointDto) => rows.push([p.timestamp, metricLabel("fcr"), String(p.value ?? "")]));
     }
 
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -110,7 +117,7 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
           Lịch sử vụ nuôi theo thời gian
         </Typography>
 
-        <BatchHistoryControls start={params.start} end={params.end} metrics={params.metrics} interval={params.interval as any} onChange={handleControlsChange} />
+        <BatchHistoryControls start={params.start} end={params.end} metrics={params.metrics} interval={params.interval} onChange={handleControlsChange} />
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
