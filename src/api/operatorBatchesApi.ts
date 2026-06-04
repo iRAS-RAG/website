@@ -35,18 +35,18 @@ export const operatorBatchesApi = {
       },
     }),
 
-  // Validate trước khi ghi nhận: trả về { isWithinRange, message }
+  // Validate trước khi ghi nhận: trả về { isWithinRange, message, expectedLostKg }
   validateMortality: async (
     batchId: string,
     quantity: number,
-    weight: number,
-    date: string,
+    weight?: number,
+    date?: string,
   ) =>
-    await apiFetch<{ isWithinRange: boolean; message: string }>(
+    await apiFetch<{ isWithinRange: boolean | null; message: string; expectedLostKg?: number }>(
       `/batches/${batchId}/mortality/validate`,
       {
         method: "POST",
-        body: { quantity, lostWeightKg: weight, date },
+        body: { quantity, ...(weight !== undefined ? { lostWeightKg: weight } : {}), date: date ?? new Date().toISOString() },
       },
     ),
 

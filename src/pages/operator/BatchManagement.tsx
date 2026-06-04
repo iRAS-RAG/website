@@ -34,7 +34,7 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 // Icons
 import AddIcon from "@mui/icons-material/Add";
@@ -107,6 +107,24 @@ const BatchManagement = () => {
   const [deathWeightInput, setDeathWeightInput] = useState("");
   const [mortalityWarning, setMortalityWarning] = useState<string | null>(null);
   const [isSavingMortality, setIsSavingMortality] = useState(false);
+  const deathWeightAutoFilled = useRef(false);
+
+  // Auto-validate on quantity change: fetch expectedLostKg and pre-fill weight.
+  useEffect(() => {
+    const qty = parseInt(deathInput, 10);
+    if (!selectedBatch || isNaN(qty) || qty <= 0) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await operatorBatchesApi.validateMortality(selectedBatch.id, qty);
+        if (res.expectedLostKg != null && deathWeightAutoFilled.current) {
+          setDeathWeightInput(Number(res.expectedLostKg.toFixed(10)).toString());
+        }
+      } catch {
+        // silent — validation is best-effort for the auto-fill hint
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [deathInput, selectedBatch]);
 
   // Reset tab when batch changes
   useEffect(() => {
@@ -277,6 +295,7 @@ const BatchManagement = () => {
       setDeathInput("");
       setDeathWeightInput("");
       setMortalityWarning(null);
+      deathWeightAutoFilled.current = false;
       await refetchDetails();
       await refetch();
       toast.success("Báo cáo hao hụt thành công!");
@@ -902,6 +921,7 @@ const BatchManagement = () => {
           setDeathInput("");
           setDeathWeightInput("");
           setMortalityWarning(null);
+          deathWeightAutoFilled.current = false;
         }}
         maxWidth="xs"
         fullWidth
@@ -917,6 +937,7 @@ const BatchManagement = () => {
             value={deathInput}
             onChange={(e) => {
               setDeathInput(e.target.value);
+              deathWeightAutoFilled.current = true;
               setMortalityWarning(null);
             }}
           />
@@ -929,6 +950,7 @@ const BatchManagement = () => {
             value={deathWeightInput}
             onChange={(e) => {
               setDeathWeightInput(e.target.value);
+              deathWeightAutoFilled.current = false;
               setMortalityWarning(null);
             }}
           />
