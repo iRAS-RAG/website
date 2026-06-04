@@ -67,6 +67,12 @@ export const RecentAlertsList = ({
           const r = res as AlertsResponse;
           list = r.items ?? r.data ?? [];
         }
+        // Sort newest first
+        list = [...list].sort(
+          (a, b) =>
+            new Date(b.raisedAt ?? 0).getTime() -
+            new Date(a.raisedAt ?? 0).getTime(),
+        );
         setAlerts(list);
       } catch {
         if (mounted) setAlerts([]);

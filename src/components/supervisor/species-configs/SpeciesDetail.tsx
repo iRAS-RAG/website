@@ -41,8 +41,16 @@ import {
 } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { createGrowthStage, deleteGrowthStage } from "../../../api/growth-stages";
-import { createSpeciesStageConfig, deleteSpeciesStageConfig, reorderSpeciesStageConfigs, updateSpeciesStageConfig } from "../../../api/species-stage-configs";
+import {
+  createGrowthStage,
+  deleteGrowthStage,
+} from "../../../api/growth-stages";
+import {
+  createSpeciesStageConfig,
+  deleteSpeciesStageConfig,
+  reorderSpeciesStageConfigs,
+  updateSpeciesStageConfig,
+} from "../../../api/species-stage-configs";
 import useFeedTypes from "../../../hooks/useFeedTypes";
 import type { SpeciesConfig, Stage } from "../../../hooks/useSpeciesConfigs";
 import type { SpeciesStageConfigCreate } from "../../../types/species-stage-config";
@@ -51,12 +59,27 @@ import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
 import ThresholdEditor from "./ThresholdEditor";
 import useSensorTypes from "../../../hooks/useSensorTypes";
-import { createSpeciesThreshold, deleteSpeciesThreshold, updateSpeciesThreshold } from "../../../api/species-threshholds";
+import {
+  createSpeciesThreshold,
+  deleteSpeciesThreshold,
+  updateSpeciesThreshold,
+} from "../../../api/species-threshholds";
 
 type Props = {
   species: SpeciesConfig;
-  updateStage: (speciesId: string, stageId: string, patch: Partial<Stage>) => void;
-  updateStageThreshold: (speciesId: string, stageId: string, sensor: string, min: number | null, max: number | null, id?: string) => void;
+  updateStage: (
+    speciesId: string,
+    stageId: string,
+    patch: Partial<Stage>,
+  ) => void;
+  updateStageThreshold: (
+    speciesId: string,
+    stageId: string,
+    sensor: string,
+    min: number | null,
+    max: number | null,
+    id?: string,
+  ) => void;
   addStage: (speciesId: string, growthStageId?: string, name?: string) => void;
   removeStage: (speciesId: string, stageId: string) => void;
   onDeleteSpecies?: (id: string) => Promise<void>;
@@ -71,12 +94,22 @@ function arrayMove<T>(arr: T[], from: number, to: number) {
   return copy;
 }
 
-const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThreshold, addStage, removeStage, onDeleteSpecies, onRenameSpecies, refreshStages }) => {
+const SpeciesDetail: React.FC<Props> = ({
+  species,
+  updateStage,
+  updateStageThreshold,
+  addStage,
+  removeStage,
+  onDeleteSpecies,
+  onRenameSpecies,
+  refreshStages,
+}) => {
   const toast = useToast();
   const speciesIcon = autoSuggestIcon(species.name);
   // Derive growth stages from the species-stage-configs response — already includes growthStageId + name.
   const growthStages = useMemo(
-    () => species.stages.map((s) => ({ id: s.growthStageId ?? "", name: s.name })),
+    () =>
+      species.stages.map((s) => ({ id: s.growthStageId ?? "", name: s.name })),
     [species.stages],
   );
   const { feeds: feedTypes, loading: feedLoading } = useFeedTypes();
@@ -86,12 +119,16 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   const savedOrderRef = useRef<string[]>([]);
 
   const [displayStages, setDisplayStages] = useState<Stage[]>(() => {
-    const sorted = (species.stages || []).slice().sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity));
+    const sorted = (species.stages || [])
+      .slice()
+      .sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity));
     savedOrderRef.current = sorted.map((s) => s.id);
     return sorted;
   });
   useEffect(() => {
-    const sorted = (species.stages || []).slice().sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity));
+    const sorted = (species.stages || [])
+      .slice()
+      .sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity));
     setDisplayStages(sorted);
     savedOrderRef.current = sorted.map((s) => s.id);
   }, [species.stages]);
@@ -119,26 +156,42 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   const dragOverIndexRef = useRef<number | null>(null);
 
   const currentOrderIds = displayStages.map((s) => s.id);
-  const isOrderDirty = currentOrderIds.join(",") !== savedOrderRef.current.join(",");
+  const isOrderDirty =
+    currentOrderIds.join(",") !== savedOrderRef.current.join(",");
 
-  const pendingCreateRef = useRef<{ growthStageId: string; created?: Record<string, unknown> } | null>(null);
+  const pendingCreateRef = useRef<{
+    growthStageId: string;
+    created?: Record<string, unknown>;
+  } | null>(null);
 
   useEffect(() => {
     const pending = pendingCreateRef.current;
     if (!pending) return;
-    const found = (species.stages || []).find((s) => s.growthStageId === pending.growthStageId && !s.configId);
+    const found = (species.stages || []).find(
+      (s) => s.growthStageId === pending.growthStageId && !s.configId,
+    );
     if (found && pending.created) {
       const c = pending.created;
       updateStage(species.id, found.id, {
         configId: String(c.id ?? ""),
         sequence: (c.sequence as number | undefined) ?? found.sequence,
-        feedPer100: (c.amountPer100Fish as number | undefined) ?? found.feedPer100,
-        frequencyPerDay: (c.frequencyPerDay as number | undefined) ?? found.frequencyPerDay,
-        maxStockingDensity: (c.maxStockingDensity as number | undefined) ?? found.maxStockingDensity,
-        expectedDurationDays: (c.expectedDurationDays as number | undefined) ?? found.expectedDurationDays,
-        feedTypeIds: (c.feedTypeIds as string[] | undefined) ?? found.feedTypeIds,
-        expectedWeightKgPerFish: (c.expectedWeightKgPerFish as number | undefined) ?? found.expectedWeightKgPerFish,
-        survivalRate: (c.survivalRate as number | undefined) ?? found.survivalRate,
+        feedPer100:
+          (c.amountPer100Fish as number | undefined) ?? found.feedPer100,
+        frequencyPerDay:
+          (c.frequencyPerDay as number | undefined) ?? found.frequencyPerDay,
+        maxStockingDensity:
+          (c.maxStockingDensity as number | undefined) ??
+          found.maxStockingDensity,
+        expectedDurationDays:
+          (c.expectedDurationDays as number | undefined) ??
+          found.expectedDurationDays,
+        feedTypeIds:
+          (c.feedTypeIds as string[] | undefined) ?? found.feedTypeIds,
+        expectedWeightKgPerFish:
+          (c.expectedWeightKgPerFish as number | undefined) ??
+          found.expectedWeightKgPerFish,
+        survivalRate:
+          (c.survivalRate as number | undefined) ?? found.survivalRate,
       });
       pendingCreateRef.current = null;
     }
@@ -188,7 +241,9 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   async function handleSaveOrder() {
     setSavingOrder(true);
     try {
-      const orderedConfigIds = displayStages.map((s) => s.configId).filter((id): id is string => !!id);
+      const orderedConfigIds = displayStages
+        .map((s) => s.configId)
+        .filter((id): id is string => !!id);
 
       if (orderedConfigIds.length > 0) {
         await reorderSpeciesStageConfigs(species.id, orderedConfigIds);
@@ -209,7 +264,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       toast.success("Cập nhật thứ tự giai đoạn thành công");
     } catch (err) {
       console.error("Failed to persist sequence", err);
-      setDisplayStages((species.stages || []).slice().sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity)));
+      setDisplayStages(
+        (species.stages || [])
+          .slice()
+          .sort((a, b) => (a.sequence ?? Infinity) - (b.sequence ?? Infinity)),
+      );
       toast.error("Không thể lưu thứ tự giai đoạn");
     } finally {
       setSavingOrder(false);
@@ -232,8 +291,15 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
       if (st.configId) {
         await updateSpeciesStageConfig(st.configId, payload);
       } else {
-        const created = await createSpeciesStageConfig({ speciesId: species.id, growthStageId: st.growthStageId ?? "", ...payload } as unknown as SpeciesStageConfigCreate);
-        pendingCreateRef.current = { growthStageId: st.growthStageId ?? "", created };
+        const created = await createSpeciesStageConfig({
+          speciesId: species.id,
+          growthStageId: st.growthStageId ?? "",
+          ...payload,
+        } as unknown as SpeciesStageConfigCreate);
+        pendingCreateRef.current = {
+          growthStageId: st.growthStageId ?? "",
+          created,
+        };
       }
 
       toast.success("Lưu giai đoạn thành công");
@@ -253,7 +319,9 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
     try {
       await deleteGrowthStage(growthStageId);
       // Remove any species stages that reference this growth stage id so the UI updates immediately
-      const toRemoveStages = (species.stages || []).filter((s) => s.growthStageId === growthStageId);
+      const toRemoveStages = (species.stages || []).filter(
+        (s) => s.growthStageId === growthStageId,
+      );
       toRemoveStages.forEach((s) => removeStage(species.id, s.id));
       toast.success("Xóa giai đoạn thành công");
     } catch {
@@ -264,7 +332,9 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   async function handleDeleteSpeciesStageConfig(configId: string) {
     try {
       await deleteSpeciesStageConfig(configId);
-      const toRemove = (species.stages || []).find((s) => s.configId === configId);
+      const toRemove = (species.stages || []).find(
+        (s) => s.configId === configId,
+      );
       if (toRemove) removeStage(species.id, toRemove.id);
       toast.success("Xóa cấu hình giai đoạn thành công");
       setStageToDelete(null);
@@ -278,7 +348,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
     if (!newStageName) return;
     setCreatingStage(true);
     try {
-      const created = await createGrowthStage({ name: newStageName, description: newStageDesc, speciesId: species.id });
+      const created = await createGrowthStage({
+        name: newStageName,
+        description: newStageDesc,
+        speciesId: species.id,
+      });
       await handleAddStage({ id: created.id, name: created.name });
       setNewStageName("");
       setNewStageDesc("");
@@ -321,7 +395,10 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
   }
 
   const labelWithIcon = (icon: React.ReactNode, text: string) => (
-    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+    <Box
+      component="span"
+      sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}
+    >
       {icon}
       {text}
     </Box>
@@ -329,8 +406,22 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "#0F172A", display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 2 }}
+      >
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            color: "#0F172A",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+          }}
+        >
           <span style={{ fontSize: "2rem" }}>{speciesIcon}</span>
           {species.name}
         </Typography>
@@ -339,7 +430,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
             size="small"
             onClick={() => setRenameOpen(true)}
             disabled={!onRenameSpecies || renamingSpecies}
-            sx={{ color: "#64748B", bgcolor: "#F1F5F9", "&:hover": { bgcolor: "#E2E8F0", color: "#2A85FF" } }}
+            sx={{
+              color: "#64748B",
+              bgcolor: "#F1F5F9",
+              "&:hover": { bgcolor: "#E2E8F0", color: "#2A85FF" },
+            }}
           >
             <EditIcon fontSize="small" />
           </IconButton>
@@ -347,7 +442,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
             size="small"
             onClick={() => setDeleteModalOpen(true)}
             disabled={!onDeleteSpecies || deletingSpecies}
-            sx={{ color: "#EF4444", bgcolor: "#FEF2F2", "&:hover": { bgcolor: "#FEE2E2", color: "#DC2626" } }}
+            sx={{
+              color: "#EF4444",
+              bgcolor: "#FEF2F2",
+              "&:hover": { bgcolor: "#FEE2E2", color: "#DC2626" },
+            }}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -358,17 +457,26 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
 
       <Stack spacing={2}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A" }}>
+          <Typography
+            variant="subtitle2"
+            sx={{ fontWeight: 700, color: "#0F172A" }}
+          >
             Thứ tự giai đoạn
           </Typography>
           <Typography variant="caption" sx={{ color: "#64748B" }}>
             Từ trên xuống dưới
           </Typography>
-          <ArrowDownwardIcon fontSize="small" sx={{ color: "#94A3B8", ml: 0.5 }} />
+          <ArrowDownwardIcon
+            fontSize="small"
+            sx={{ color: "#94A3B8", ml: 0.5 }}
+          />
         </Box>
         {displayStages.map((st, idx) => {
           const isDragging = dragIndexRef.current === idx;
-          const isOver = dragOverIdx === idx && dragIndexRef.current !== null && dragIndexRef.current !== idx;
+          const isOver =
+            dragOverIdx === idx &&
+            dragIndexRef.current !== null &&
+            dragIndexRef.current !== idx;
 
           return (
             <Accordion
@@ -386,7 +494,8 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                 border: "1px solid #E2E8F0",
                 "&:before": { display: "none" },
                 opacity: isDragging ? 0.5 : 1,
-                transition: "opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease",
+                transition:
+                  "opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease",
                 cursor: "grab",
                 ...(isOver
                   ? {
@@ -398,19 +507,55 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                 "&:active": { cursor: "grabbing" },
               }}
             >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: "#F8FAFC" }}>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", pr: 2 }}>
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{ bgcolor: "#F8FAFC" }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    pr: 2,
+                  }}
+                >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Box
-                      sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "#EFF6FF", color: "#2A85FF", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        bgcolor: "#EFF6FF",
+                        color: "#2A85FF",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 700,
+                      }}
                     >
                       {idx + 1}
                     </Box>
-                    <Box draggable onDragStart={(e) => handleDragStart(e, idx)} sx={{ display: "inline-flex", alignItems: "center", color: "#94A3B8", cursor: "grab" }}>
+                    <Box
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        color: "#94A3B8",
+                        cursor: "grab",
+                      }}
+                    >
                       <DragIndicatorIcon fontSize="small" />
                     </Box>
-                    <Typography sx={{ fontWeight: 600, color: "#334155" }}>{st.name}</Typography>
-                    {idx === 0 ? <Chip label="Bắt đầu" size="small" sx={{ ml: 1 }} /> : idx === displayStages.length - 1 ? <Chip label="Cuối" size="small" sx={{ ml: 1 }} /> : null}
+                    <Typography sx={{ fontWeight: 600, color: "#334155" }}>
+                      {st.name}
+                    </Typography>
+                    {idx === 0 ? (
+                      <Chip label="Bắt đầu" size="small" sx={{ ml: 1 }} />
+                    ) : idx === displayStages.length - 1 ? (
+                      <Chip label="Cuối" size="small" sx={{ ml: 1 }} />
+                    ) : null}
                   </Box>
                   {st.configId && (
                     <IconButton
@@ -433,12 +578,26 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
                   <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
                     <FormControl fullWidth>
-                      <InputLabel id={`feedtype-label-${st.id}`}>{labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}</InputLabel>
+                      <InputLabel id={`feedtype-label-${st.id}`}>
+                        {labelWithIcon(
+                          <LocalDiningIcon fontSize="small" />,
+                          "Loại cám",
+                        )}
+                      </InputLabel>
                       <Select
                         labelId={`feedtype-label-${st.id}`}
-                        label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Loại cám")}
+                        label={labelWithIcon(
+                          <LocalDiningIcon fontSize="small" />,
+                          "Loại cám",
+                        )}
                         multiple
-                        value={(st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds : st.feedType ? [st.feedType] : []) as string[]}
+                        value={
+                          (st.feedTypeIds && st.feedTypeIds.length > 0
+                            ? st.feedTypeIds
+                            : st.feedType
+                              ? [st.feedType]
+                              : []) as string[]
+                        }
                         onChange={(e) => {
                           const val = e.target.value;
                           const arr = Array.isArray(val)
@@ -446,10 +605,27 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                             : String(val)
                                 .split(",")
                                 .map((s) => s.trim());
-                          const names = arr.map((id) => feedTypes.find((f) => f.id === id)?.name).filter(Boolean) as string[];
-                          updateStage(species.id, st.id, { feedTypeIds: arr, feedType: names.length > 0 ? names.join(", ") : (arr[0] ?? "") });
+                          const names = arr
+                            .map(
+                              (id) => feedTypes.find((f) => f.id === id)?.name,
+                            )
+                            .filter(Boolean) as string[];
+                          updateStage(species.id, st.id, {
+                            feedTypeIds: arr,
+                            feedType:
+                              names.length > 0
+                                ? names.join(", ")
+                                : (arr[0] ?? ""),
+                          });
                         }}
-                        renderValue={(selected) => (selected as string[]).map((id) => feedTypes.find((f) => f.id === id)?.name ?? id).join(", ")}
+                        renderValue={(selected) =>
+                          (selected as string[])
+                            .map(
+                              (id) =>
+                                feedTypes.find((f) => f.id === id)?.name ?? id,
+                            )
+                            .join(", ")
+                        }
                       >
                         {feedLoading ? (
                           <MenuItem disabled>
@@ -457,35 +633,74 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                           </MenuItem>
                         ) : (
                           [
-                            <MenuItem key="empty" value="" sx={{ display: "none" }} />,
-                            ...(st.feedType && !feedTypes.some((f) => f.id === st.feedType)
+                            <MenuItem
+                              key="empty"
+                              value=""
+                              sx={{ display: "none" }}
+                            />,
+                            ...(st.feedType &&
+                            !feedTypes.some((f) => f.id === st.feedType)
                               ? [
-                                  <MenuItem key="fallback" value={st.feedType} sx={{ display: "none" }}>
+                                  <MenuItem
+                                    key="fallback"
+                                    value={st.feedType}
+                                    sx={{ display: "none" }}
+                                  >
                                     {st.feedType}
                                   </MenuItem>,
                                 ]
                               : []),
                             ...feedTypes.map((f) => {
-                              const isSelected = (st.feedTypeIds && st.feedTypeIds.includes(f.id)) || st.feedType === f.id || (st.feedType || "").includes(f.name);
+                              const isSelected =
+                                (st.feedTypeIds &&
+                                  st.feedTypeIds.includes(f.id)) ||
+                                st.feedType === f.id ||
+                                (st.feedType || "").includes(f.name);
                               return (
                                 <MenuItem
                                   key={f.id}
                                   value={f.id}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const current = (st.feedTypeIds && st.feedTypeIds.length > 0 ? st.feedTypeIds.slice() : st.feedType ? [st.feedType] : []) as string[];
+                                    const current = (
+                                      st.feedTypeIds &&
+                                      st.feedTypeIds.length > 0
+                                        ? st.feedTypeIds.slice()
+                                        : st.feedType
+                                          ? [st.feedType]
+                                          : []
+                                    ) as string[];
                                     const idx = current.indexOf(f.id);
                                     if (idx === -1) current.push(f.id);
                                     else current.splice(idx, 1);
-                                    const names = current.map((id) => feedTypes.find((ff) => ff.id === id)?.name).filter(Boolean) as string[];
-                                    updateStage(species.id, st.id, { feedTypeIds: current, feedType: names.length > 0 ? names.join(", ") : (current[0] ?? "") });
+                                    const names = current
+                                      .map(
+                                        (id) =>
+                                          feedTypes.find((ff) => ff.id === id)
+                                            ?.name,
+                                      )
+                                      .filter(Boolean) as string[];
+                                    updateStage(species.id, st.id, {
+                                      feedTypeIds: current,
+                                      feedType:
+                                        names.length > 0
+                                          ? names.join(", ")
+                                          : (current[0] ?? ""),
+                                    });
                                   }}
                                 >
                                   <Checkbox size="small" checked={isSelected} />
                                   <ListItemText
                                     primary={f.name}
-                                    secondary={f.proteinPercentage != null ? `${f.proteinPercentage}% đạm` : undefined}
-                                    secondaryTypographyProps={{ variant: "caption", sx: { color: "#94A3B8" } }}
+                                    secondary={
+                                      f.proteinPercentage != null
+                                        ? `${f.proteinPercentage}% đạm`
+                                        : undefined
+                                    }
+                                    secondaryTypographyProps={{
+                                      variant: "caption",
+                                      sx: { color: "#94A3B8" },
+                                    }}
                                   />
                                 </MenuItem>
                               );
@@ -498,68 +713,129 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
 
                   <Box sx={{ width: { xs: "100%", md: "calc(50% - 12px)" } }}>
                     <TextField
-                      label={labelWithIcon(<LocalDiningIcon fontSize="small" />, "Lượng cám (kg/100 cá)")}
+                      label={labelWithIcon(
+                        <LocalDiningIcon fontSize="small" />,
+                        "Lượng cám (kg/100 con)",
+                      )}
                       type="number"
                       fullWidth
                       value={st.feedPer100}
-                      onChange={(e) => updateStage(species.id, st.id, { feedPer100: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          feedPer100: Number(e.target.value),
+                        })
+                      }
                     />
                   </Box>
 
-                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <Box
+                    sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}
+                  >
                     <TextField
-                      label={labelWithIcon(<TimelineIcon fontSize="small" />, "Số lần/ngày")}
+                      label={labelWithIcon(
+                        <TimelineIcon fontSize="small" />,
+                        "Số lần/ngày",
+                      )}
                       type="number"
                       fullWidth
                       value={st.frequencyPerDay}
-                      onChange={(e) => updateStage(species.id, st.id, { frequencyPerDay: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          frequencyPerDay: Number(e.target.value),
+                        })
+                      }
                     />
                   </Box>
 
-                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <Box
+                    sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}
+                  >
                     <TextField
-                      label={labelWithIcon(<ScaleIcon fontSize="small" />, "Mật độ tối đa (cá/m3)")}
+                      label={labelWithIcon(
+                        <ScaleIcon fontSize="small" />,
+                        "Mật độ tối đa (vật nuôi/m3)",
+                      )}
                       type="number"
                       fullWidth
                       value={st.maxStockingDensity}
-                      onChange={(e) => updateStage(species.id, st.id, { maxStockingDensity: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          maxStockingDensity: Number(e.target.value),
+                        })
+                      }
                     />
                   </Box>
 
-                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <Box
+                    sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}
+                  >
                     <TextField
-                      label={labelWithIcon(<ScheduleIcon fontSize="small" />, "Thời gian (ngày)")}
+                      label={labelWithIcon(
+                        <ScheduleIcon fontSize="small" />,
+                        "Thời gian (ngày)",
+                      )}
                       type="number"
                       fullWidth
                       value={st.expectedDurationDays}
-                      onChange={(e) => updateStage(species.id, st.id, { expectedDurationDays: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          expectedDurationDays: Number(e.target.value),
+                        })
+                      }
                     />
                   </Box>
 
-                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <Box
+                    sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}
+                  >
                     <TextField
-                      label={labelWithIcon(<ScaleIcon fontSize="small" />, "Trọng lượng mong đợi (kg/cá)")}
+                      label={labelWithIcon(
+                        <ScaleIcon fontSize="small" />,
+                        "Trọng lượng mong đợi (kg/con)",
+                      )}
                       type="number"
                       fullWidth
                       value={st.expectedWeightKgPerFish}
                       inputProps={{ step: "0.0001" }}
-                      onChange={(e) => updateStage(species.id, st.id, { expectedWeightKgPerFish: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          expectedWeightKgPerFish: Number(e.target.value),
+                        })
+                      }
                     />
                   </Box>
 
-                  <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}>
+                  <Box
+                    sx={{ width: { xs: "100%", md: "calc(33.333% - 16px)" } }}
+                  >
                     <TextField
-                      label={labelWithIcon(<PercentIcon fontSize="small" />, "Tỷ lệ sống (0-1)")}
+                      label={labelWithIcon(
+                        <PercentIcon fontSize="small" />,
+                        "Tỷ lệ sống (0-1)",
+                      )}
                       type="number"
                       fullWidth
                       value={st.survivalRate}
                       inputProps={{ step: "0.01", min: 0, max: 1 }}
-                      onChange={(e) => updateStage(species.id, st.id, { survivalRate: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateStage(species.id, st.id, {
+                          survivalRate: Number(e.target.value),
+                        })
+                      }
                     />
                   </Box>
 
                   <Box sx={{ width: "100%" }}>
-                    <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, mb: 1, color: "#475569" }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.75,
+                        mb: 1,
+                        color: "#475569",
+                      }}
+                    >
                       <SensorsIcon fontSize="small" /> Ngưỡng cảm biến
                     </Typography>
                     <ThresholdEditor
@@ -570,21 +846,48 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
                       createThreshold={createSpeciesThreshold}
                       updateThreshold={updateSpeciesThreshold}
                       removeThreshold={deleteSpeciesThreshold}
-                      onSaveThreshold={(sensor, min, max, id) => updateStageThreshold(species.id, st.id, sensor, min, max, id)}
+                      onSaveThreshold={(sensor, min, max, id) =>
+                        updateStageThreshold(
+                          species.id,
+                          st.id,
+                          sensor,
+                          min,
+                          max,
+                          id,
+                        )
+                      }
                       onRemoveThreshold={(sensor) => {
-                        const nextThresholds = (st.thresholds || []).filter((t) => t.sensor !== sensor);
-                        updateStage(species.id, st.id, { thresholds: nextThresholds });
+                        const nextThresholds = (st.thresholds || []).filter(
+                          (t) => t.sensor !== sensor,
+                        );
+                        updateStage(species.id, st.id, {
+                          thresholds: nextThresholds,
+                        });
                       }}
                     />
-                    <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
                       <Button
                         variant="contained"
                         size="small"
-                        startIcon={!saving[st.id] ? <SaveIcon fontSize="small" /> : undefined}
+                        startIcon={
+                          !saving[st.id] ? (
+                            <SaveIcon fontSize="small" />
+                          ) : undefined
+                        }
                         onClick={() => saveStage(st)}
                         disabled={!!saving[st.id] || savingOrder}
                       >
-                        {saving[st.id] ? <CircularProgress size={16} /> : "Lưu giai đoạn này"}
+                        {saving[st.id] ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          "Lưu giai đoạn này"
+                        )}
                       </Button>
                     </Box>
                   </Box>
@@ -595,7 +898,12 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         })}
 
         <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)} sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => setDialogOpen(true)}
+            sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+          >
             Thêm giai đoạn phát triển
           </Button>
           {displayStages.some((s) => s.configId) && (
@@ -603,7 +911,11 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
               variant="contained"
               onClick={handleSaveOrder}
               disabled={!isOrderDirty || savingOrder}
-              startIcon={savingOrder ? <CircularProgress size={20} color="inherit" /> : undefined}
+              startIcon={
+                savingOrder ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : undefined
+              }
               sx={{
                 borderRadius: "8px",
                 textTransform: "none",
@@ -617,85 +929,161 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
           )}
         </Box>
 
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-          <DialogTitle sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+        <Dialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle
+            sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+          >
             <AddIcon fontSize="small" /> Thêm giai đoạn
           </DialogTitle>
           <DialogContent>
             <>
-                <List>
-                  {growthStages.map((gs) => {
-                    const already = (species.stages || []).some((s) => s.growthStageId === gs.id);
-                    return (
-                      <ListItem
-                        key={gs.id}
-                        disablePadding
-                        secondaryAction={
-                          <IconButton
-                            edge="end"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteGrowthStage(gs.id);
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        }
+              <List>
+                {growthStages.map((gs) => {
+                  const already = (species.stages || []).some(
+                    (s) => s.growthStageId === gs.id,
+                  );
+                  return (
+                    <ListItem
+                      key={gs.id}
+                      disablePadding
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteGrowthStage(gs.id);
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemButton
+                        disabled={already}
+                        onClick={() => handleAddStage(gs)}
                       >
-                        <ListItemButton disabled={already} onClick={() => handleAddStage(gs)}>
-                          <ListItemText primary={already ? `${gs.name} — Đã cấu hình` : gs.name} />
-                        </ListItemButton>
-                      </ListItem>
-                    );
-                  })}
-                </List>
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
-                    <AddIcon fontSize="small" /> Tạo giai đoạn mới
-                  </Typography>
+                        <ListItemText
+                          primary={
+                            already ? `${gs.name} — Đã cấu hình` : gs.name
+                          }
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+              <Box sx={{ mt: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.75,
+                  }}
+                >
+                  <AddIcon fontSize="small" /> Tạo giai đoạn mới
+                </Typography>
 
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                    <Box sx={{ width: { xs: "100%", md: "calc(50% - 4px)" } }}>
-                      <TextField label={labelWithIcon(<TimelineIcon fontSize="small" />, "Tên")} value={newStageName} onChange={(e) => setNewStageName(e.target.value)} fullWidth />
-                    </Box>
-                    <Box sx={{ width: { xs: "100%", md: "calc(50% - 4px)" } }}>
-                      <TextField label={labelWithIcon(<DescriptionIcon fontSize="small" />, "Mô tả")} value={newStageDesc} onChange={(e) => setNewStageDesc(e.target.value)} fullWidth />
-                    </Box>
-                    <Box sx={{ width: { xs: "100%", md: "calc(33.333% - 5.33px)" }, display: "flex", alignItems: "center" }}>
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        startIcon={!creatingStage ? <AddIcon fontSize="small" /> : undefined}
-                        onClick={handleCreateStage}
-                        disabled={creatingStage || !newStageName}
-                        sx={{ height: 56 }}
-                      >
-                        {creatingStage ? <CircularProgress size={16} /> : "Tạo và thêm"}
-                      </Button>
-                    </Box>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+                  <Box sx={{ width: { xs: "100%", md: "calc(50% - 4px)" } }}>
+                    <TextField
+                      label={labelWithIcon(
+                        <TimelineIcon fontSize="small" />,
+                        "Tên",
+                      )}
+                      value={newStageName}
+                      onChange={(e) => setNewStageName(e.target.value)}
+                      fullWidth
+                    />
+                  </Box>
+                  <Box sx={{ width: { xs: "100%", md: "calc(50% - 4px)" } }}>
+                    <TextField
+                      label={labelWithIcon(
+                        <DescriptionIcon fontSize="small" />,
+                        "Mô tả",
+                      )}
+                      value={newStageDesc}
+                      onChange={(e) => setNewStageDesc(e.target.value)}
+                      fullWidth
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      width: { xs: "100%", md: "calc(33.333% - 5.33px)" },
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={
+                        !creatingStage ? (
+                          <AddIcon fontSize="small" />
+                        ) : undefined
+                      }
+                      onClick={handleCreateStage}
+                      disabled={creatingStage || !newStageName}
+                      sx={{ height: 56 }}
+                    >
+                      {creatingStage ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        "Tạo và thêm"
+                      )}
+                    </Button>
                   </Box>
                 </Box>
-              </>
+              </Box>
+            </>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDialogOpen(false)}>Hủy</Button>
           </DialogActions>
         </Dialog>
 
-        <Dialog open={renameOpen} onClose={() => !renamingSpecies && setRenameOpen(false)} fullWidth maxWidth="xs">
-          <DialogTitle sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+        <Dialog
+          open={renameOpen}
+          onClose={() => !renamingSpecies && setRenameOpen(false)}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle
+            sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+          >
             <EditIcon fontSize="small" /> Đổi tên loài
           </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 1 }}>
-              <TextField label="Tên loài" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus fullWidth />
+              <TextField
+                label="Tên loài"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                autoFocus
+                fullWidth
+              />
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setRenameOpen(false)} disabled={renamingSpecies}>
+            <Button
+              onClick={() => setRenameOpen(false)}
+              disabled={renamingSpecies}
+            >
               Hủy
             </Button>
-            <Button variant="contained" startIcon={!renamingSpecies ? <SaveIcon fontSize="small" /> : undefined} onClick={handleRenameSpecies} disabled={renamingSpecies || !renameValue.trim()}>
+            <Button
+              variant="contained"
+              startIcon={
+                !renamingSpecies ? <SaveIcon fontSize="small" /> : undefined
+              }
+              onClick={handleRenameSpecies}
+              disabled={renamingSpecies || !renameValue.trim()}
+            >
               {renamingSpecies ? <CircularProgress size={16} /> : "Lưu tên"}
             </Button>
           </DialogActions>
@@ -713,7 +1101,9 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         content={
           <>
             <>
-              Bạn có chắc chắn muốn xóa loài <b>"{species.name}"</b> không? Hành động này sẽ gỡ bỏ toàn bộ cấu hình thuộc loài này và <b>không thể hoàn tác</b>.
+              Bạn có chắc chắn muốn xóa loài <b>"{species.name}"</b> không? Hành
+              động này sẽ gỡ bỏ toàn bộ cấu hình thuộc loài này và{" "}
+              <b>không thể hoàn tác</b>.
             </>
           </>
         }
@@ -724,7 +1114,8 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         onClose={() => setStageToDelete(null)}
         onConfirm={() => {
           if (stageToDelete) {
-            if (stageToDelete.configId) handleDeleteSpeciesStageConfig(stageToDelete.configId);
+            if (stageToDelete.configId)
+              handleDeleteSpeciesStageConfig(stageToDelete.configId);
             else removeStage(species.id, stageToDelete.id);
           }
         }}
@@ -735,7 +1126,9 @@ const SpeciesDetail: React.FC<Props> = ({ species, updateStage, updateStageThres
         content={
           <>
             <>
-              Bạn có chắc chắn muốn xóa cấu hình của giai đoạn <b>"{stageToDelete?.name}"</b> không? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa cấu hình của giai đoạn{" "}
+              <b>"{stageToDelete?.name}"</b> không? Hành động này không thể hoàn
+              tác.
             </>
           </>
         }

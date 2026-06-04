@@ -56,8 +56,8 @@ const Footer: React.FC = () => {
               }} /* Màu xám Slate dịu mắt */
             >
               Dự án nghiên cứu ứng dụng RAG trong quản lý vận hành hệ thống nông
-              nghiệp thông minh, tối ưu hóa quy trình nuôi cá tuần hoàn bằng trí
-              tuệ nhân tạo.
+              nghiệp thông minh, tối ưu hóa quy trình nuôi thuỷ-hải sản tuần
+              hoàn bằng trí tuệ nhân tạo.
             </Typography>
             <Stack direction="row" spacing={1.5}>
               <IconButton

@@ -59,13 +59,19 @@ import { useOperatorBatches } from "../../hooks/useOperatorBatches";
 import type { PlannedStage } from "../../types/batch";
 import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
-const isBatchActive = (status: unknown) => status === 0 || String(status).toLowerCase() === "active";
+const isBatchActive = (status: unknown) =>
+  status === 0 || String(status).toLowerCase() === "active";
 
-const getStatusInfo = (status: unknown): { label: string; color: "success" | "default" | "warning" | "error" } => {
+const getStatusInfo = (
+  status: unknown,
+): { label: string; color: "success" | "default" | "warning" | "error" } => {
   const s = String(status).toLowerCase();
-  if (s === "0" || s === "active") return { label: "Đang nuôi", color: "success" };
-  if (s === "1" || s === "harvested") return { label: "Đã thu hoạch", color: "default" };
-  if (s === "2" || s === "paused") return { label: "Tạm dừng", color: "warning" };
+  if (s === "0" || s === "active")
+    return { label: "Đang nuôi", color: "success" };
+  if (s === "1" || s === "harvested")
+    return { label: "Đã thu hoạch", color: "default" };
+  if (s === "2" || s === "paused")
+    return { label: "Tạm dừng", color: "warning" };
   return { label: "Đã hủy", color: "error" };
 };
 
@@ -80,8 +86,22 @@ const BatchManagement = () => {
   const theme = useTheme();
   const toast = useToast();
 
-  const { batches, selectedBatch, setSelectedBatch, feedingLogs, mortalityLogs, feedTypes, totalFeed, totalDead, loading, refetch, refetchDetails, availableFeedTypes, plannedStages, activeStage } =
-    useOperatorBatches();
+  const {
+    batches,
+    selectedBatch,
+    setSelectedBatch,
+    feedingLogs,
+    mortalityLogs,
+    feedTypes,
+    totalFeed,
+    totalDead,
+    loading,
+    refetch,
+    refetchDetails,
+    availableFeedTypes,
+    plannedStages,
+    activeStage,
+  } = useOperatorBatches();
 
   const [tabValue, setTabValue] = useState(0);
 
@@ -115,9 +135,14 @@ const BatchManagement = () => {
     if (!selectedBatch || isNaN(qty) || qty <= 0) return;
     const timer = setTimeout(async () => {
       try {
-        const res = await operatorBatchesApi.validateMortality(selectedBatch.id, qty);
+        const res = await operatorBatchesApi.validateMortality(
+          selectedBatch.id,
+          qty,
+        );
         if (res.expectedLostKg != null && deathWeightAutoFilled.current) {
-          setDeathWeightInput(Number(res.expectedLostKg.toFixed(10)).toString());
+          setDeathWeightInput(
+            Number(res.expectedLostKg.toFixed(10)).toString(),
+          );
         }
       } catch {
         // silent — validation is best-effort for the auto-fill hint
@@ -134,7 +159,9 @@ const BatchManagement = () => {
   // Clear disallowed feed type
   useEffect(() => {
     if (!feedTypeIdInput) return;
-    const allowedIds = new Set((availableFeedTypes || []).map((f) => String(f.id)));
+    const allowedIds = new Set(
+      (availableFeedTypes || []).map((f) => String(f.id)),
+    );
     if (!allowedIds.has(feedTypeIdInput)) setFeedTypeIdInput("");
   }, [availableFeedTypes, feedTypeIdInput]);
 
@@ -164,12 +191,19 @@ const BatchManagement = () => {
     const q = searchText.toLowerCase();
     return batches
       .filter((b) => {
-        const matchSearch = !q || b.name.toLowerCase().includes(q) || b.fishTankName.toLowerCase().includes(q);
+        const matchSearch =
+          !q ||
+          b.name.toLowerCase().includes(q) ||
+          b.fishTankName.toLowerCase().includes(q);
         const matchTank = tankFilter === "all" || b.fishTankId === tankFilter;
-        const matchStatus = statusFilter === "all" || normalizeStatus(b.status) === statusFilter;
+        const matchStatus =
+          statusFilter === "all" || normalizeStatus(b.status) === statusFilter;
         return matchSearch && matchTank && matchStatus;
       })
-      .sort((a, b) => Number(normalizeStatus(a.status)) - Number(normalizeStatus(b.status)));
+      .sort(
+        (a, b) =>
+          Number(normalizeStatus(a.status)) - Number(normalizeStatus(b.status)),
+      );
   }, [batches, searchText, tankFilter, statusFilter]);
 
   // Date-filtered feeding logs
@@ -199,12 +233,18 @@ const BatchManagement = () => {
     if (dailyTargetKg == null && dailyFrequency == null) return null;
 
     const todayStart = dayjs().startOf("day");
-    const todayLogs = feedingLogs.filter((log) => dayjs(log.createdDate).isAfter(todayStart));
+    const todayLogs = feedingLogs.filter((log) =>
+      dayjs(log.createdDate).isAfter(todayStart),
+    );
     const todayFeedCount = todayLogs.length;
     const todayFeedAmount = todayLogs.reduce((sum, log) => sum + log.amount, 0);
 
-    const remainingFeedings = dailyFrequency != null ? Math.max(0, dailyFrequency - todayFeedCount) : null;
-    const remainingAmount = dailyTargetKg != null ? dailyTargetKg - todayFeedAmount : null;
+    const remainingFeedings =
+      dailyFrequency != null
+        ? Math.max(0, dailyFrequency - todayFeedCount)
+        : null;
+    const remainingAmount =
+      dailyTargetKg != null ? dailyTargetKg - todayFeedAmount : null;
     const isOverfed = dailyTargetKg != null && todayFeedAmount > dailyTargetKg;
 
     return {
@@ -219,14 +259,25 @@ const BatchManagement = () => {
   }, [activeStage, feedingLogs]);
 
   // Harvested-state derived values (mirrors supervisor TabOverview logic)
-  const isHarvested = selectedBatch ? normalizeStatus(selectedBatch.status) === "1" : false;
+  const isHarvested = selectedBatch
+    ? normalizeStatus(selectedBatch.status) === "1"
+    : false;
   const initialQty = selectedBatch?.initialQuantity ?? 0;
-  const currentQty = selectedBatch?.currentQuantity ?? selectedBatch?.initialQuantity ?? 0;
+  const currentQty =
+    selectedBatch?.currentQuantity ?? selectedBatch?.initialQuantity ?? 0;
   const netChange = currentQty - initialQty;
-  const netPercent = initialQty > 0 ? (currentQty / initialQty - 1) * 100 : undefined;
-  const estimatedSurvivalPct = selectedBatch?.estimatedHarvestCount != null && initialQty > 0 ? (selectedBatch.estimatedHarvestCount / initialQty) * 100 : undefined;
-  const actualHarvestCount = selectedBatch?.actualHarvestCount ?? selectedBatch?.currentQuantity;
-  const actualSurvivalPct = isHarvested && initialQty > 0 && actualHarvestCount != null ? (actualHarvestCount / initialQty) * 100 : undefined;
+  const netPercent =
+    initialQty > 0 ? (currentQty / initialQty - 1) * 100 : undefined;
+  const estimatedSurvivalPct =
+    selectedBatch?.estimatedHarvestCount != null && initialQty > 0
+      ? (selectedBatch.estimatedHarvestCount / initialQty) * 100
+      : undefined;
+  const actualHarvestCount =
+    selectedBatch?.actualHarvestCount ?? selectedBatch?.currentQuantity;
+  const actualSurvivalPct =
+    isHarvested && initialQty > 0 && actualHarvestCount != null
+      ? (actualHarvestCount / initialQty) * 100
+      : undefined;
 
   const handleSaveFeeding = async () => {
     if (!feedInput || !feedTypeIdInput) {
@@ -235,7 +286,11 @@ const BatchManagement = () => {
     }
     if (!selectedBatch) return;
     try {
-      await operatorBatchesApi.recordFeeding(selectedBatch.id, parseFloat(feedInput), feedTypeIdInput);
+      await operatorBatchesApi.recordFeeding(
+        selectedBatch.id,
+        parseFloat(feedInput),
+        feedTypeIdInput,
+      );
       setOpenFeedDialog(false);
       setFeedInput("");
       setFeedTypeIdInput("");
@@ -245,7 +300,9 @@ const BatchManagement = () => {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        toast.error(errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.");
+        toast.error(
+          errorData?.message || "Lỗi từ máy chủ khi ghi nhận cho ăn.",
+        );
       } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
@@ -265,7 +322,7 @@ const BatchManagement = () => {
     const weight = parseFloat(deathWeightInput);
 
     if (isNaN(quantity) || quantity <= 0) {
-      toast.error("Số lượng cá chết phải là số nguyên dương!");
+      toast.error("Số lượng thiệt hại phải là số nguyên dương!");
       return;
     }
     if (isNaN(weight) || weight <= 0) {
@@ -278,19 +335,34 @@ const BatchManagement = () => {
 
     if (mortalityWarning === null) {
       try {
-        const validateRes = await operatorBatchesApi.validateMortality(selectedBatch.id, quantity, weight, date);
+        const validateRes = await operatorBatchesApi.validateMortality(
+          selectedBatch.id,
+          quantity,
+          weight,
+          date,
+        );
         if (!validateRes.isWithinRange) {
-          setMortalityWarning(validateRes.message || "Số liệu vượt ngưỡng cho phép.");
+          setMortalityWarning(
+            validateRes.message || "Số liệu vượt ngưỡng cho phép.",
+          );
           setIsSavingMortality(false);
           return;
         }
       } catch (validateErr) {
-        console.warn("Validate mortality bị lỗi, bỏ qua và tiếp tục ghi nhận:", validateErr);
+        console.warn(
+          "Validate mortality bị lỗi, bỏ qua và tiếp tục ghi nhận:",
+          validateErr,
+        );
       }
     }
 
     try {
-      await operatorBatchesApi.logMortality(selectedBatch.id, quantity, weight, date);
+      await operatorBatchesApi.logMortality(
+        selectedBatch.id,
+        quantity,
+        weight,
+        date,
+      );
       setOpenDeathDialog(false);
       setDeathInput("");
       setDeathWeightInput("");
@@ -303,7 +375,9 @@ const BatchManagement = () => {
       console.error(err);
       if (isApiError(err)) {
         const errorData = err.data as { message?: string };
-        toast.error(errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.");
+        toast.error(
+          errorData?.message || "Lỗi từ máy chủ khi ghi nhận hao hụt.",
+        );
       } else if (err instanceof Error) {
         toast.error(err.message);
       } else {
@@ -322,17 +396,46 @@ const BatchManagement = () => {
     );
 
   return (
-    <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        bgcolor: theme.palette.background.default,
+        minHeight: "100vh",
+      }}
+    >
       <OperatorSidebar />
-      <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          ml: "240px",
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
         <OperatorHeader />
-        <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, p: 3, gap: 2, height: "100vh" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            flexGrow: 1,
+            p: 3,
+            gap: 2,
+            height: "100vh",
+          }}
+        >
           {/* Page heading */}
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 600, color: theme.palette.text.primary }}
+            >
               Quản lý Vụ nuôi
             </Typography>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
+            <Typography
+              variant="body2"
+              sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
+            >
               Theo dõi sinh trưởng, dinh dưỡng và vận hành của từng vụ.
             </Typography>
           </Box>
@@ -374,7 +477,11 @@ const BatchManagement = () => {
                   />
                   <FormControl size="small" fullWidth>
                     <InputLabel>Bể nuôi</InputLabel>
-                    <Select value={tankFilter} label="Bể nuôi" onChange={(e) => setTankFilter(e.target.value)}>
+                    <Select
+                      value={tankFilter}
+                      label="Bể nuôi"
+                      onChange={(e) => setTankFilter(e.target.value)}
+                    >
                       <MenuItem value="all">Tất cả bể</MenuItem>
                       {uniqueTanks.map((t) => (
                         <MenuItem key={t.id} value={t.id}>
@@ -385,7 +492,11 @@ const BatchManagement = () => {
                   </FormControl>
                   <FormControl size="small" fullWidth>
                     <InputLabel>Trạng thái</InputLabel>
-                    <Select value={statusFilter} label="Trạng thái" onChange={(e) => setStatusFilter(e.target.value)}>
+                    <Select
+                      value={statusFilter}
+                      label="Trạng thái"
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
                       <MenuItem value="all">Tất cả</MenuItem>
                       <MenuItem value="0">Đang nuôi</MenuItem>
                       <MenuItem value="1">Đã thu hoạch</MenuItem>
@@ -406,7 +517,14 @@ const BatchManagement = () => {
                       </Typography>
                     </Box>
                   ) : (
-                    filteredBatches.map((batch) => <BatchListItem key={batch.id} data={batch} selected={selectedBatch?.id === batch.id} onClick={() => setSelectedBatch(batch)} />)
+                    filteredBatches.map((batch) => (
+                      <BatchListItem
+                        key={batch.id}
+                        data={batch}
+                        selected={selectedBatch?.id === batch.id}
+                        onClick={() => setSelectedBatch(batch)}
+                      />
+                    ))
                   )}
                 </Stack>
               </Box>
@@ -414,7 +532,14 @@ const BatchManagement = () => {
 
             {/* RIGHT — detail panel */}
             {!selectedBatch ? (
-              <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
                 <Paper
                   elevation={0}
                   sx={{
@@ -430,17 +555,41 @@ const BatchManagement = () => {
                     bgcolor: alpha(theme.palette.primary.main, 0.02),
                   }}
                 >
-                  <Inventory2OutlinedIcon sx={{ fontSize: 56, color: theme.palette.text.secondary, opacity: 0.4 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+                  <Inventory2OutlinedIcon
+                    sx={{
+                      fontSize: 56,
+                      color: theme.palette.text.secondary,
+                      opacity: 0.4,
+                    }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: theme.palette.text.primary }}
+                  >
                     Chưa có vụ nuôi nào được chọn
                   </Typography>
-                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary, textAlign: "center", maxWidth: 360 }}>
-                    Vui lòng chọn một vụ nuôi ở danh sách bên trái để xem chi tiết, lịch sử cho ăn và ghi nhận hao hụt.
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: theme.palette.text.secondary,
+                      textAlign: "center",
+                      maxWidth: 360,
+                    }}
+                  >
+                    Vui lòng chọn một vụ nuôi ở danh sách bên trái để xem chi
+                    tiết, lịch sử cho ăn và ghi nhận hao hụt.
                   </Typography>
                 </Paper>
               </Box>
             ) : (
-              <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
                 <Paper
                   elevation={0}
                   sx={{
@@ -453,14 +602,36 @@ const BatchManagement = () => {
                   }}
                 >
                   {/* ── Batch info header ── */}
-                  <Box sx={{ p: 2.5, pb: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5} mb={1.5}>
-                      <Typography variant="h5" fontWeight={700} color="text.primary">
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      pb: 2,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1.5}
+                      mb={1.5}
+                    >
+                      <Typography
+                        variant="h5"
+                        fontWeight={700}
+                        color="text.primary"
+                      >
                         {selectedBatch.name}
                       </Typography>
                       {(() => {
                         const s = getStatusInfo(selectedBatch.status);
-                        return <Chip icon={<CheckCircleIcon />} label={s.label} color={s.color} size="small" />;
+                        return (
+                          <Chip
+                            icon={<CheckCircleIcon />}
+                            label={s.label}
+                            color={s.color}
+                            size="small"
+                          />
+                        );
                       })()}
                     </Stack>
                     <Grid container spacing={2}>
@@ -485,7 +656,8 @@ const BatchManagement = () => {
                           Số lượng hiện tại
                         </Typography>
                         <Typography variant="body2" fontWeight={600}>
-                          {selectedBatch.currentQuantity ?? 0} {selectedBatch.unitOfMeasure}
+                          {selectedBatch.currentQuantity ?? 0}{" "}
+                          {selectedBatch.unitOfMeasure}
                         </Typography>
                       </Grid>
                       <Grid size={{ xs: 6, sm: 3 }}>
@@ -493,7 +665,8 @@ const BatchManagement = () => {
                           Số ngày nuôi
                         </Typography>
                         <Typography variant="body2" fontWeight={600}>
-                          {dayjs().diff(dayjs(selectedBatch.startDate), "day")} ngày
+                          {dayjs().diff(dayjs(selectedBatch.startDate), "day")}{" "}
+                          ngày
                         </Typography>
                       </Grid>
                       <Grid size={{ xs: 6, sm: 3 }}>
@@ -501,18 +674,36 @@ const BatchManagement = () => {
                           Ngày dự kiến thu hoạch
                         </Typography>
                         <Typography variant="body2" fontWeight={600}>
-                          {selectedBatch.estimatedHarvestDate ? dayjs(selectedBatch.estimatedHarvestDate).format("DD-MM-YYYY") : "—"}
+                          {selectedBatch.estimatedHarvestDate
+                            ? dayjs(selectedBatch.estimatedHarvestDate).format(
+                                "DD-MM-YYYY",
+                              )
+                            : "—"}
                         </Typography>
                       </Grid>
                     </Grid>
                   </Box>
 
                   {/* ── Tabs ── */}
-                  <Box sx={{ px: 2.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                  <Box
+                    sx={{
+                      px: 2.5,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    }}
+                  >
                     <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-                      <Tab label="Tổng quan" sx={{ textTransform: "none", fontWeight: 600 }} />
-                      <Tab label="Lịch sử cho ăn" sx={{ textTransform: "none", fontWeight: 600 }} />
-                      <Tab label="Ghi nhận hao hụt" sx={{ textTransform: "none", fontWeight: 600 }} />
+                      <Tab
+                        label="Tổng quan"
+                        sx={{ textTransform: "none", fontWeight: 600 }}
+                      />
+                      <Tab
+                        label="Lịch sử cho ăn"
+                        sx={{ textTransform: "none", fontWeight: 600 }}
+                      />
+                      <Tab
+                        label="Ghi nhận hao hụt"
+                        sx={{ textTransform: "none", fontWeight: 600 }}
+                      />
                     </Tabs>
                   </Box>
 
@@ -524,7 +715,12 @@ const BatchManagement = () => {
                         {/* Kế hoạch */}
                         {plannedStages && plannedStages.length > 0 && (
                           <Box>
-                            <Typography variant="subtitle1" fontWeight={700} mb={2} color="text.primary">
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight={700}
+                              mb={2}
+                              color="text.primary"
+                            >
                               Kế hoạch
                             </Typography>
                             <Grid container spacing={2}>
@@ -532,13 +728,29 @@ const BatchManagement = () => {
                                 .sort((a, b) => a.sequence - b.sequence)
                                 .map((s) => {
                                   const now = new Date();
-                                  const parseD = (d?: string | null) => (d ? new Date(d) : null);
-                                  const start = parseD(s.actualStartDate ?? s.estimatedStartDate);
-                                  const end = parseD(s.actualEndDate ?? s.estimatedEndDate);
-                                  const isActive = !isHarvested && !!start && (end ? now >= start && now < end : now >= start);
+                                  const parseD = (d?: string | null) =>
+                                    d ? new Date(d) : null;
+                                  const start = parseD(
+                                    s.actualStartDate ?? s.estimatedStartDate,
+                                  );
+                                  const end = parseD(
+                                    s.actualEndDate ?? s.estimatedEndDate,
+                                  );
+                                  const isActive =
+                                    !isHarvested &&
+                                    !!start &&
+                                    (end
+                                      ? now >= start && now < end
+                                      : now >= start);
                                   return (
-                                    <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                                      <StageCard stage={s} isActive={isActive} />
+                                    <Grid
+                                      key={s.id}
+                                      size={{ xs: 12, sm: 6, md: 4 }}
+                                    >
+                                      <StageCard
+                                        stage={s}
+                                        isActive={isActive}
+                                      />
                                     </Grid>
                                   );
                                 })}
@@ -548,32 +760,79 @@ const BatchManagement = () => {
 
                         {/* KPI cards */}
                         <Box>
-                          <Typography variant="subtitle1" fontWeight={700} mb={2} color="text.primary">
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={700}
+                            mb={2}
+                            color="text.primary"
+                          >
                             Chỉ số Sinh học & Hạ tầng
                           </Typography>
-                          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(4, 1fr)",
+                              gap: 2,
+                            }}
+                          >
                             <KPICard
-                              icon={<WaterIcon sx={{ color: theme.palette.primary.main }} />}
+                              icon={
+                                <WaterIcon
+                                  sx={{ color: theme.palette.primary.main }}
+                                />
+                              }
                               label="Dung tích bể"
-                              value={selectedBatch.tankVolume ? `${selectedBatch.tankVolume} m³` : "-- m³"}
+                              value={
+                                selectedBatch.tankVolume
+                                  ? `${selectedBatch.tankVolume} m³`
+                                  : "-- m³"
+                              }
                               desc={selectedBatch.fishTankName}
                             />
                             <KPICard
-                              icon={<Inventory2OutlinedIcon sx={{ color: theme.palette.secondary.main }} />}
+                              icon={
+                                <Inventory2OutlinedIcon
+                                  sx={{ color: theme.palette.secondary.main }}
+                                />
+                              }
                               label="Số lượng ban đầu"
                               value={`${initialQty} con`}
                               desc="Số lượng lúc thả giống"
                             />
                             <KPICard
-                              icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
+                              icon={
+                                <TrendingDownIcon
+                                  sx={{ color: theme.palette.error.main }}
+                                />
+                              }
                               label="Biến động"
                               value={`${netChange >= 0 ? "+" : ""}${netChange} con`}
-                              desc={netPercent != null ? `${netPercent >= 0 ? "+" : ""}${netPercent.toFixed(1)}% so với ban đầu` : "—"}
+                              desc={
+                                netPercent != null
+                                  ? `${netPercent >= 0 ? "+" : ""}${netPercent.toFixed(1)}% so với ban đầu`
+                                  : "—"
+                              }
                             />
                             <KPICard
-                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
-                              label={isHarvested ? "Tỷ lệ sống thực tế" : "Tỷ lệ sống dự kiến (thu hoạch)"}
-                              value={isHarvested ? (actualSurvivalPct != null ? `${actualSurvivalPct.toFixed(1)}%` : "—") : estimatedSurvivalPct != null ? `${estimatedSurvivalPct.toFixed(1)}%` : "—"}
+                              icon={
+                                <SetMealIcon
+                                  sx={{ color: theme.palette.success.main }}
+                                />
+                              }
+                              label={
+                                isHarvested
+                                  ? "Tỷ lệ sống thực tế"
+                                  : "Tỷ lệ sống dự kiến (thu hoạch)"
+                              }
+                              value={
+                                isHarvested
+                                  ? actualSurvivalPct != null
+                                    ? `${actualSurvivalPct.toFixed(1)}%`
+                                    : "—"
+                                  : estimatedSurvivalPct != null
+                                    ? `${estimatedSurvivalPct.toFixed(1)}%`
+                                    : "—"
+                              }
                               desc={
                                 isHarvested
                                   ? actualHarvestCount != null
@@ -585,8 +844,16 @@ const BatchManagement = () => {
                               }
                             />
                             <KPICard
-                              icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />}
-                              label={isHarvested ? "Kết quả thu hoạch" : "Dự kiến thu hoạch"}
+                              icon={
+                                <SetMealIcon
+                                  sx={{ color: theme.palette.success.main }}
+                                />
+                              }
+                              label={
+                                isHarvested
+                                  ? "Kết quả thu hoạch"
+                                  : "Dự kiến thu hoạch"
+                              }
                               value={
                                 isHarvested
                                   ? actualHarvestCount != null
@@ -601,21 +868,43 @@ const BatchManagement = () => {
                                   ? selectedBatch.actualHarvestWeightKg != null
                                     ? `Tổng trọng lượng: ${selectedBatch.actualHarvestWeightKg.toFixed(2)} kg`
                                     : ""
-                                  : selectedBatch.estimatedHarvestWeightKg != null
+                                  : selectedBatch.estimatedHarvestWeightKg !=
+                                      null
                                     ? `Tổng trọng lượng: ${selectedBatch.estimatedHarvestWeightKg.toFixed(2)} kg`
                                     : ""
                               }
                             />
                             <KPICard
-                              icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />}
+                              icon={
+                                <SetMealIcon
+                                  sx={{ color: theme.palette.primary.main }}
+                                />
+                              }
                               label="FCR"
-                              value={selectedBatch.fcr != null ? selectedBatch.fcr.toFixed(2) : "—"}
+                              value={
+                                selectedBatch.fcr != null
+                                  ? selectedBatch.fcr.toFixed(2)
+                                  : "—"
+                              }
                               desc="Hệ số chuyển đổi thức ăn"
                             />
-                            <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
                             <KPICard
-                              icon={<TrendingDownIcon sx={{ color: theme.palette.error.main }} />}
-                              label="Tổng hao hụt (Cá chết)"
+                              icon={
+                                <SetMealIcon
+                                  sx={{ color: theme.palette.success.main }}
+                                />
+                              }
+                              label="Tổng lượng cám tiêu thụ"
+                              value={`${totalFeed.toFixed(1)} kg`}
+                              desc="Hiệu suất tiêu thụ"
+                            />
+                            <KPICard
+                              icon={
+                                <TrendingDownIcon
+                                  sx={{ color: theme.palette.error.main }}
+                                />
+                              }
+                              label="Tổng hao hụt (Vật nuôi chết)"
                               value={`${totalDead} ${selectedBatch.unitOfMeasure}`}
                               desc="Số lượng"
                             />
@@ -634,56 +923,132 @@ const BatchManagement = () => {
                             sx={{
                               p: 2,
                               borderRadius: "12px",
-                              borderColor: feedingGuidance.isOverfed ? theme.palette.error.main : theme.palette.divider,
-                              bgcolor: feedingGuidance.isOverfed ? "#FEF2F2" : theme.palette.background.paper,
+                              borderColor: feedingGuidance.isOverfed
+                                ? theme.palette.error.main
+                                : theme.palette.divider,
+                              bgcolor: feedingGuidance.isOverfed
+                                ? "#FEF2F2"
+                                : theme.palette.background.paper,
                             }}
                           >
-                            <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
-                              <SetMealIcon sx={{ color: feedingGuidance.isOverfed ? theme.palette.error.main : theme.palette.primary.main }} />
-                              <Typography variant="subtitle2" fontWeight={700} color={feedingGuidance.isOverfed ? "error" : "text.primary"}>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={1}
+                              mb={1.5}
+                            >
+                              <SetMealIcon
+                                sx={{
+                                  color: feedingGuidance.isOverfed
+                                    ? theme.palette.error.main
+                                    : theme.palette.primary.main,
+                                }}
+                              />
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={700}
+                                color={
+                                  feedingGuidance.isOverfed
+                                    ? "error"
+                                    : "text.primary"
+                                }
+                              >
                                 Hướng dẫn cho ăn hôm nay
                               </Typography>
                             </Stack>
 
-                            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: feedingGuidance.isOverfed ? 1.5 : 0 }}>
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(3, 1fr)",
+                                gap: 2,
+                                mb: feedingGuidance.isOverfed ? 1.5 : 0,
+                              }}
+                            >
                               {/* Target */}
                               <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    fontWeight: 600,
+                                    textTransform: "uppercase",
+                                    fontSize: "10px",
+                                  }}
+                                >
                                   Mục tiêu
                                 </Typography>
                                 <Typography variant="body2" fontWeight={600}>
-                                  {feedingGuidance.dailyTargetKg != null ? `${feedingGuidance.dailyTargetKg.toFixed(2)} kg/ngày` : "—"}
+                                  {feedingGuidance.dailyTargetKg != null
+                                    ? `${feedingGuidance.dailyTargetKg.toFixed(2)} kg/ngày`
+                                    : "—"}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {feedingGuidance.dailyFrequency != null ? `${feedingGuidance.dailyFrequency} lần/ngày` : ""}
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {feedingGuidance.dailyFrequency != null
+                                    ? `${feedingGuidance.dailyFrequency} lần/ngày`
+                                    : ""}
                                 </Typography>
                               </Box>
 
                               {/* Today's progress */}
                               <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    fontWeight: 600,
+                                    textTransform: "uppercase",
+                                    fontSize: "10px",
+                                  }}
+                                >
                                   Đã cho ăn hôm nay
                                 </Typography>
-                                <Typography variant="body2" fontWeight={600} color={feedingGuidance.isOverfed ? "error.main" : "text.primary"}>
-                                  {feedingGuidance.todayFeedAmount.toFixed(2)} kg
+                                <Typography
+                                  variant="body2"
+                                  fontWeight={600}
+                                  color={
+                                    feedingGuidance.isOverfed
+                                      ? "error.main"
+                                      : "text.primary"
+                                  }
+                                >
+                                  {feedingGuidance.todayFeedAmount.toFixed(2)}{" "}
+                                  kg
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   {feedingGuidance.todayFeedCount} lần
                                 </Typography>
                               </Box>
 
                               {/* Remaining */}
                               <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    fontWeight: 600,
+                                    textTransform: "uppercase",
+                                    fontSize: "10px",
+                                  }}
+                                >
                                   Còn lại
                                 </Typography>
                                 <Typography
                                   variant="body2"
                                   fontWeight={600}
                                   color={
-                                    feedingGuidance.remainingAmount != null && feedingGuidance.remainingAmount < 0
+                                    feedingGuidance.remainingAmount != null &&
+                                    feedingGuidance.remainingAmount < 0
                                       ? "error.main"
-                                      : feedingGuidance.remainingAmount != null && feedingGuidance.remainingAmount > 0
+                                      : feedingGuidance.remainingAmount !=
+                                            null &&
+                                          feedingGuidance.remainingAmount > 0
                                         ? "success.main"
                                         : "text.primary"
                                   }
@@ -696,24 +1061,53 @@ const BatchManagement = () => {
                                         : "Đã đạt mục tiêu"
                                     : "—"}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {feedingGuidance.remainingFeedings != null ? (feedingGuidance.remainingFeedings > 0 ? `Còn ${feedingGuidance.remainingFeedings} lần` : "Đã đủ số lần") : ""}
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {feedingGuidance.remainingFeedings != null
+                                    ? feedingGuidance.remainingFeedings > 0
+                                      ? `Còn ${feedingGuidance.remainingFeedings} lần`
+                                      : "Đã đủ số lần"
+                                    : ""}
                                 </Typography>
                               </Box>
                             </Box>
 
                             {feedingGuidance.isOverfed && (
-                              <Alert severity="error" sx={{ fontSize: "0.8rem", mt: 1 }}>
-                                Vượt quá lượng cám khuyến nghị trong ngày! Vui lòng giảm lượng cho ăn ở các lần tiếp theo để tránh lãng phí thức ăn và ô nhiễm nước.
+                              <Alert
+                                severity="error"
+                                sx={{ fontSize: "0.8rem", mt: 1 }}
+                              >
+                                Vượt quá lượng cám khuyến nghị trong ngày! Vui
+                                lòng giảm lượng cho ăn ở các lần tiếp theo để
+                                tránh lãng phí thức ăn và ô nhiễm nước.
                               </Alert>
                             )}
                           </Paper>
                         )}
 
                         {/* Date range filter */}
-                        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                          <DatePicker label="Từ ngày" value={feedDateFrom} onChange={(v) => setFeedDateFrom(v)} maxDate={feedDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
-                          <DatePicker label="Đến ngày" value={feedDateTo} onChange={(v) => setFeedDateTo(v)} minDate={feedDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="center"
+                          flexWrap="wrap"
+                        >
+                          <DatePicker
+                            label="Từ ngày"
+                            value={feedDateFrom}
+                            onChange={(v) => setFeedDateFrom(v)}
+                            maxDate={feedDateTo ?? undefined}
+                            slotProps={{ textField: { size: "small" } }}
+                          />
+                          <DatePicker
+                            label="Đến ngày"
+                            value={feedDateTo}
+                            onChange={(v) => setFeedDateTo(v)}
+                            minDate={feedDateFrom ?? undefined}
+                            slotProps={{ textField: { size: "small" } }}
+                          />
                           {(feedDateFrom || feedDateTo) && (
                             <Button
                               size="small"
@@ -728,7 +1122,11 @@ const BatchManagement = () => {
                           )}
                         </Stack>
 
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
                           <Typography variant="subtitle2" fontWeight={700}>
                             Lịch sử Dinh dưỡng
                           </Typography>
@@ -744,13 +1142,26 @@ const BatchManagement = () => {
                           </Button>
                         </Stack>
 
-                        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "8px" }}>
+                        <TableContainer
+                          component={Paper}
+                          variant="outlined"
+                          sx={{ borderRadius: "8px" }}
+                        >
                           <Table size="small">
-                            <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
+                            <TableHead
+                              sx={{ bgcolor: theme.palette.action.hover }}
+                            >
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 600 }}>Thời gian</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Loại thức ăn</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  Thời gian
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  Loại thức ăn
+                                </TableCell>
+                                <TableCell
+                                  align="right"
+                                  sx={{ fontWeight: 600 }}
+                                >
                                   Khối lượng
                                 </TableCell>
                               </TableRow>
@@ -758,22 +1169,44 @@ const BatchManagement = () => {
                             <TableBody>
                               {filteredFeedingLogs.length === 0 ? (
                                 <TableRow>
-                                  <TableCell colSpan={3} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                                  <TableCell
+                                    colSpan={3}
+                                    align="center"
+                                    sx={{ py: 3, color: "text.secondary" }}
+                                  >
                                     Chưa có dữ liệu.
                                   </TableCell>
                                 </TableRow>
                               ) : (
                                 filteredFeedingLogs.map((log) => (
                                   <TableRow key={log.id}>
-                                    <TableCell>{dayjs(log.createdDate).format("DD/MM/YYYY HH:mm")}</TableCell>
+                                    <TableCell>
+                                      {dayjs(log.createdDate).format(
+                                        "DD/MM/YYYY HH:mm",
+                                      )}
+                                    </TableCell>
                                     <TableCell>
                                       <Chip
-                                        label={log.feedTypeName || "Đang cập nhật..."}
+                                        label={
+                                          log.feedTypeName || "Đang cập nhật..."
+                                        }
                                         size="small"
-                                        sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 600, fontSize: "0.7rem", borderRadius: "6px" }}
+                                        sx={{
+                                          bgcolor: "#F1F5F9",
+                                          color: "#475569",
+                                          fontWeight: 600,
+                                          fontSize: "0.7rem",
+                                          borderRadius: "6px",
+                                        }}
                                       />
                                     </TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                                    <TableCell
+                                      align="right"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: theme.palette.success.main,
+                                      }}
+                                    >
                                       +{log.amount} kg
                                     </TableCell>
                                   </TableRow>
@@ -789,9 +1222,26 @@ const BatchManagement = () => {
                     {tabValue === 2 && (
                       <Stack spacing={2}>
                         {/* Date range filter */}
-                        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                          <DatePicker label="Từ ngày" value={mortDateFrom} onChange={(v) => setMortDateFrom(v)} maxDate={mortDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
-                          <DatePicker label="Đến ngày" value={mortDateTo} onChange={(v) => setMortDateTo(v)} minDate={mortDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="center"
+                          flexWrap="wrap"
+                        >
+                          <DatePicker
+                            label="Từ ngày"
+                            value={mortDateFrom}
+                            onChange={(v) => setMortDateFrom(v)}
+                            maxDate={mortDateTo ?? undefined}
+                            slotProps={{ textField: { size: "small" } }}
+                          />
+                          <DatePicker
+                            label="Đến ngày"
+                            value={mortDateTo}
+                            onChange={(v) => setMortDateTo(v)}
+                            minDate={mortDateFrom ?? undefined}
+                            slotProps={{ textField: { size: "small" } }}
+                          />
                           {(mortDateFrom || mortDateTo) && (
                             <Button
                               size="small"
@@ -806,7 +1256,11 @@ const BatchManagement = () => {
                           )}
                         </Stack>
 
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
                           <Typography variant="subtitle2" fontWeight={700}>
                             Theo dõi Hao hụt
                           </Typography>
@@ -819,19 +1273,33 @@ const BatchManagement = () => {
                             sx={{ textTransform: "none", boxShadow: "none" }}
                             disabled={!isBatchActive(selectedBatch.status)}
                           >
-                            Báo cáo cá chết
+                            Báo cáo vật nuôi chết
                           </Button>
                         </Stack>
 
-                        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "8px" }}>
+                        <TableContainer
+                          component={Paper}
+                          variant="outlined"
+                          sx={{ borderRadius: "8px" }}
+                        >
                           <Table size="small">
-                            <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
+                            <TableHead
+                              sx={{ bgcolor: theme.palette.action.hover }}
+                            >
                               <TableRow>
-                                <TableCell sx={{ fontWeight: 600 }}>Ngày ghi nhận</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  Ngày ghi nhận
+                                </TableCell>
+                                <TableCell
+                                  align="right"
+                                  sx={{ fontWeight: 600 }}
+                                >
                                   Số lượng (con)
                                 </TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                <TableCell
+                                  align="right"
+                                  sx={{ fontWeight: 600 }}
+                                >
                                   Khối lượng (kg)
                                 </TableCell>
                               </TableRow>
@@ -839,19 +1307,41 @@ const BatchManagement = () => {
                             <TableBody>
                               {filteredMortalityLogs.length === 0 ? (
                                 <TableRow>
-                                  <TableCell colSpan={3} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                                  <TableCell
+                                    colSpan={3}
+                                    align="center"
+                                    sx={{ py: 3, color: "text.secondary" }}
+                                  >
                                     Chưa có dữ liệu.
                                   </TableCell>
                                 </TableRow>
                               ) : (
                                 filteredMortalityLogs.map((log) => (
                                   <TableRow key={log.id}>
-                                    <TableCell>{dayjs(log.date).format("DD/MM/YYYY HH:mm")}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                                    <TableCell>
+                                      {dayjs(log.date).format(
+                                        "DD/MM/YYYY HH:mm",
+                                      )}
+                                    </TableCell>
+                                    <TableCell
+                                      align="right"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: theme.palette.error.main,
+                                      }}
+                                    >
                                       -{log.quantity} con
                                     </TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                                      {log.lostWeightKg != null ? `${log.lostWeightKg} kg` : "—"}
+                                    <TableCell
+                                      align="right"
+                                      sx={{
+                                        fontWeight: 600,
+                                        color: theme.palette.error.main,
+                                      }}
+                                    >
+                                      {log.lostWeightKg != null
+                                        ? `${log.lostWeightKg} kg`
+                                        : "—"}
                                     </TableCell>
                                   </TableRow>
                                 ))
@@ -870,12 +1360,24 @@ const BatchManagement = () => {
       </Box>
 
       {/* DIALOG CHO ĂN */}
-      <Dialog open={openFeedDialog} onClose={() => setOpenFeedDialog(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={openFeedDialog}
+        onClose={() => setOpenFeedDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>Ghi nhận cho ăn</DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+        <DialogContent
+          dividers
+          sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}
+        >
           <FormControl fullWidth size="small">
             <InputLabel>Loại cám</InputLabel>
-            <Select value={feedTypeIdInput} label="Loại cám" onChange={(e) => setFeedTypeIdInput(e.target.value)}>
+            <Select
+              value={feedTypeIdInput}
+              label="Loại cám"
+              onChange={(e) => setFeedTypeIdInput(e.target.value)}
+            >
               {availableFeedTypes.length === 0 ? (
                 feedTypes.length === 0 ? (
                   <MenuItem disabled value="">
@@ -900,14 +1402,20 @@ const BatchManagement = () => {
             size="small"
             label="Khối lượng cám"
             type="number"
-            InputProps={{ endAdornment: <InputAdornment position="end">kg</InputAdornment> }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">kg</InputAdornment>,
+            }}
             value={feedInput}
             onChange={(e) => setFeedInput(e.target.value)}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setOpenFeedDialog(false)}>Hủy</Button>
-          <Button variant="contained" onClick={handleSaveFeeding} sx={{ boxShadow: "none" }}>
+          <Button
+            variant="contained"
+            onClick={handleSaveFeeding}
+            sx={{ boxShadow: "none" }}
+          >
             Lưu dữ liệu
           </Button>
         </DialogActions>
@@ -926,14 +1434,25 @@ const BatchManagement = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.error.main }}>Báo cáo hao hụt (Cá chết)</DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+        <DialogTitle sx={{ fontWeight: 700, color: theme.palette.error.main }}>
+          Báo cáo hao hụt (Thiệt hại)
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
+        >
           <TextField
             fullWidth
             size="small"
-            label="Số lượng cá chết"
+            label="Số lượng thiệt hại"
             type="number"
-            slotProps={{ input: { endAdornment: <InputAdornment position="end">con</InputAdornment> } }}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">con</InputAdornment>
+                ),
+              },
+            }}
             value={deathInput}
             onChange={(e) => {
               setDeathInput(e.target.value);
@@ -944,9 +1463,15 @@ const BatchManagement = () => {
           <TextField
             fullWidth
             size="small"
-            label="Khối lượng cá chết"
+            label="Khối lượng thiệt hại"
             type="number"
-            slotProps={{ input: { endAdornment: <InputAdornment position="end">kg</InputAdornment> } }}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">kg</InputAdornment>
+                ),
+              },
+            }}
             value={deathWeightInput}
             onChange={(e) => {
               setDeathWeightInput(e.target.value);
@@ -965,15 +1490,23 @@ const BatchManagement = () => {
                 border: "1px solid #FDBA74",
               }}
             >
-              <ErrorOutlineIcon sx={{ color: "#F97316", fontSize: 20, flexShrink: 0, mt: 0.1 }} />
+              <ErrorOutlineIcon
+                sx={{ color: "#F97316", fontSize: 20, flexShrink: 0, mt: 0.1 }}
+              />
               <Box>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: "#C2410C", display: "block" }}>
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: 700, color: "#C2410C", display: "block" }}
+                >
                   Cảnh báo vượt ngưỡng
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#9A3412" }}>
                   {mortalityWarning}
                 </Typography>
-                <Typography variant="caption" sx={{ color: "#9A3412", display: "block", mt: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#9A3412", display: "block", mt: 0.5 }}
+                >
                   Bấm &quot;Xác nhận &amp; Lưu&quot; để tiếp tục ghi nhận.
                 </Typography>
               </Box>
@@ -992,8 +1525,19 @@ const BatchManagement = () => {
           >
             Hủy
           </Button>
-          <Button variant="contained" color="error" onClick={handleSaveMortality} disabled={isSavingMortality} startIcon={mortalityWarning ? <WarningIcon /> : undefined} sx={{ boxShadow: "none" }}>
-            {isSavingMortality ? "Đang xử lý..." : mortalityWarning ? "Xác nhận & Lưu" : "Lưu báo cáo"}
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleSaveMortality}
+            disabled={isSavingMortality}
+            startIcon={mortalityWarning ? <WarningIcon /> : undefined}
+            sx={{ boxShadow: "none" }}
+          >
+            {isSavingMortality
+              ? "Đang xử lý..."
+              : mortalityWarning
+                ? "Xác nhận & Lưu"
+                : "Lưu báo cáo"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1003,23 +1547,44 @@ const BatchManagement = () => {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-const StageCard = ({ stage: s, isActive }: { stage: PlannedStage; isActive: boolean }) => {
+const StageCard = ({
+  stage: s,
+  isActive,
+}: {
+  stage: PlannedStage;
+  isActive: boolean;
+}) => {
   const theme = useTheme();
   return (
     <Card
       variant="outlined"
       sx={{
         height: "100%",
-        ...(isActive ? { border: `1px solid ${theme.palette.success.main}`, backgroundColor: theme.palette.success.light } : {}),
+        ...(isActive
+          ? {
+              border: `1px solid ${theme.palette.success.main}`,
+              backgroundColor: theme.palette.success.light,
+            }
+          : {}),
       }}
     >
       <CardContent>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography variant="subtitle2" fontWeight={600} sx={{ color: isActive ? theme.palette.success.dark : undefined }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={600}
+              sx={{ color: isActive ? theme.palette.success.dark : undefined }}
+            >
               {`${s.sequence}. ${s.stageName}`}
             </Typography>
-            {isActive ? <Chip label="Đang diễn ra" size="small" color="success" /> : null}
+            {isActive ? (
+              <Chip label="Đang diễn ra" size="small" color="success" />
+            ) : null}
           </Stack>
           <Typography variant="caption" color="text.secondary">
             {s.expectedDurationDays ? `${s.expectedDurationDays} ngày` : ""}
@@ -1031,30 +1596,60 @@ const StageCard = ({ stage: s, isActive }: { stage: PlannedStage; isActive: bool
         </Typography>
 
         {s.feedTypeNames && s.feedTypeNames.length > 0 ? (
-          <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap", alignItems: "center" }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ mt: 1, flexWrap: "wrap", alignItems: "center" }}
+          >
             <Typography variant="caption" color="text.secondary">
               Loại cám:
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
               {s.feedTypeNames.map((f) => (
-                <Chip key={f} label={f} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                <Chip
+                  key={f}
+                  label={f}
+                  size="small"
+                  sx={{ mr: 0.5, mb: 0.5 }}
+                />
               ))}
             </Stack>
           </Stack>
         ) : null}
 
         <Stack direction="column" spacing={1} sx={{ mt: 1 }}>
-          <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ alignItems: "center", flexWrap: "wrap" }}
+          >
             <Typography variant="caption" color="text.secondary">
-              Dự kiến số lượng: <strong>{s.expectedCount != null ? `${s.expectedCount} con` : "—"}</strong>
+              Dự kiến số lượng:{" "}
+              <strong>
+                {s.expectedCount != null ? `${s.expectedCount} con` : "—"}
+              </strong>
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Tổng trọng lượng: <strong>{s.expectedTotalWeightKg != null ? `${s.expectedTotalWeightKg.toFixed(2)} kg` : "—"}</strong>
+              Tổng trọng lượng:{" "}
+              <strong>
+                {s.expectedTotalWeightKg != null
+                  ? `${s.expectedTotalWeightKg.toFixed(2)} kg`
+                  : "—"}
+              </strong>
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ alignItems: "center", flexWrap: "wrap" }}
+          >
             <Typography variant="caption" color="text.secondary">
-              Cám/ngày: <strong>{s.estimatedDailyFeedKg != null ? `${s.estimatedDailyFeedKg.toFixed(2)} kg/ngày` : "—"}</strong>
+              Cám/ngày:{" "}
+              <strong>
+                {s.estimatedDailyFeedKg != null
+                  ? `${s.estimatedDailyFeedKg.toFixed(2)} kg/ngày`
+                  : "—"}
+              </strong>
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Tần suất/ngày: <strong>{s.frequencyPerDay ?? "—"} lần</strong>
@@ -1071,17 +1666,35 @@ const StageCard = ({ stage: s, isActive }: { stage: PlannedStage; isActive: bool
   );
 };
 
-const BatchListItem = ({ data, selected, onClick }: { data: IOperatorFarmingBatch; selected: boolean; onClick: () => void }) => {
+const BatchListItem = ({
+  data,
+  selected,
+  onClick,
+}: {
+  data: IOperatorFarmingBatch;
+  selected: boolean;
+  onClick: () => void;
+}) => {
   const theme = useTheme();
   const { label, color } = getStatusInfo(data.status);
 
   const colorMap: Record<string, { bg: string; text: string }> = {
-    success: { bg: theme.palette.success.light, text: theme.palette.success.main },
-    default: { bg: theme.palette.action.selected, text: theme.palette.text.secondary },
-    warning: { bg: theme.palette.warning.light, text: theme.palette.warning.main },
+    success: {
+      bg: theme.palette.success.light,
+      text: theme.palette.success.main,
+    },
+    default: {
+      bg: theme.palette.action.selected,
+      text: theme.palette.text.secondary,
+    },
+    warning: {
+      bg: theme.palette.warning.light,
+      text: theme.palette.warning.main,
+    },
     error: { bg: theme.palette.error.light, text: theme.palette.error.main },
   };
-  const { bg: statusBg, text: statusColor } = colorMap[color] ?? colorMap["default"];
+  const { bg: statusBg, text: statusColor } =
+    colorMap[color] ?? colorMap["default"];
 
   return (
     <Paper
@@ -1091,30 +1704,70 @@ const BatchListItem = ({ data, selected, onClick }: { data: IOperatorFarmingBatc
         p: 1.5,
         borderRadius: "10px",
         border: `1px solid ${selected ? theme.palette.primary.main : theme.palette.divider}`,
-        bgcolor: selected ? alpha(theme.palette.primary.main, 0.08) : theme.palette.background.paper,
+        bgcolor: selected
+          ? alpha(theme.palette.primary.main, 0.08)
+          : theme.palette.background.paper,
         cursor: "pointer",
         transition: "all 0.2s",
         "&:hover": { borderColor: theme.palette.primary.main },
       }}
     >
-      <Stack direction="row" justifyContent="space-between" mb={1} alignItems="flex-start">
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: theme.palette.text.primary, lineHeight: 1.3, pr: 1 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        mb={1}
+        alignItems="flex-start"
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 700,
+            fontSize: "0.85rem",
+            color: theme.palette.text.primary,
+            lineHeight: 1.3,
+            pr: 1,
+          }}
+        >
           {data.name}
         </Typography>
-        <Chip label={label} size="small" sx={{ bgcolor: statusBg, color: statusColor, fontWeight: 600, fontSize: "0.62rem", height: 18, borderRadius: "5px", flexShrink: 0 }} />
+        <Chip
+          label={label}
+          size="small"
+          sx={{
+            bgcolor: statusBg,
+            color: statusColor,
+            fontWeight: 600,
+            fontSize: "0.62rem",
+            height: 18,
+            borderRadius: "5px",
+            flexShrink: 0,
+          }}
+        />
       </Stack>
-      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600, display: "block", mb: 0.5 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: theme.palette.text.secondary,
+          fontWeight: 600,
+          display: "block",
+          mb: 0.5,
+        }}
+      >
         {data.fishTankName}
       </Typography>
       <Stack spacing={0.25}>
         <Stack direction="row" alignItems="center" spacing={0.75}>
-          <SetMealIcon sx={{ fontSize: 13, color: theme.palette.text.secondary }} />
+          <SetMealIcon
+            sx={{ fontSize: 13, color: theme.palette.text.secondary }}
+          />
           <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
             {data.speciesName}
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={0.75}>
-          <TimelineIcon sx={{ fontSize: 13, color: theme.palette.text.secondary }} />
+          <TimelineIcon
+            sx={{ fontSize: 13, color: theme.palette.text.secondary }}
+          />
           <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
             {data.stageName}
           </Typography>
@@ -1124,20 +1777,49 @@ const BatchListItem = ({ data, selected, onClick }: { data: IOperatorFarmingBatc
   );
 };
 
-const KPICard = ({ icon, label, value, desc }: { icon: ReactNode; label: string; value: string; desc: string }) => {
+const KPICard = ({
+  icon,
+  label,
+  value,
+  desc,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  desc: string;
+}) => {
   const theme = useTheme();
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: "12px", display: "flex", flexDirection: "column", gap: 1, border: `1px solid ${theme.palette.divider}` }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        borderRadius: "12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+        border: `1px solid ${theme.palette.divider}`,
+      }}
+    >
       <Stack direction="row" alignItems="center" spacing={1}>
         {icon}
-        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+        <Typography
+          variant="caption"
+          sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}
+        >
           {label}
         </Typography>
       </Stack>
-      <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+      <Typography
+        variant="h6"
+        sx={{ fontWeight: 700, color: theme.palette.text.primary }}
+      >
         {value}
       </Typography>
-      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+      <Typography
+        variant="caption"
+        sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
+      >
         {desc}
       </Typography>
     </Paper>

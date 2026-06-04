@@ -57,7 +57,11 @@ type CreateBatchDialogProps = {
   onSuccess: () => void;
 };
 
-const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, onSuccess }) => {
+const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({
+  open,
+  onClose,
+  onSuccess,
+}) => {
   const toast = useToast();
   const { createBatch } = useBatches({ autoLoad: false });
   const navigate = useNavigate();
@@ -78,13 +82,19 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
   const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [recommendedInitials, setRecommendedInitials] = useState<Record<string, number | null>>({});
+  const [recommendedInitials, setRecommendedInitials] = useState<
+    Record<string, number | null>
+  >({});
   const [recommendedLoading, setRecommendedLoading] = useState(false);
-  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState<string | null>(null);
+  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState<
+    string | null
+  >(null);
   const [estimatingHarvest, setEstimatingHarvest] = useState(false);
 
   // Tanks that have at least one masterboard — used to warn about missing sensor hardware.
-  const [tanksWithMasterboard, setTanksWithMasterboard] = useState<Set<string>>(new Set());
+  const [tanksWithMasterboard, setTanksWithMasterboard] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -122,7 +132,11 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
 
         setSpeciesList(configsData || []);
         setTanks(tanksData || []);
-        setTanksWithMasterboard(new Set((boards || []).map((b) => b.fishTankId).filter(Boolean) as string[]));
+        setTanksWithMasterboard(
+          new Set(
+            (boards || []).map((b) => b.fishTankId).filter(Boolean) as string[],
+          ),
+        );
       } catch (error) {
         console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
       } finally {
@@ -170,9 +184,14 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     (async () => {
       try {
         const stages = await getSpeciesStageConfigsBySpecies(selectedSpecies);
-        const totalDays = stages.reduce((sum, s) => sum + (s.expectedDurationDays ?? 0), 0);
+        const totalDays = stages.reduce(
+          (sum, s) => sum + (s.expectedDurationDays ?? 0),
+          0,
+        );
         if (totalDays > 0) {
-          const est = dayjs(startDate).add(totalDays, "day").format("DD/MM/YYYY");
+          const est = dayjs(startDate)
+            .add(totalDays, "day")
+            .format("DD/MM/YYYY");
           setEstimatedHarvestDate(est);
         } else {
           setEstimatedHarvestDate(null);
@@ -191,7 +210,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     if (!selectedSpecies) newErrors.config = "Vui lòng chọn loài";
     if (!selectedTank) newErrors.tank = "Vui lòng chọn bể nuôi";
     if (!startDate) newErrors.startDate = "Ngày bắt đầu là bắt buộc";
-    else if (startDate < new Date().toISOString().split("T")[0]) newErrors.startDate = "Ngày bắt đầu không thể trong quá khứ";
+    else if (startDate < new Date().toISOString().split("T")[0])
+      newErrors.startDate = "Ngày bắt đầu không thể trong quá khứ";
 
     // Kiểm tra chặn lúc bấm Submit
     // no estimated harvest date validation — backend determines stages
@@ -259,7 +279,8 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
             // Try to pick the first validation error message
             try {
               const errs = rd.errors as Record<string, unknown>;
-              const first = Object.values(errs).flat?.()[0] ?? Object.values(errs)[0];
+              const first =
+                Object.values(errs).flat?.()[0] ?? Object.values(errs)[0];
               if (typeof first === "string") backendMessage = first;
             } catch {
               /* ignore */
@@ -269,7 +290,11 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
       }
 
       // Fallback to generic message if available and not generic axios text
-      if (!backendMessage && apiErr.message && !apiErr.message.toLowerCase().includes("request failed")) {
+      if (
+        !backendMessage &&
+        apiErr.message &&
+        !apiErr.message.toLowerCase().includes("request failed")
+      ) {
         backendMessage = apiErr.message;
       }
 
@@ -295,17 +320,34 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
     handleSubmit(true);
   };
 
-  const recommendedMax = selectedSpecies ? recommendedInitials[selectedSpecies] : undefined;
-  const recommendedSuggested = typeof recommendedMax === "number" && recommendedMax > 0 ? Math.ceil(recommendedMax / 2) : undefined;
-  const initialQuantityNumber = initialQuantity ? parseInt(initialQuantity, 10) : NaN;
-  const isInitialQuantityBelowMin = typeof recommendedSuggested === "number" && !isNaN(initialQuantityNumber) && initialQuantityNumber < recommendedSuggested;
-  const isInitialQuantityAboveMax = typeof recommendedMax === "number" && !isNaN(initialQuantityNumber) && initialQuantityNumber > recommendedMax;
+  const recommendedMax = selectedSpecies
+    ? recommendedInitials[selectedSpecies]
+    : undefined;
+  const recommendedSuggested =
+    typeof recommendedMax === "number" && recommendedMax > 0
+      ? Math.ceil(recommendedMax / 2)
+      : undefined;
+  const initialQuantityNumber = initialQuantity
+    ? parseInt(initialQuantity, 10)
+    : NaN;
+  const isInitialQuantityBelowMin =
+    typeof recommendedSuggested === "number" &&
+    !isNaN(initialQuantityNumber) &&
+    initialQuantityNumber < recommendedSuggested;
+  const isInitialQuantityAboveMax =
+    typeof recommendedMax === "number" &&
+    !isNaN(initialQuantityNumber) &&
+    initialQuantityNumber > recommendedMax;
 
-  let initialQuantityHelper = errors.initialQuantity || "Số lượng cá giống";
+  let initialQuantityHelper =
+    errors.initialQuantity || "Số lượng vật nuôi giống";
   if (!errors.initialQuantity && selectedSpecies) {
     if (recommendedLoading) {
       initialQuantityHelper = "Đang lấy gợi ý...";
-    } else if (typeof recommendedSuggested === "number" && typeof recommendedMax === "number") {
+    } else if (
+      typeof recommendedSuggested === "number" &&
+      typeof recommendedMax === "number"
+    ) {
       initialQuantityHelper = `Phạm vi hợp lệ: ${recommendedSuggested} - ${recommendedMax} con`;
     } else if (typeof recommendedMax === "number") {
       initialQuantityHelper = `Tối đa: ${recommendedMax} con`;
@@ -313,13 +355,24 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
       initialQuantityHelper = "Không có khuyến nghị cho loài này ở bể đã chọn";
     }
   }
-  const showExplanatoryHelperGreen = !errors.initialQuantity && !!selectedSpecies && !recommendedLoading && !isInitialQuantityBelowMin && !isInitialQuantityAboveMax;
+  const showExplanatoryHelperGreen =
+    !errors.initialQuantity &&
+    !!selectedSpecies &&
+    !recommendedLoading &&
+    !isInitialQuantityBelowMin &&
+    !isInitialQuantityAboveMax;
 
   const todayStr = new Date().toISOString().split("T")[0];
   const isStartDateInPast = startDate !== "" && startDate < todayStr;
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" disableEscapeKeyDown={submitting}>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="sm"
+      disableEscapeKeyDown={submitting}
+    >
       <DialogTitle sx={{ fontWeight: 700 }}>Tạo vụ nuôi mới</DialogTitle>
       <DialogContent dividers>
         {loading ? (
@@ -337,7 +390,9 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 setIsBatchNameEdited(true);
               }}
               error={!!errors.batchName}
-              helperText={errors.batchName || "Tự động sinh hoặc nhập tên tùy chỉnh"}
+              helperText={
+                errors.batchName || "Tự động sinh hoặc nhập tên tùy chỉnh"
+              }
               required
             />
 
@@ -371,13 +426,19 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
 
             {selectedTank && !tanksWithMasterboard.has(selectedTank) && (
               <Alert severity="warning" sx={{ fontSize: "0.85rem" }}>
-                Bể này chưa được gắn bảng mạch. Vụ nuôi sẽ không thể nhận dữ liệu cảm biến.
+                Bể này chưa được gắn bảng mạch. Vụ nuôi sẽ không thể nhận dữ
+                liệu cảm biến.
               </Alert>
             )}
 
             <FormControl fullWidth error={!!errors.config} required>
               <InputLabel>Loài</InputLabel>
-              <Select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} label="Loài" disabled={!selectedTank}>
+              <Select
+                value={selectedSpecies}
+                onChange={(e) => setSelectedSpecies(e.target.value)}
+                label="Loài"
+                disabled={!selectedTank}
+              >
                 {speciesList.length === 0 ? (
                   <MenuItem disabled value="">
                     <em>Không có dữ liệu loài</em>
@@ -389,9 +450,19 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                     const recDisplay = hasRec ? `${rec} (con)` : "N/A";
                     return (
                       <MenuItem key={s.id} value={s.id}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            alignItems: "center",
+                          }}
+                        >
                           <Box component="span">{s.name}</Box>
-                          <Box component="span" sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
+                          <Box
+                            component="span"
+                            sx={{ color: "text.secondary", fontSize: "0.9rem" }}
+                          >
                             {recDisplay}
                           </Box>
                         </Box>
@@ -400,7 +471,15 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                   })
                 )}
               </Select>
-              <FormHelperText>{errors.config ? errors.config : !selectedTank ? "Vui lòng chọn bể trước để nhận gợi ý" : recommendedLoading ? "Đang lấy gợi ý..." : ""}</FormHelperText>
+              <FormHelperText>
+                {errors.config
+                  ? errors.config
+                  : !selectedTank
+                    ? "Vui lòng chọn bể trước để nhận gợi ý"
+                    : recommendedLoading
+                      ? "Đang lấy gợi ý..."
+                      : ""}
+              </FormHelperText>
             </FormControl>
 
             <Box
@@ -419,7 +498,11 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 onChange={(e) => setInitialQuantity(e.target.value)}
                 error={!!errors.initialQuantity}
                 helperText={initialQuantityHelper}
-                FormHelperTextProps={showExplanatoryHelperGreen ? { sx: { color: "success.main" } } : undefined}
+                FormHelperTextProps={
+                  showExplanatoryHelperGreen
+                    ? { sx: { color: "success.main" } }
+                    : undefined
+                }
                 inputProps={{ min: recommendedSuggested ?? 1, step: 1 }}
                 required
               />
@@ -453,7 +536,12 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 value={startDate}
                 onChange={setStartDate}
                 error={!!errors.startDate || isStartDateInPast}
-                helperText={errors.startDate || (isStartDateInPast ? "Ngày bắt đầu không thể trong quá khứ" : "")}
+                helperText={
+                  errors.startDate ||
+                  (isStartDateInPast
+                    ? "Ngày bắt đầu không thể trong quá khứ"
+                    : "")
+                }
                 required
                 sx={{ flex: 1 }}
               />
@@ -461,7 +549,10 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
                 fullWidth
                 size="small"
                 label="Ngày thu hoạch dự kiến"
-                value={estimatedHarvestDate || (estimatingHarvest ? "Đang tính..." : "—")}
+                value={
+                  estimatedHarvestDate ||
+                  (estimatingHarvest ? "Đang tính..." : "—")
+                }
                 InputProps={{ readOnly: true }}
                 sx={{
                   flex: 1,
@@ -483,14 +574,29 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
+        <Button
+          onClick={onClose}
+          disabled={submitting}
+          sx={{ color: "text.secondary" }}
+        >
           Hủy
         </Button>
         <Button
           variant="contained"
           onClick={() => handleSubmit()}
-          disabled={loading || submitting || isInitialQuantityAboveMax || isStartDateInPast} // Disable nếu ngày trong quá khứ hoặc vượt quá sức chứa
-          startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+          disabled={
+            loading ||
+            submitting ||
+            isInitialQuantityAboveMax ||
+            isStartDateInPast
+          } // Disable nếu ngày trong quá khứ hoặc vượt quá sức chứa
+          startIcon={
+            submitting ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <SaveIcon />
+            )
+          }
           sx={{
             bgcolor: "#2A85FF",
             "&:hover": { bgcolor: "#1F6FDB" },
@@ -503,19 +609,35 @@ const CreateBatchDialog: React.FC<CreateBatchDialogProps> = ({ open, onClose, on
       </DialogActions>
 
       {/* Confirmation dialog when quantity is below 50% of recommended max */}
-      <Dialog open={confirmLowQuantityOpen} onClose={() => setConfirmLowQuantityOpen(false)}>
+      <Dialog
+        open={confirmLowQuantityOpen}
+        onClose={() => setConfirmLowQuantityOpen(false)}
+      >
         <DialogTitle>Xác nhận số lượng thấp</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Số lượng bạn nhập ({initialQuantityNumber.toLocaleString()} con) thấp hơn 50% sức chứa khuyến nghị ({recommendedSuggested?.toLocaleString()} con).
+            Số lượng bạn nhập ({initialQuantityNumber.toLocaleString()} con)
+            thấp hơn 50% sức chứa khuyến nghị (
+            {recommendedSuggested?.toLocaleString()} con).
           </Alert>
-          <Typography>Bạn có chắc chắn muốn tạo vụ nuôi với số lượng này không? Mật độ thả thấp có thể ảnh hưởng đến hiệu quả sản xuất.</Typography>
+          <Typography>
+            Bạn có chắc chắn muốn tạo vụ nuôi với số lượng này không? Mật độ thả
+            thấp có thể ảnh hưởng đến hiệu quả sản xuất.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmLowQuantityOpen(false)} disabled={submitting}>
+          <Button
+            onClick={() => setConfirmLowQuantityOpen(false)}
+            disabled={submitting}
+          >
             Quay lại nhập
           </Button>
-          <Button onClick={proceedWithLowQuantity} variant="contained" color="warning" disabled={submitting}>
+          <Button
+            onClick={proceedWithLowQuantity}
+            variant="contained"
+            color="warning"
+            disabled={submitting}
+          >
             Tiếp tục tạo vụ nuôi
           </Button>
         </DialogActions>

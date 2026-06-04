@@ -760,16 +760,25 @@ const RealTimeSensors = () => {
                       const sensorIsBinary = sensor.unitOfMeasure === "0/1";
                       const rawVal = sensor.latestData?.latestAvg;
                       const displayValue = sensorIsBinary ? (rawVal !== undefined && rawVal !== null ? (rawVal >= 0.5 ? "An toàn" : "Bất thường") : "--") : (rawVal?.toFixed(2) ?? "--");
+                      // Compute isWarning client-side: priority = species batch threshold > sensor API field
+                      const sensorBatchThr = activeBatchThresholds.find(
+                        (t) => t.sensorTypeName?.toLowerCase() === sensor.sensorTypeName?.toLowerCase()
+                      );
+                      const minThr = sensorBatchThr?.minValue ?? sensor.minThreshold ?? sensor.minValue ?? null;
+                      const maxThr = sensorBatchThr?.maxValue ?? sensor.maxThreshold ?? sensor.maxValue ?? null;
+                      const computedIsWarning = rawVal != null && minThr != null && maxThr != null
+                        ? (rawVal < minThr || rawVal > maxThr)
+                        : (sensor.latestData?.isWarning ?? false);
                       const statusLabel = sensorIsBinary
                         ? rawVal !== undefined && rawVal !== null
                           ? rawVal >= 0.5
                             ? "An toàn"
                             : "Bất thường"
                           : "—"
-                        : sensor.latestData?.isWarning
-                          ? "Cảnh báo"
+                        : computedIsWarning
+                          ? "Vượt ngưỡng"
                           : "An toàn";
-                      const statusCol = sensorIsBinary ? (rawVal !== undefined && rawVal !== null && rawVal >= 0.5 ? "success" : "error") : sensor.latestData?.isWarning ? "error" : "success";
+                      const statusCol = sensorIsBinary ? (rawVal !== undefined && rawVal !== null && rawVal >= 0.5 ? "success" : "error") : computedIsWarning ? "error" : "success";
                       return (
                         <SensorCard
                           key={sensor.sensorId}

@@ -1,5 +1,20 @@
 import SaveIcon from "@mui/icons-material/Save";
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+} from "@mui/material";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
 import { getSpecies } from "../../../api/species";
@@ -18,7 +33,12 @@ type EditBatchDialogProps = {
   onSuccess: () => void;
 };
 
-const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose, onSuccess }) => {
+const EditBatchDialog: React.FC<EditBatchDialogProps> = ({
+  batch,
+  open,
+  onClose,
+  onSuccess,
+}) => {
   const toast = useToast();
   const { updateBatch, updateBatchSchedule } = useBatches({ autoLoad: false });
 
@@ -32,9 +52,13 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
 
   const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [recommendedInitials, setRecommendedInitials] = useState<Record<string, number | null>>({});
+  const [recommendedInitials, setRecommendedInitials] = useState<
+    Record<string, number | null>
+  >({});
   const [recommendedLoading, setRecommendedLoading] = useState(false);
-  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState<string | null>(null);
+  const [estimatedHarvestDate, setEstimatedHarvestDate] = useState<
+    string | null
+  >(null);
   const [estimatingHarvest, setEstimatingHarvest] = useState(false);
 
   const isPaused = batch.status === "PAUSED";
@@ -79,9 +103,14 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
     (async () => {
       try {
         const stages = await getSpeciesStageConfigsBySpecies(selectedSpecies);
-        const totalDays = stages.reduce((sum, s) => sum + (s.expectedDurationDays ?? 0), 0);
+        const totalDays = stages.reduce(
+          (sum, s) => sum + (s.expectedDurationDays ?? 0),
+          0,
+        );
         if (totalDays > 0) {
-          const est = dayjs(startDate).add(totalDays, "day").format("DD/MM/YYYY");
+          const est = dayjs(startDate)
+            .add(totalDays, "day")
+            .format("DD/MM/YYYY");
           setEstimatedHarvestDate(est);
         } else {
           setEstimatedHarvestDate(null);
@@ -101,7 +130,8 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
     if (isPaused) {
       if (!selectedSpecies) newErrors.species = "Vui lòng chọn loài";
       if (!startDate) newErrors.startDate = "Ngày bắt đầu là bắt buộc";
-      else if (startDate < new Date().toISOString().split("T")[0]) newErrors.startDate = "Ngày bắt đầu không thể trong quá khứ";
+      else if (startDate < new Date().toISOString().split("T")[0])
+        newErrors.startDate = "Ngày bắt đầu không thể trong quá khứ";
 
       const quantity = parseInt(initialQuantity);
       if (!initialQuantity || isNaN(quantity) || quantity <= 0) {
@@ -127,7 +157,10 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
         });
         // Also update name
         if (batchName !== batch.name) {
-          await updateBatch(batch.id, { name: batchName, unitOfMeasure: "con" });
+          await updateBatch(batch.id, {
+            name: batchName,
+            unitOfMeasure: "con",
+          });
         }
       } else {
         // Update basic info for active batches
@@ -150,17 +183,34 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
     onClose();
   };
 
-  const recommendedMax = selectedSpecies ? recommendedInitials[selectedSpecies] : undefined;
-  const recommendedSuggested = typeof recommendedMax === "number" && recommendedMax > 0 ? Math.ceil(recommendedMax / 2) : undefined;
-  const initialQuantityNumber = initialQuantity ? parseInt(initialQuantity, 10) : NaN;
-  const isInitialQuantityBelowMin = typeof recommendedSuggested === "number" && !isNaN(initialQuantityNumber) && initialQuantityNumber < recommendedSuggested;
-  const isInitialQuantityAboveMax = typeof recommendedMax === "number" && !isNaN(initialQuantityNumber) && initialQuantityNumber > recommendedMax;
+  const recommendedMax = selectedSpecies
+    ? recommendedInitials[selectedSpecies]
+    : undefined;
+  const recommendedSuggested =
+    typeof recommendedMax === "number" && recommendedMax > 0
+      ? Math.ceil(recommendedMax / 2)
+      : undefined;
+  const initialQuantityNumber = initialQuantity
+    ? parseInt(initialQuantity, 10)
+    : NaN;
+  const isInitialQuantityBelowMin =
+    typeof recommendedSuggested === "number" &&
+    !isNaN(initialQuantityNumber) &&
+    initialQuantityNumber < recommendedSuggested;
+  const isInitialQuantityAboveMax =
+    typeof recommendedMax === "number" &&
+    !isNaN(initialQuantityNumber) &&
+    initialQuantityNumber > recommendedMax;
 
-  let initialQuantityHelper = errors.initialQuantity || "Số lượng cá giống";
+  let initialQuantityHelper =
+    errors.initialQuantity || "Số lượng vật nuôi giống";
   if (!errors.initialQuantity && selectedSpecies) {
     if (recommendedLoading) {
       initialQuantityHelper = "Đang lấy gợi ý...";
-    } else if (typeof recommendedSuggested === "number" && typeof recommendedMax === "number") {
+    } else if (
+      typeof recommendedSuggested === "number" &&
+      typeof recommendedMax === "number"
+    ) {
       initialQuantityHelper = `Phạm vi hợp lệ: ${recommendedSuggested} - ${recommendedMax} con`;
     } else if (typeof recommendedMax === "number") {
       initialQuantityHelper = `Tối đa: ${recommendedMax} con`;
@@ -168,19 +218,33 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
       initialQuantityHelper = "Không có khuyến nghị cho loài này ở bể đã chọn";
     }
   }
-  const showExplanatoryHelperGreen = !errors.initialQuantity && !!selectedSpecies && !recommendedLoading && !isInitialQuantityBelowMin && !isInitialQuantityAboveMax;
+  const showExplanatoryHelperGreen =
+    !errors.initialQuantity &&
+    !!selectedSpecies &&
+    !recommendedLoading &&
+    !isInitialQuantityBelowMin &&
+    !isInitialQuantityAboveMax;
 
   const todayStr = new Date().toISOString().split("T")[0];
   const isStartDateInPast = startDate !== "" && startDate < todayStr;
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" disableEscapeKeyDown={submitting}>
-      <DialogTitle sx={{ fontWeight: 700 }}>Chỉnh sửa thông tin vụ nuôi</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="sm"
+      disableEscapeKeyDown={submitting}
+    >
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        Chỉnh sửa thông tin vụ nuôi
+      </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
           {!isPaused && (
             <Alert severity="info" sx={{ mb: 1 }}>
-              Chỉ có thể chỉnh sửa tên vụ nuôi khi đang trong trạng thái Đang nuôi.
+              Chỉ có thể chỉnh sửa tên vụ nuôi khi đang trong trạng thái Đang
+              nuôi.
             </Alert>
           )}
 
@@ -198,7 +262,11 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
             <>
               <FormControl fullWidth error={!!errors.species} required>
                 <InputLabel>Loài</InputLabel>
-                <Select value={selectedSpecies} onChange={(e) => setSelectedSpecies(e.target.value)} label="Loài">
+                <Select
+                  value={selectedSpecies}
+                  onChange={(e) => setSelectedSpecies(e.target.value)}
+                  label="Loài"
+                >
                   {speciesList.length === 0 ? (
                     <MenuItem disabled value="">
                       <em>Không có dữ liệu loài</em>
@@ -210,9 +278,22 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
                       const recDisplay = hasRec ? `${rec} (con)` : "N/A";
                       return (
                         <MenuItem key={s.id} value={s.id}>
-                          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              width: "100%",
+                              alignItems: "center",
+                            }}
+                          >
                             <Box component="span">{s.name}</Box>
-                            <Box component="span" sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
+                            <Box
+                              component="span"
+                              sx={{
+                                color: "text.secondary",
+                                fontSize: "0.9rem",
+                              }}
+                            >
                               {recDisplay}
                             </Box>
                           </Box>
@@ -232,7 +313,11 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
                 onChange={(e) => setInitialQuantity(e.target.value)}
                 error={!!errors.initialQuantity}
                 helperText={initialQuantityHelper}
-                FormHelperTextProps={showExplanatoryHelperGreen ? { sx: { color: "success.main" } } : undefined}
+                FormHelperTextProps={
+                  showExplanatoryHelperGreen
+                    ? { sx: { color: "success.main" } }
+                    : undefined
+                }
                 inputProps={{ min: 1, step: 1 }}
                 required
               />
@@ -240,20 +325,34 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
           )}
 
           {isPaused && (
-            <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexDirection: { xs: "column", sm: "row" },
+              }}
+            >
               <LocalizedDateField
                 label="Ngày bắt đầu"
                 value={startDate}
                 onChange={setStartDate}
                 error={!!errors.startDate || isStartDateInPast}
-                helperText={errors.startDate || (isStartDateInPast ? "Ngày bắt đầu không thể trong quá khứ" : "")}
+                helperText={
+                  errors.startDate ||
+                  (isStartDateInPast
+                    ? "Ngày bắt đầu không thể trong quá khứ"
+                    : "")
+                }
                 required
                 sx={{ flex: 1 }}
               />
               <TextField
                 fullWidth
                 label="Ngày thu hoạch dự kiến"
-                value={estimatedHarvestDate || (estimatingHarvest ? "Đang tính..." : "—")}
+                value={
+                  estimatedHarvestDate ||
+                  (estimatingHarvest ? "Đang tính..." : "—")
+                }
                 InputProps={{ readOnly: true }}
                 sx={{
                   flex: 1,
@@ -292,14 +391,26 @@ const EditBatchDialog: React.FC<EditBatchDialogProps> = ({ batch, open, onClose,
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
+        <Button
+          onClick={onClose}
+          disabled={submitting}
+          sx={{ color: "text.secondary" }}
+        >
           Hủy
         </Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={submitting || isInitialQuantityAboveMax || isStartDateInPast}
-          startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+          disabled={
+            submitting || isInitialQuantityAboveMax || isStartDateInPast
+          }
+          startIcon={
+            submitting ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <SaveIcon />
+            )
+          }
           sx={{
             bgcolor: "#2A85FF",
             "&:hover": { bgcolor: "#1F6FDB" },
