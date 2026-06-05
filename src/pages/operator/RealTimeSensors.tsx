@@ -477,7 +477,6 @@ const RealTimeSensors = () => {
   const dailyMin: number | null = activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
   const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
-  const isCurrentDanger = thresholds !== null && (currentValue < thresholds.min || currentValue > thresholds.max);
 
   // Sensor-type absolute domain hints (min, max) for a reasonable Y-axis range.
   // Prevents threshold values being crowded at domain boundary.
@@ -1049,20 +1048,6 @@ const RealTimeSensors = () => {
                           Mức tối ưu
                         </Typography>
                       )}
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
-                        Giá trị gần nhất
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
-                        {currentValue.toFixed(2)}
-                        <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
-                          {activeSensor.unitOfMeasure}
-                        </Typography>
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : "text.secondary" }}>
-                        {thresholds ? (isCurrentDanger ? "Vượt ngưỡng" : "Bình thường") : "—"}
-                      </Typography>
                     </Box>
                   </>
                 )}
