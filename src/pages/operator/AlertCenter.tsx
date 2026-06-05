@@ -85,11 +85,11 @@ const AlertCenter = () => {
   const navigate = useNavigate();
 
   const [statusFilter, setStatusFilter] = useState<string>("OPEN");
-  const [batchFilter, setBatchFilter] = useState<string>("");
+  const [batchFilter, setBatchFilter] = useState<string>("all");
   const [farmingBatches, setFarmingBatches] = useState<IOperatorFarmingBatch[]>([]);
 
   const filterStatuses = statusFilter === "ALL" ? undefined : [statusFilter];
-  const filterBatchId = batchFilter || undefined;
+  const filterBatchId = batchFilter === "all" ? undefined : batchFilter;
 
   // Lấy danh sách vụ nuôi cho dropdown filter
   useEffect(() => {
@@ -219,7 +219,7 @@ const AlertCenter = () => {
                 label="Vụ nuôi"
                 onChange={handleBatchFilterChange}
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="all">Tất cả</MenuItem>
                 {farmingBatches.map((b) => (
                   <MenuItem key={b.id} value={b.id}>
                     {b.name}
