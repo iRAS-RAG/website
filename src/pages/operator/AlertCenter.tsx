@@ -12,39 +12,51 @@ import {
   TableRow,
   Typography,
   useTheme,
-  // TextField,
-  // MenuItem,
+  CircularProgress,
+  Tooltip,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
   type Palette,
   type PaletteColor,
+  type SelectChangeEvent,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import { AlertDetailModal } from "../../components/operator/AlertDetailModal";
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
+import { useAlerts } from "../../hooks/useAlerts";
+import { alertApi } from "../../api/alerts";
+import { useAlertSignalR } from "../../hooks/useAlertSignalR";
+import type { IAlert } from "../../types/alert";
 
 // Icons
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import type { JSX } from "react";
 
-// 1. CẬP NHẬT INTERFACE: Thêm id, đổi tên trường cho khớp với code JSX
+// Định nghĩa dữ liệu truyền vào Modal (Đã xóa trường level)
 export interface AlertData {
-  id: number;
+  id: string | number;
   time: string;
-  sensorCode: string; // Đã sửa từ 'sensor'
-  sensorName: string; // Đã sửa từ 'type'
+  sensorCode: string;
+  sensorName: string;
   value: string;
   limit: string;
-  level: "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp";
   tank: string;
+  tankId: string;
   staff: string;
-  status: "Đang xử lý" | "Chờ xử lý" | "Đã xử lý";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua";
+  hasCorrectiveAction: boolean;
 }
 
 interface SummaryCardProps {
@@ -54,117 +66,76 @@ interface SummaryCardProps {
   color: keyof Palette;
 }
 
+// Hàm hỗ trợ map trạng thái từ Backend (Số/Chuỗi) sang UI Text
+const getStatusLabel = (
+  status: unknown,
+): "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua" => {
+  const s = String(status).toUpperCase();
+  if (s === "ACKNOWLEDGED") return "Đang xử lý";
+  if (s === "RESOLVED") return "Đóng sự cố";
+  if (s === "DISMISSED") return "Đã bỏ qua";
+  return "Chờ xử lý";
+};
+
 const AlertCenter = () => {
   const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // 2. THÊM STATE & HÀM XỬ LÝ MODAL (Fix lỗi handleOpenDetail undefined)
+  const [statusFilter, setStatusFilter] = useState<string>("OPEN");
+
+  const filterStatuses = statusFilter === "ALL" ? undefined : [statusFilter];
+
+  // 1. GỌI HOOK LẤY DỮ LIỆU THẬT
+  const {
+    data: alerts,
+    loading,
+    error,
+    page,
+    setPage,
+    totalCount,
+    statusCounts,
+    refetch,
+  } = useAlerts(1, 10, filterStatuses);
+
+  useAlertSignalR({ onAlertCreated: () => refetch() });
+
+  const handleStatusFilterChange = (e: SelectChangeEvent) => {
+    setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<AlertData | null>(null);
 
-  const handleOpenDetail = (alert: AlertData) => {
-    setSelectedAlert(alert);
+  const handleOpenDetail = (alert: IAlert) => {
+    setSelectedAlert({
+      id: alert.id,
+      time: dayjs(alert.raisedAt).format("DD/MM/YYYY HH:mm:ss"),
+      sensorCode: alert.sensorTypeName,
+      sensorName: alert.sensorTypeName, // Truyền Tên cảm biến thật vào thay vì ID
+      value: `${alert.triggerValue} ${alert.unitOfMeasure}`,
+      limit: `${alert.minThreshold} - ${alert.maxThreshold} ${alert.unitOfMeasure}`,
+      tank: alert.fishTankName,
+      tankId: alert.fishTankId,
+      staff: "Chưa phân công",
+      status: getStatusLabel(alert.status),
+      hasCorrectiveAction: alert.hasCorrectiveAction,
+    });
     setDetailOpen(true);
   };
 
-  // 3. CẬP NHẬT DỮ LIỆU MẪU: Có id và đúng tên trường
-  const alerts: AlertData[] = [
-    {
-      id: 1,
-      time: "2024-01-13 10:30:25",
-      sensorCode: "DO-B02-01",
-      sensorName: "Oxy hòa tan",
-      value: "4.2 mg/L",
-      limit: "≥ 5.5 mg/L",
-      level: "Nghiêm trọng",
-      tank: "Bể B-02",
-      staff: "Nguyễn Văn A",
-      status: "Đang xử lý",
-    },
-    {
-      id: 2,
-      time: "2024-01-13 10:25:18",
-      sensorCode: "NH3-B02-01",
-      sensorName: "Ammonia",
-      value: "0.9 ppm",
-      limit: "≤ 0.5 ppm",
-      level: "Nghiêm trọng",
-      tank: "Bể B-02",
-      staff: "Nguyễn Văn A",
-      status: "Đang xử lý",
-    },
-    {
-      id: 3,
-      time: "2024-01-13 10:20:42",
-      sensorCode: "PH-B02-01",
-      sensorName: "Độ pH",
-      value: "6.7 pH",
-      limit: "7.0 - 7.5 pH",
-      level: "Cao",
-      tank: "Bể B-02",
-      staff: "Nguyễn Văn A",
-      status: "Đang xử lý",
-    },
-    {
-      id: 4,
-      time: "2024-01-13 10:15:33",
-      sensorCode: "TEMP-B02-01",
-      sensorName: "Nhiệt độ",
-      value: "30.1°C",
-      limit: "28-29°C",
-      level: "Cao",
-      tank: "Bể B-02",
-      staff: "Nguyễn Văn A",
-      status: "Đang xử lý",
-    },
-    {
-      id: 5,
-      time: "2024-01-13 09:45:12",
-      sensorCode: "DO-B01-01",
-      sensorName: "Oxy hòa tan",
-      value: "5.0 mg/L",
-      limit: "≥ 6.0 mg/L",
-      level: "Trung bình",
-      tank: "Bể B-01",
-      staff: "Trần Thị B",
-      status: "Chờ xử lý",
-    },
-    {
-      id: 6,
-      time: "2024-01-13 09:30:45",
-      sensorCode: "RPM-A01-01",
-      sensorName: "Tốc độ máy bơm",
-      value: "1,350 RPM",
-      limit: "1,400-1,500 RPM",
-      level: "Trung bình",
-      tank: "Bể A-01",
-      staff: "Chưa phân công",
-      status: "Chờ xử lý",
-    },
-    {
-      id: 7,
-      time: "2024-01-13 09:15:20",
-      sensorCode: "NH3-A02-01",
-      sensorName: "Ammonia",
-      value: "0.6 ppm",
-      limit: "≤ 0.5 ppm",
-      level: "Trung bình",
-      tank: "Bể A-02",
-      staff: "Trần Thị B",
-      status: "Đã xử lý",
-    },
-    {
-      id: 8,
-      time: "2024-01-13 08:50:17",
-      sensorCode: "TEMP-C01-01",
-      sensorName: "Nhiệt độ",
-      value: "27.5°C",
-      limit: "28-29°C",
-      level: "Thấp",
-      tank: "Bể C-01",
-      staff: "Chưa phân công",
-      status: "Chờ xử lý",
-    },
-  ];
+  const openAlertId: string | undefined = (location.state as { openAlertId?: string } | null)?.openAlertId;
+
+  useEffect(() => {
+    if (!openAlertId) return;
+    alertApi.getById(openAlertId).then((alert: IAlert) => {
+      handleOpenDetail(alert);
+      // Clear the nav state so it doesn't retrigger on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- openAlertId is the only trigger; navigate/location are stable
+  }, [openAlertId]);
 
   return (
     <Box
@@ -197,81 +168,67 @@ const AlertCenter = () => {
             >
               Trung tâm cảnh báo
             </Typography>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+            <Typography
+              variant="body2"
+              sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
+            >
               Quản lý và xử lý các cảnh báo từ hệ thống
             </Typography>
           </Box>
 
-          {/* 1. SUMMARY CARDS */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: "repeat(4, 1fr)", // Đổi lại thành 4 cột cho 4 trạng thái
               gap: 3,
               mb: 4,
             }}
           >
-            <SummaryCard label="Tổng cảnh báo" value="8" icon={<NotificationsActiveIcon />} color="primary" />
-            <SummaryCard label="Nghiêm trọng" value="2" icon={<ErrorOutlineIcon />} color="error" />
-            <SummaryCard label="Chờ xử lý" value="3" icon={<PendingActionsIcon />} color="warning" />
-            <SummaryCard label="Đã xử lý" value="1" icon={<CheckCircleOutlineIcon />} color="success" />
+            <SummaryCard
+              label="Tổng cảnh báo"
+              value={statusCounts.total.toString()}
+              icon={<NotificationsActiveIcon />}
+              color="primary"
+            />
+            <SummaryCard
+              label="Chờ xử lý"
+              value={statusCounts.open.toString()}
+              icon={<ErrorOutlineIcon />}
+              color="error"
+            />
+            <SummaryCard
+              label="Đang xử lý"
+              value={statusCounts.acknowledged.toString()}
+              icon={<PendingActionsIcon />}
+              color="warning"
+            />
+            <SummaryCard
+              label="Đóng sự cố"
+              value={statusCounts.resolved.toString()}
+              icon={<CheckCircleOutlineIcon />}
+              color="success"
+            />
           </Box>
 
-          {/* 2. FILTERS & EXPORT - Cập nhật theo thiết kế mới */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              mb: 3,
-              borderRadius: "12px",
-              border: `1px solid ${theme.palette.divider}`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              bgcolor: "white",
-            }}
-          >
-            {/* Nút Bộ lọc đơn giản bên trái */}
-            <Button
-              variant="outlined"
-              startIcon={<FilterListIcon />}
-              sx={{
-                color: theme.palette.text.primary,
-                borderColor: theme.palette.divider,
-                textTransform: "none",
-                fontWeight: 600,
-                borderRadius: "8px",
-                height: 40,
-                px: 2,
-                "&:hover": {
-                  borderColor: theme.palette.text.secondary,
-                  bgcolor: theme.palette.action.hover,
-                },
-              }}
-            >
-              Bộ lọc
-            </Button>
+          {/* FILTER BAR */}
+          <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3, mb: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Trạng thái</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Trạng thái"
+                onChange={handleStatusFilterChange}
+              >
+                <MenuItem value="ALL">Tất cả</MenuItem>
+                <MenuItem value="OPEN">Chờ xử lý</MenuItem>
+                <MenuItem value="ACKNOWLEDGED">Đang xử lý</MenuItem>
+                <MenuItem value="RESOLVED">Đóng sự cố</MenuItem>
+                <MenuItem value="DISMISSED">Đã bỏ qua</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
 
-            {/* Nút Xuất báo cáo bên phải */}
-            <Button
-              variant="contained"
-              startIcon={<FileDownloadIcon />}
-              color="success" // Màu xanh lá từ theme
-              sx={{
-                color: "white",
-                textTransform: "none",
-                fontWeight: 600,
-                borderRadius: "8px",
-                height: 40,
-                boxShadow: "none",
-                px: 2,
-              }}
-            >
-              Xuất báo cáo
-            </Button>
-          </Paper>
-
-          {/* 3. ALERT LOG TABLE */}
+          {/* ALERT LOG TABLE */}
           <TableContainer
             component={Paper}
             elevation={0}
@@ -279,186 +236,207 @@ const AlertCenter = () => {
               borderRadius: "12px",
               border: `1px solid ${theme.palette.divider}`,
               overflow: "hidden",
-              mt: 3,
             }}
           >
-            <Table>
-              <TableHead sx={{ bgcolor: "#fff" }}>
-                <TableRow>
-                  {["Thời gian", "Cảm biến", "Giá trị", "Ngưỡng", "Mức độ", "Bể ảnh hưởng", "Kỹ thuật viên", "Trạng thái", "Hành động"].map((head, index) => (
-                    <TableCell
-                      key={index}
-                      align="left"
-                      sx={{
-                        fontWeight: 600,
-                        color: theme.palette.text.secondary, // Dùng theme text secondary
-                        fontSize: "0.8rem",
-                        py: 2,
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {head}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {alerts.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    hover
-                    sx={{
-                      "&:last-child td, &:last-child th": { border: 0 },
-                      "&:hover": { bgcolor: theme.palette.action.hover },
-                    }}
-                  >
-                    {/* Thời gian */}
-                    <TableCell
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontSize: "0.85rem",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <CalendarTodayIcon
-                          sx={{
-                            fontSize: 16,
-                            color: theme.palette.text.secondary,
-                          }}
-                        />
-                        <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
-                          {row.time}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-
-                    {/* Cảm biến */}
-                    <TableCell>
-                      <Box>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color: theme.palette.text.primary,
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          {row.sensorCode}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: theme.palette.text.secondary,
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {row.sensorName}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Giá trị */}
-                    <TableCell
-                      sx={{
-                        fontWeight: 700,
-                        color: theme.palette.text.primary,
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {row.value}
-                    </TableCell>
-
-                    {/* Ngưỡng */}
-                    <TableCell
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {row.limit}
-                    </TableCell>
-
-                    {/* Mức độ */}
-                    <TableCell>
-                      <LevelChip level={row.level} />
-                    </TableCell>
-
-                    {/* Bể ảnh hưởng */}
-                    <TableCell
-                      sx={{
-                        fontWeight: 500,
-                        color: theme.palette.text.primary,
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {row.tank}
-                    </TableCell>
-
-                    {/* Kỹ thuật viên */}
-                    <TableCell
-                      sx={{
-                        color: theme.palette.text.primary,
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      {row.staff || "Chưa phân công"}
-                    </TableCell>
-
-                    {/* Trạng thái - Đã có component StatusChip */}
-                    <TableCell>
-                      <StatusChip status={row.status} />
-                    </TableCell>
-
-                    {/* Hành động */}
-                    <TableCell>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<VisibilityIcon sx={{ fontSize: "16px !important" }} />}
-                        onClick={() => handleOpenDetail(row)}
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Box sx={{ p: 3, color: "error.main", textAlign: "center" }}>
+                {error}
+              </Box>
+            ) : (
+              <Table>
+                <TableHead sx={{ bgcolor: "#fff" }}>
+                  <TableRow>
+                    {[
+                      "Thời gian",
+                      "Cảm biến",
+                      "Giá trị",
+                      "Ngưỡng",
+                      "Bể ảnh hưởng", // Đã xóa cột Mức độ
+                      "Trạng thái",
+                      "Hành động",
+                    ].map((head, index) => (
+                      <TableCell
+                        key={index}
+                        align="left"
                         sx={{
-                          textTransform: "none",
-                          bgcolor: theme.palette.primary.main, // Dùng theme primary
-                          boxShadow: "none",
-                          borderRadius: "6px",
                           fontWeight: 600,
-                          fontSize: "0.75rem",
-                          minWidth: 80,
-                          height: 32,
-                          "&:hover": {
-                            bgcolor: theme.palette.primary.dark,
-                            boxShadow: "none",
-                          },
+                          color: theme.palette.text.secondary,
+                          fontSize: "0.8rem",
+                          py: 2,
+                          borderBottom: `1px solid ${theme.palette.divider}`,
+                          textTransform: "capitalize",
                         }}
                       >
-                        Xem
-                      </Button>
-                    </TableCell>
+                        {head}
+                      </TableCell>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {alerts.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      hover
+                      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                    >
+                      {/* Thời gian */}
+                      <TableCell
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          fontSize: "0.85rem",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <CalendarTodayIcon
+                            sx={{
+                              fontSize: 16,
+                              color: theme.palette.text.secondary,
+                            }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{ fontSize: "0.85rem" }}
+                          >
+                            {dayjs(row.raisedAt).format("DD/MM/YYYY HH:mm")}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
 
-          {/* 4. PAGINATION */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3 }}>
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-              Hiển thị 8 / 8 cảnh báo
+                      {/* Cảm biến (Đã xóa ID dài ngoằng bên dưới) */}
+                      <TableCell>
+                        <Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: theme.palette.text.primary,
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            {row.sensorTypeName}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      {/* Giá trị */}
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: theme.palette.error.main,
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {row.triggerValue}
+                      </TableCell>
+
+                      {/* Ngưỡng */}
+                      <TableCell
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {row.minThreshold} - {row.maxThreshold}{" "}
+                        {row.unitOfMeasure}
+                      </TableCell>
+
+                      {/* Bể ảnh hưởng */}
+                      <TableCell
+                        sx={{
+                          fontWeight: 500,
+                          color: theme.palette.text.primary,
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {row.fishTankName}
+                      </TableCell>
+
+                      {/* Trạng thái */}
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <StatusChip status={getStatusLabel(row.status)} />
+                          {getStatusLabel(row.status) !== "Đã bỏ qua" && (
+                            <Tooltip
+                              title={
+                                row.hasCorrectiveAction
+                                  ? "Đã có nhật kí bảo trì"
+                                  : "Chưa có nhật kí bảo trì"
+                              }
+                            >
+                              {row.hasCorrectiveAction ? (
+                                <CheckCircleIcon sx={{ fontSize: 16, color: "success.main" }} />
+                              ) : (
+                                <BuildCircleIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                              )}
+                            </Tooltip>
+                          )}
+                        </Stack>
+                      </TableCell>
+
+                      {/* Hành động */}
+                      <TableCell>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={
+                            <VisibilityIcon
+                              sx={{ fontSize: "16px !important" }}
+                            />
+                          }
+                          onClick={() => handleOpenDetail(row)}
+                          sx={{
+                            textTransform: "none",
+                            bgcolor: theme.palette.primary.main,
+                            boxShadow: "none",
+                            borderRadius: "6px",
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            minWidth: 80,
+                            height: 32,
+                          }}
+                        >
+                          Xem
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {alerts.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                        Chưa có cảnh báo nào
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </TableContainer>
+          {/* PAGINATION */}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mt: 3 }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
+            >
+              Trang {page} / Tổng số {totalCount}
             </Typography>
             <Stack direction="row" spacing={1}>
               <Button
+                onClick={() => setPage((p: number) => Math.max(1, p - 1))}
+                disabled={page === 1}
                 variant="outlined"
                 size="small"
-                sx={{
-                  minWidth: 60,
-                  height: 32,
-                  borderColor: theme.palette.divider,
-                  color: theme.palette.text.secondary,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                }}
+                sx={{ minWidth: 60, height: 32, borderRadius: "8px" }}
               >
                 Trước
               </Button>
@@ -468,37 +446,18 @@ const AlertCenter = () => {
                 sx={{
                   minWidth: 32,
                   height: 32,
-                  bgcolor: theme.palette.primary.main,
+                  borderRadius: "8px",
                   boxShadow: "none",
-                  borderRadius: "8px",
                 }}
               >
-                1
+                {page}
               </Button>
               <Button
+                onClick={() => setPage((p: number) => p + 1)}
+                disabled={alerts.length < 10}
                 variant="outlined"
                 size="small"
-                sx={{
-                  minWidth: 32,
-                  height: 32,
-                  borderColor: theme.palette.divider,
-                  color: theme.palette.text.secondary,
-                  borderRadius: "8px",
-                }}
-              >
-                2
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                sx={{
-                  minWidth: 60,
-                  height: 32,
-                  borderColor: theme.palette.divider,
-                  color: theme.palette.text.secondary,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                }}
+                sx={{ minWidth: 60, height: 32, borderRadius: "8px" }}
               >
                 Sau
               </Button>
@@ -508,16 +467,19 @@ const AlertCenter = () => {
       </Box>
 
       {/* Modal chi tiết */}
-      <AlertDetailModal open={detailOpen} onClose={() => setDetailOpen(false)} data={selectedAlert} />
+      <AlertDetailModal
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        data={selectedAlert}
+        onStatusChange={refetch}
+      />
     </Box>
   );
 };
 
 // --- Sub-components ---
-
 const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
   const theme = useTheme();
-  // Map color key to palette color
   const paletteColor = theme.palette[color] as PaletteColor;
 
   return (
@@ -545,7 +507,10 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
         >
           {label}
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 600, mt: 0.5, color: theme.palette.text.primary }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 600, mt: 0.5, color: theme.palette.text.primary }}
+        >
           {value}
         </Typography>
       </Box>
@@ -553,8 +518,8 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
         sx={{
           p: 1.5,
           borderRadius: "12px",
-          bgcolor: paletteColor.light, // Sử dụng màu light từ theme
-          color: paletteColor.main, // Sử dụng màu main từ theme
+          bgcolor: paletteColor.light,
+          color: paletteColor.main,
           display: "flex",
         }}
       >
@@ -564,56 +529,12 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
   );
 };
 
-const LevelChip = ({ level }: { level: AlertData["level"] }) => {
+const StatusChip = ({
+  status,
+}: {
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua";
+}) => {
   const theme = useTheme();
-
-  const getStyle = () => {
-    switch (level) {
-      case "Nghiêm trọng":
-        // Dùng error light làm nền, error main làm chữ
-        return {
-          bgcolor: theme.palette.error.light,
-          color: theme.palette.error.main,
-        };
-      case "Cao":
-        return {
-          bgcolor: theme.palette.warning.light,
-          color: theme.palette.warning.main,
-        };
-      case "Trung bình":
-        return {
-          bgcolor: theme.palette.warning.light, // Hoặc một màu vàng nhạt khác nếu có
-          color: theme.palette.warning.main,
-        };
-      default:
-        return {
-          bgcolor: theme.palette.background.default,
-          color: theme.palette.text.secondary,
-        };
-    }
-  };
-
-  const style = getStyle();
-
-  return (
-    <Chip
-      label={level}
-      size="small"
-      sx={{
-        fontWeight: 700,
-        borderRadius: "6px",
-        fontSize: "0.75rem",
-        bgcolor: style.bgcolor,
-        color: style.color,
-      }}
-    />
-  );
-};
-
-// 4. THÊM COMPONENT StatusChip (Fix lỗi StatusChip not defined)
-const StatusChip = ({ status }: { status: AlertData["status"] }) => {
-  const theme = useTheme();
-
   const getStyle = () => {
     switch (status) {
       case "Đang xử lý":
@@ -626,10 +547,15 @@ const StatusChip = ({ status }: { status: AlertData["status"] }) => {
           bgcolor: theme.palette.warning.light,
           color: theme.palette.warning.main,
         };
-      case "Đã xử lý":
+      case "Đóng sự cố":
         return {
           bgcolor: theme.palette.success.light,
           color: theme.palette.success.main,
+        };
+      case "Đã bỏ qua":
+        return {
+          bgcolor: theme.palette.grey[200],
+          color: theme.palette.text.secondary,
         };
       default:
         return {
@@ -638,16 +564,14 @@ const StatusChip = ({ status }: { status: AlertData["status"] }) => {
         };
     }
   };
-
   const style = getStyle();
-
   return (
     <Chip
       label={status}
       size="small"
       sx={{
         fontWeight: 600,
-        borderRadius: "12px", // Bo tròn kiểu pill
+        borderRadius: "12px",
         fontSize: "0.75rem",
         bgcolor: style.bgcolor,
         color: style.color,

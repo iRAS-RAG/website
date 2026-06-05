@@ -1,10 +1,12 @@
 import { Email, Lock, Person, PersonAdd, Visibility, VisibilityOff } from "@mui/icons-material";
-import { Alert, Box, Button, IconButton, InputAdornment, Link, Paper, Snackbar, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, IconButton, InputAdornment, Link, Paper, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import bg from "../../assets/backgrounds.png";
+import { useToast } from "../../components/common/toastContext";
 
 const RegisterPage = () => {
+  const toast = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,7 +15,6 @@ const RegisterPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [openSuccess, setOpenSuccess] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -31,8 +32,8 @@ const RegisterPage = () => {
   const handleSubmit = (ev?: React.FormEvent) => {
     ev?.preventDefault();
     if (!validate()) return;
-    // Placeholder: API not ready yet — show success snackbar
-    setOpenSuccess(true);
+    // Placeholder: API not ready yet — show success toast
+    toast.success("Đăng ký thành công (chỉ là placeholder).");
     setName("");
     setEmail("");
     setPassword("");
@@ -208,12 +209,6 @@ const RegisterPage = () => {
           </Typography>
         </Stack>
       </Paper>
-
-      <Snackbar open={openSuccess} autoHideDuration={4000} onClose={() => setOpenSuccess(false)}>
-        <Alert severity="success" onClose={() => setOpenSuccess(false)} sx={{ width: "100%" }}>
-          Đăng ký thành công (chỉ là placeholder).
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

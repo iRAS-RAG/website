@@ -1,8 +1,15 @@
-import axios, { type AxiosError, type AxiosInstance, type AxiosRequestConfig } from "axios";
+import axios, {
+  type AxiosError,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+} from "axios";
 import jwt from "./jwt";
 
-const API_BASE = (import.meta.env.VITE_API_BASE || "https://localhost:7094/api/").replace(/\/+$/, "");
-const API_KEY = import.meta.env.VITE_API_KEY || "";
+const API_BASE = (
+  import.meta.env.VITE_API_BASE || "http://localhost:5027/api/"
+).replace(/\/+$/, "");
+// const API_KEY = import.meta.env.VITE_API_KEY || "";
+const API_KEY = "iRASRAG_9fB7E2cpqM4eVxLZK8hR3B0D6S1WJmE";
 
 type FetchOptions = {
   method?: string;
@@ -22,10 +29,38 @@ export function isApiError(e: unknown): e is ApiError {
   return typeof e === "object" && e !== null && "data" in e;
 }
 
-type Meta = { page?: number; pageSize?: number; totalItems?: number; totalPages?: number; [key: string]: unknown };
-type Links = { self?: string | null; first?: string | null; prev?: string | null; next?: string | null; last?: string | null; [key: string]: unknown };
+type Meta = {
+  page?: number;
+  pageSize?: number;
+  totalItems?: number;
+  totalPages?: number;
+  [key: string]: unknown;
+};
+type Links = {
+  self?: string | null;
+  first?: string | null;
+  prev?: string | null;
+  next?: string | null;
+  last?: string | null;
+  [key: string]: unknown;
+};
 
-type ApiWrappedResponse<T> = { message?: string; data?: T; meta?: Meta; links?: Links };
+type ApiWrappedResponse<T> = {
+  message?: string;
+  data?: T;
+  meta?: Meta;
+  links?: Links;
+};
+
+export function extractArray(res: unknown): unknown[] {
+  if (Array.isArray(res)) return res;
+  if (res && typeof res === "object") {
+    const obj = res as Record<string, unknown>;
+    const data = obj["data"];
+    if (Array.isArray(data)) return data;
+  }
+  return [];
+}
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE,
@@ -49,8 +84,14 @@ async function doRefresh(): Promise<string | null> {
       let access: string | null = null;
       let refreshNew: string | null = null;
       if (data && typeof data === "object") {
-        access = (data.accessToken as string) || (data.token?.accessToken as string) || null;
-        refreshNew = (data.refreshToken as string) || (data.token?.refreshToken as string) || null;
+        access =
+          (data.accessToken as string) ||
+          (data.token?.accessToken as string) ||
+          null;
+        refreshNew =
+          (data.refreshToken as string) ||
+          (data.token?.refreshToken as string) ||
+          null;
       }
       if (access) jwt.setTokens(access, refreshNew ?? undefined);
       return access ?? null;
@@ -68,8 +109,14 @@ async function doRefresh(): Promise<string | null> {
 // request interceptor: attach access token
 axiosInstance.interceptors.request.use((cfg) => {
   const token = jwt.getAccessToken();
-  if (token && cfg && cfg.headers && !("authorization" in (cfg.headers as Record<string, string>))) {
-    (cfg.headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+  if (
+    token &&
+    cfg &&
+    cfg.headers &&
+    !("authorization" in (cfg.headers as Record<string, string>))
+  ) {
+    (cfg.headers as Record<string, string>)["Authorization"] =
+      `Bearer ${token}`;
   }
   return cfg;
 });
@@ -78,7 +125,9 @@ axiosInstance.interceptors.request.use((cfg) => {
 axiosInstance.interceptors.response.use(
   (r) => r,
   async (error: AxiosError) => {
-    const originalConfig = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalConfig = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
     const status = error.response?.status;
     const requestUrl = originalConfig?.url ?? "";
 
@@ -92,8 +141,10 @@ axiosInstance.interceptors.response.use(
       try {
         const newToken = await doRefresh();
         if (newToken) {
-          if (!originalConfig.headers) originalConfig.headers = {} as Record<string, string>;
-          (originalConfig.headers as Record<string, string>)["Authorization"] = `Bearer ${newToken}`;
+          if (!originalConfig.headers)
+            originalConfig.headers = {} as Record<string, string>;
+          (originalConfig.headers as Record<string, string>)["Authorization"] =
+            `Bearer ${newToken}`;
           return axios.request(originalConfig);
         }
       } catch (e) {
@@ -104,8 +155,13 @@ axiosInstance.interceptors.response.use(
   },
 );
 
-export async function apiFetch<T = unknown>(path: string, options: FetchOptions = {}): Promise<T> {
-  const method = (options.method || (options.body ? "POST" : "GET")).toLowerCase();
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: FetchOptions = {},
+): Promise<T> {
+  const method = (
+    options.method || (options.body ? "POST" : "GET")
+  ).toLowerCase();
   const headers = Object.assign({}, options.headers || {});
 
   const config: AxiosRequestConfig = {
@@ -117,13 +173,22 @@ export async function apiFetch<T = unknown>(path: string, options: FetchOptions 
   };
 
   try {
-    const res = path.startsWith("http") ? await axios.request({ url: path, ...config }) : await axiosInstance.request({ url: path.replace(/^\/+/, ""), ...config });
+    const res = path.startsWith("http")
+      ? await axios.request({ url: path, ...config })
+      : await axiosInstance.request({
+          url: path.replace(/^\/+/, ""),
+          ...config,
+        });
 
     const payload = res.data as unknown;
 
     if (options.rawResponse) return payload as T;
 
-    if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data")) {
+    if (
+      payload &&
+      typeof payload === "object" &&
+      Object.prototype.hasOwnProperty.call(payload, "data")
+    ) {
       const obj = payload as ApiWrappedResponse<unknown>;
       const inner = obj.data;
       // If this response includes pagination metadata or links, return the whole wrapped object

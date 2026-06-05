@@ -12,10 +12,14 @@ import SupervisorDashboard from "../pages/supervisor/SupervisorDashboard";
 
 import AIAdvisory from "../pages/operator/AIAdvisory";
 import AlertCenter from "../pages/operator/AlertCenter";
+import TankManagement from "../pages/operator/BatchManagement";
 import MaintenanceLog from "../pages/operator/MaintenanceLog";
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import RealTimeSensors from "../pages/operator/RealTimeSensors";
-import TankManagement from "../pages/operator/TankManagement";
+import BatchDetailPage from "../pages/supervisor/BatchDetailPage";
+import BatchListPage from "../pages/supervisor/BatchListPage";
+import HarvestBatchPage from "../pages/supervisor/HarvestBatchPage";
+import OperatorManagement from "../pages/supervisor/OperatorManagement";
 import ProtectedRoute from "./ProtectedRoute";
 
 const AppRouter = () => {
@@ -77,6 +81,32 @@ const AppRouter = () => {
         }
       />
 
+      {/* Batches - Supervisor Access */}
+      <Route
+        path="/supervisor/batches"
+        element={
+          <ProtectedRoute check={isSupervisor}>
+            <BatchListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/supervisor/batches/:id"
+        element={
+          <ProtectedRoute check={isSupervisor}>
+            <BatchDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/supervisor/batches/:id/harvest"
+        element={
+          <ProtectedRoute check={isSupervisor}>
+            <HarvestBatchPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Admin */}
       <Route
         path="/admin/dashboard"
@@ -121,14 +151,6 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/species"
-        element={
-          <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="species" />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/supervisor/feed-types"
         element={
           <ProtectedRoute check={isSupervisor}>
@@ -137,18 +159,18 @@ const AppRouter = () => {
         }
       />
       <Route
-        path="/supervisor/thresholds"
+        path="/supervisor/operators"
         element={
           <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="thresholds" />
+            <OperatorManagement />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/supervisor/schedule"
+        path="/supervisor/species-configs"
         element={
           <ProtectedRoute check={isSupervisor}>
-            <SupervisorDashboard section="schedule" />
+            <SupervisorDashboard section="species-configs" />
           </ProtectedRoute>
         }
       />

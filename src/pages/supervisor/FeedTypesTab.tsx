@@ -1,29 +1,45 @@
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import FastfoodIcon from "@mui/icons-material/Fastfood";
-import { Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
-import React, { useEffect, useState } from "react";
-import type { FeedType } from "../../api/feed-types";
-import { createFeedType, deleteFeedType, getFeedTypes, updateFeedType } from "../../api/feed-types";
+import FactoryIcon from "@mui/icons-material/Factory";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { Box, Button, Chip, IconButton, MenuItem, Paper, Stack, TextField, Typography } from "@mui/material";
+import React, { useState } from "react";
+import DataTable, { type Column } from "../../components/common/DataTable";
+import PaginationControls from "../../components/common/PaginationControls";
+import TableToolbar from "../../components/common/TableToolbar";
+import { useToast } from "../../components/common/toastContext";
+import ConfirmDeleteDialog from "../../components/supervisor/feed-types/ConfirmDeleteDialog";
+import FeedFormDialog from "../../components/supervisor/feed-types/FeedFormDialog";
+import useFeedTypes from "../../hooks/useFeedTypes";
+import type { FeedType } from "../../types/feed-type";
 
 const FeedTypesTab: React.FC = () => {
-  const theme = useTheme();
-
-  const [feedsData, setFeedsData] = useState<FeedType[]>([]);
-  const [feedDialogOpen, setFeedDialogOpen] = useState(false);
-  const [editingFeed, setEditingFeed] = useState<FeedType | null>(null);
+  const { feeds, meta, load, create, update, remove } = useFeedTypes();
+  const toast = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<FeedType | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const [feedName, setFeedName] = useState("");
-  const [feedProtein, setFeedProtein] = useState("");
+  const [tableParams, setTableParams] = useState({
+    page: 1,
+    pageSize: 10,
+    searchTerm: "",
+    sortBy: undefined as string | undefined,
+    sortDir: undefined as "asc" | "desc" | undefined,
+  });
+  const [manufacturerFilter, setManufacturerFilter] = useState<string | "">("");
 
-  useEffect(() => {
-    getFeedTypes()
-      .then(setFeedsData)
-      .catch(() => setFeedsData([]));
-  }, []);
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (f: FeedType) => {
+    setEditing(f);
+    setFormOpen(true);
+  };
 
   const openConfirm = (id: string) => {
     setConfirmId(id);
@@ -34,100 +50,260 @@ const FeedTypesTab: React.FC = () => {
     if (!confirmId) return;
     setConfirmOpen(false);
     try {
-      await deleteFeedType(confirmId);
-      setFeedsData(await getFeedTypes());
+      await remove(confirmId);
+      setConfirmId(null);
+      toast.success("Xóa cám thành công");
     } catch (e) {
-      console.error(e);
+      console.error("Xóa cám thất bại", e);
+      toast.error("Xóa cám thất bại");
     }
   };
 
-  const handleSaveFeed = async (values: { name: string; protein: string }) => {
-    if (editingFeed) await updateFeedType(editingFeed.id, values);
-    else await createFeedType(values);
-    setFeedDialogOpen(false);
-    setEditingFeed(null);
-    setFeedsData(await getFeedTypes());
-    setFeedName("");
-    setFeedProtein("");
+  const handleSave = async (values: { name: string; protein: string; description?: string; manufacturer?: string }) => {
+    try {
+      if (editing) {
+        await update(editing.id, values);
+        toast.success("Cập nhật cám thành công");
+      } else {
+        await create(values as Omit<FeedType, "id">);
+        toast.success("Thêm cám thành công");
+      }
+      setFormOpen(false);
+      setEditing(null);
+    } catch (e) {
+      console.error("Lưu cám thất bại", e);
+      toast.error("Lưu cám thất bại");
+      throw e;
+    }
   };
 
-  return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Thức ăn
-        </Typography>
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          size="small"
-          onClick={() => {
-            setEditingFeed(null);
-            setFeedName("");
-            setFeedProtein("");
-            setFeedDialogOpen(true);
+  React.useEffect(() => {
+    void load({
+      page: tableParams.page,
+      pageSize: tableParams.pageSize,
+      searchTerm: tableParams.searchTerm,
+      sortBy: tableParams.sortBy,
+      sortDir: tableParams.sortDir,
+    });
+  }, [tableParams.page, tableParams.pageSize, tableParams.searchTerm, tableParams.sortBy, tableParams.sortDir, load]);
+
+  const manufacturerOptions = Array.from(new Set(feeds.map((f) => f.manufacturer).filter(Boolean))) as string[];
+  const filtered = manufacturerFilter ? feeds.filter((f) => f.manufacturer === manufacturerFilter) : feeds;
+
+  const sorted = React.useMemo(() => {
+    const arr = [...filtered];
+    const key = tableParams.sortBy;
+    const dir = tableParams.sortDir === "desc" ? -1 : 1;
+    if (!key) return arr;
+    if (key === "proteinPercentage") {
+      arr.sort((a, b) => {
+        const an = typeof a.proteinPercentage === "number" ? a.proteinPercentage : parseInt(String(a.protein || "0"), 10) || 0;
+        const bn = typeof b.proteinPercentage === "number" ? b.proteinPercentage : parseInt(String(b.protein || "0"), 10) || 0;
+        return (an - bn) * dir;
+      });
+      return arr;
+    }
+    if (key === "manufacturer") {
+      arr.sort((a, b) => (String(a.manufacturer || "").localeCompare(String(b.manufacturer || "")) as number) * dir);
+      return arr;
+    }
+    return arr;
+  }, [filtered, tableParams.sortBy, tableParams.sortDir]);
+
+  const columns: Column<FeedType>[] = [
+    {
+      field: "name",
+      label: "Tên",
+      sortable: true,
+      render: (r) => <Typography sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.95rem" }}>{r.name}</Typography>,
+    },
+    {
+      field: "description",
+      label: "Mô tả",
+      render: (r) => (
+        <Typography
+          sx={{
+            color: "#64748B",
+            fontSize: "0.875rem",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
-          Thêm thức ăn
-        </Button>
+          {r.description || ""}
+        </Typography>
+      ),
+    },
+    {
+      field: "protein",
+      label: "Đạm",
+      sortable: true,
+      sortKey: "proteinPercentage",
+      render: (r) => (
+        <Chip
+          label={r.protein}
+          size="small"
+          sx={{
+            bgcolor: "#E0F2FE",
+            color: "#0369A1",
+            fontWeight: 700,
+            borderRadius: "6px",
+            border: "none",
+          }}
+        />
+      ),
+    },
+    {
+      field: "manufacturer",
+      label: "Nhà sản xuất",
+      sortable: true,
+      render: (r) => <Typography sx={{ color: "#334155", fontSize: "0.875rem" }}>{r.manufacturer}</Typography>,
+    },
+    {
+      field: "actions",
+      label: "Hành động",
+      render: (r) => (
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          <IconButton
+            size="small"
+            onClick={() => openEdit(r)}
+            sx={{
+              color: "#64748B",
+              "&:hover": { color: "#2A85FF", bgcolor: "#EFF6FF" },
+            }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => openConfirm(r.id)}
+            sx={{
+              color: "#64748B",
+              "&:hover": { color: "#EF4444", bgcolor: "#FEF2F2" },
+            }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      ),
+    },
+  ];
+
+  return (
+    // ĐÃ SỬA CHỖ NÀY: Loại bỏ minHeight, bgcolor và padding cứng. Để nó tự nhiên lấp đầy Component Cha.
+    <Box sx={{ width: "100%", flexGrow: 1 }}>
+      {/* HEADER */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+        {/* Đã bọc Tiêu đề và Phụ đề vào Box */}
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
+            Quản lý cám
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#64748B" }}>
+            Quản lý danh mục các loại cám, hàm lượng dinh dưỡng và nhà sản xuất.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={2}>
+          <Button
+            startIcon={<RefreshIcon />}
+            variant="outlined"
+            onClick={() =>
+              load({
+                page: tableParams.page,
+                pageSize: tableParams.pageSize,
+                searchTerm: tableParams.searchTerm,
+                sortBy: tableParams.sortBy,
+                sortDir: tableParams.sortDir,
+              })
+            }
+            sx={{
+              borderRadius: "8px",
+              color: "#475569",
+              borderColor: "#CBD5E1",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": { bgcolor: "#F1F5F9", borderColor: "#94A3B8" },
+            }}
+          >
+            Làm mới
+          </Button>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={openCreate}
+            sx={{
+              borderRadius: "8px",
+              bgcolor: "#2A85FF",
+              textTransform: "none",
+              fontWeight: 600,
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#1F6FDB" },
+            }}
+          >
+            Thêm cám
+          </Button>
+        </Stack>
       </Stack>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 2 }}>
-        {feedsData.map((f) => (
-          <Paper key={f.id} sx={{ p: 2, display: "flex", gap: 2, alignItems: "center", borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
-            <Avatar sx={{ bgcolor: theme.palette.secondary.light, color: theme.palette.secondary.main }}>
-              <FastfoodIcon />
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontWeight: 700 }}>{f.name}</Typography>
-              <Chip label={`Protein: ${f.protein}`} size="small" sx={{ mt: 1 }} color="info" />
-            </Box>
-            <Stack direction="row" spacing={1}>
-              <IconButton
-                size="small"
-                onClick={() => {
-                  setEditingFeed(f);
-                  setFeedName(f.name);
-                  setFeedProtein(f.protein);
-                  setFeedDialogOpen(true);
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => openConfirm(f.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          </Paper>
-        ))}
-      </Box>
+      {/* PAPER BỌC CẢ TOOLBAR VÀ BẢNG */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: "12px",
+          border: "1px solid #E2E8F0",
+          overflow: "hidden",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+        }}
+      >
+        <TableToolbar
+          searchPlaceholder="Tìm kiếm tên cám..."
+          searchTerm={tableParams.searchTerm}
+          onSearchTermChange={(v) => setTableParams((p) => ({ ...p, searchTerm: v, page: 1 }))}
+          pageSize={tableParams.pageSize}
+          onPageSizeChange={(n) => setTableParams((p) => ({ ...p, pageSize: n, page: 1 }))}
+          filters={
+            <TextField
+              size="small"
+              select
+              value={manufacturerFilter}
+              onChange={(e) => setManufacturerFilter(e.target.value as string)}
+              sx={{
+                width: 220,
+                "& .MuiOutlinedInput-root": { borderRadius: "8px" },
+              }}
+              SelectProps={{ displayEmpty: true }}
+            >
+              <MenuItem value="">
+                <FactoryIcon fontSize="small" sx={{ mr: 1, opacity: 0.7 }} />
+                Tất cả nhà sản xuất
+              </MenuItem>
+              {manufacturerOptions.map((m) => (
+                <MenuItem key={m} value={m}>
+                  <FactoryIcon fontSize="small" sx={{ mr: 1, opacity: 0.9 }} />
+                  {m}
+                </MenuItem>
+              ))}
+            </TextField>
+          }
+        />
 
-      <Dialog open={feedDialogOpen} onClose={() => setFeedDialogOpen(false)} fullWidth>
-        <DialogTitle>{editingFeed ? "Chỉnh sửa thức ăn" : "Thêm thức ăn"}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Tên" value={feedName} onChange={(e) => setFeedName(e.target.value)} fullWidth />
-            <TextField label="Protein" value={feedProtein} onChange={(e) => setFeedProtein(e.target.value)} fullWidth />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setFeedDialogOpen(false)}>Hủy</Button>
-          <Button variant="contained" onClick={() => handleSaveFeed({ name: feedName, protein: feedProtein })} disabled={!feedName || !feedProtein}>
-            Lưu
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <DataTable columns={columns} rows={sorted} sortBy={tableParams.sortBy} sortDir={tableParams.sortDir} onSort={(s, d) => setTableParams((p) => ({ ...p, sortBy: s, sortDir: d }))} />
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>Bạn có chắc chắn muốn xóa mục này?</DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Hủy</Button>
-          <Button color="error" onClick={handleDeleteConfirmed}>
-            Xóa
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Box sx={{ p: 2, borderTop: "1px solid #E2E8F0" }}>
+          <PaginationControls
+            page={tableParams.page}
+            totalPages={meta && typeof meta.totalPages === "number" ? (meta.totalPages as number) : 1}
+            onPageChange={(p) => setTableParams((t) => ({ ...t, page: p }))}
+          />
+        </Box>
+      </Paper>
+
+      {/* DIALOGS */}
+      <FeedFormDialog open={formOpen} initial={editing} onClose={() => setFormOpen(false)} onSave={handleSave} manufacturerOptions={manufacturerOptions} />
+      <ConfirmDeleteDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDeleteConfirmed} />
     </Box>
   );
 };

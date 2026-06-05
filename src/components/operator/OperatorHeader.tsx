@@ -1,15 +1,153 @@
-import React from "react";
-import DashboardHeader from "../common/DashboardHeader";
+import React, { useEffect, useRef, useState } from "react";
+import DashboardHeader, { type AlertPopup } from "../common/DashboardHeader";
+import { apiFetch } from "../../api/client";
+import { useAlertSignalR, type AlertPush } from "../../hooks/useAlertSignalR";
+import { useNavigate } from "react-router-dom";
+
+type NotificationType = "error" | "warning" | "success";
+
+type Notification = {
+  id?: string;
+  type: NotificationType;
+  title: string;
+  time: string;
+};
+
+interface AlertItem {
+  id?: string;
+  status: string;
+  fishTankName?: string;
+  sensorTypeName?: string;
+  raisedAt?: string;
+  createdAt?: string;
+}
+
+// 2. KHAI BÁO INTERFACE CHO RESPONSE CỦA API
+interface AlertsResponse {
+  data?: AlertItem[];
+  items?: AlertItem[];
+  meta?: {
+    totalItems?: number;
+  };
+}
+
+// Hàm helper để tính thời gian trôi qua (Ví dụ: "5 phút trước")
+const getTimeAgo = (dateString?: string) => {
+  if (!dateString) return "Vừa xong";
+  const past = new Date(dateString).getTime();
+  const now = new Date().getTime();
+  const diffInSeconds = Math.floor((now - past) / 1000);
+
+  if (diffInSeconds < 60) return "Vừa xong";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} giờ trước`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} ngày trước`;
+};
 
 export const OperatorHeader: React.FC = () => {
-  type Notification = { type: "error" | "warning" | "success"; title: string; time: string };
-  const operatorNotifications: Notification[] = [
-    { type: "error", title: "Bể A-03: Ammonia vượt ngưỡng", time: "2 phút trước" },
-    { type: "warning", title: "Bể B-01: Oxy hòa tan thấp", time: "15 phút trước" },
-    { type: "success", title: "Bể A-01: Đã ổn định trở lại", time: "1 giờ trước" },
-  ];
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [badgeCount, setBadgeCount] = useState<number>(0);
+  const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
+  const liveNotifsRef = useRef<Notification[]>([]);
+  const popupKeyRef = useRef(0);
+  const navigate = useNavigate();
 
-  return <DashboardHeader badgeCount={operatorNotifications.length} searchPlaceholder="Tìm nhanh mã bể, cảm biến..." notifications={operatorNotifications} seeAllRoute="/operator/alerts" />;
+  useAlertSignalR({
+    onReceiveAlert: (push: AlertPush) => {
+      const bellTitle = `${push.tankName}: Cảnh báo ${push.sensorTypeName || "Cảm biến"}`;
+      const popupTitle = `${push.tankName} — ${push.sensorTypeName || "Cảm biến"}: ${push.triggerValue} (ngưỡng ${push.minValue}–${push.maxValue})`;
+      const newNotif: Notification = {
+        id: push.alertId,
+        type: "error",
+        title: bellTitle,
+        time: "Vừa xong",
+      };
+      liveNotifsRef.current = [newNotif, ...liveNotifsRef.current].slice(0, 5);
+      setNotifications((prev) => [newNotif, ...prev].slice(0, 10));
+      setBadgeCount((prev) => prev + 1);
+      popupKeyRef.current += 1;
+      setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle });
+    },
+  });
+
+  useEffect(() => {
+    const fetchLatestAlerts = async () => {
+      try {
+        const res = await apiFetch<AlertsResponse>("/alerts?page=1&pageSize=5&statuses=Open&statuses=Acknowledged");
+
+        const items = (res?.data || res?.items || []).sort((a, b) => {
+          const pa = a.status === "OPEN" || a.status === "ACKNOWLEDGED" ? 0 : 1;
+          const pb = b.status === "OPEN" || b.status === "ACKNOWLEDGED" ? 0 : 1;
+          if (pa !== pb) return pa - pb;
+          return new Date(b.raisedAt || b.createdAt || 0).getTime() - new Date(a.raisedAt || a.createdAt || 0).getTime();
+        });
+
+        const activeCount = items.filter(
+          (a) => a.status === "OPEN" || a.status === "ACKNOWLEDGED",
+        ).length;
+
+        setBadgeCount(activeCount);
+
+        const fetchedNotifs: Notification[] = items.map((alert: AlertItem) => {
+          let notifType: NotificationType = "error";
+          if (alert.status === "ACKNOWLEDGED") notifType = "warning";
+          else if (alert.status === "RESOLVED") notifType = "success";
+
+          return {
+            id: alert.id,
+            type: notifType,
+            title: `${alert.fishTankName || "Hệ thống"}: Cảnh báo ${alert.sensorTypeName || "Cảm biến"}`,
+            time: getTimeAgo(alert.raisedAt || alert.createdAt),
+          };
+        });
+
+        const liveIds = new Set(liveNotifsRef.current.map((n) => n.id).filter(Boolean));
+        const merged = [
+          ...liveNotifsRef.current,
+          ...fetchedNotifs.filter((n) => !n.id || !liveIds.has(n.id)),
+        ].slice(0, 10);
+
+        setNotifications(merged);
+      } catch (error) {
+        console.error("Lỗi khi tải cảnh báo trên Header:", error);
+      }
+    };
+
+    fetchLatestAlerts();
+
+    const interval = setInterval(fetchLatestAlerts, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <DashboardHeader
+      // Nếu có cảnh báo chưa xử lý (OPEN), ta có thể đếm riêng,
+      // ở đây tạm hiển thị tổng số cảnh báo trong DB
+      badgeCount={badgeCount}
+      searchPlaceholder="Tìm nhanh mã bể, cảm biến..."
+      // Nếu không có cảnh báo nào, hiển thị mặc định 1 dòng thông báo tốt
+      notifications={
+        notifications.length > 0
+          ? notifications
+          : [
+              {
+                type: "success",
+                title: "Hệ thống đang hoạt động ổn định",
+                time: "Vừa xong",
+              },
+            ]
+      }
+      seeAllRoute="/operator/alerts"
+      alertPopup={alertPopup}
+      onAlertPopupDismiss={() => setAlertPopup(null)}
+      onNotificationClick={(id) => {
+        if (id) navigate("/operator/alerts", { state: { openAlertId: id } });
+      }}
+    />
+  );
 };
 
 export default OperatorHeader;

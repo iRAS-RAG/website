@@ -1,146 +1,284 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Add as AddIcon, List as ListIcon } from "@mui/icons-material";
+import CategoryIcon from "@mui/icons-material/Category";
+// LabelIcon removed — name field hidden
+import PinDropIcon from "@mui/icons-material/PinDrop";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import type { ApiError } from "../../../api/client";
-import * as hardwareApi from "../../../api/hardware";
-import type { ControlDevice } from "../../../types/hardware";
+import useControlDeviceTypes from "../../../hooks/useControlDeviceTypes";
+import type { ControlDevice } from "../../../types/control-device";
+import type { ControlDeviceType } from "../../../types/control-device-type";
+import { useToast } from "../../common/toastContext";
+import ManageTypesDialog from "./ManageTypesDialog";
+import { ControlDeviceTypeDialog } from "./TypeDialogs";
 
 const ControlDeviceFormDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  onSave: (v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeName?: string; state?: boolean; commandOn?: string; commandOff?: string }) => Promise<void>;
+  onSave: (v: { name: string; pinCode?: number; masterBoardId?: string | null; controlDeviceTypeId?: string | null; state?: boolean; commandOn?: string; commandOff?: string }) => Promise<void>;
   initial: ControlDevice | null;
-}> = ({ open, onClose, onSave, initial }) => {
-  const [name, setName] = useState(initial?.name ?? "");
+  defaultMasterBoardId?: string | null;
+  existingControls?: ControlDevice[]; // ĐÃ THÊM PROP NÀY
+}> = ({ open, onClose, onSave, initial, defaultMasterBoardId, existingControls }) => {
   const [pinCode, setPinCode] = useState(initial?.pinCode != null ? String(initial.pinCode) : "");
-  const [masterBoardId, setMasterBoardId] = useState<string | null>(initial?.masterBoardId ?? null);
-  const [typeName, setTypeName] = useState(initial?.controlDeviceTypeName ?? "");
-  const [state, setState] = useState(initial?.state ?? false);
+  const [controlDeviceTypeId, setControlDeviceTypeId] = useState<string | null>(null);
   const [commandOn, setCommandOn] = useState(initial?.commandOn ?? "");
   const [commandOff, setCommandOff] = useState(initial?.commandOff ?? "");
-  const [masterBoards, setMasterBoards] = useState<Array<{ id: string; name: string }>>([]);
+  const { items: controlDeviceTypes, createItem: createControlDeviceType, updateItem: updateControlDeviceType, deleteItem: deleteControlDeviceType } = useControlDeviceTypes();
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [createTypeDialogOpen, setCreateTypeDialogOpen] = useState(false);
+  const [manageDialogOpen, setManageDialogOpen] = useState(false);
+  const toast = useToast();
+  const currentBoardId = defaultMasterBoardId ?? initial?.masterBoardId ?? null;
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const mbs = await hardwareApi.getMasterBoards();
-        if (!mounted) return;
-        setMasterBoards(mbs.map((m) => ({ id: m.id, name: m.name })));
-      } catch (e) {
-        console.error("Failed to load masterboards for control device form", e);
+  const usedControlTypeIds = React.useMemo(() => {
+    if (!existingControls || !currentBoardId) return new Set<string>();
+    const set = new Set<string>();
+    for (const c of existingControls) {
+      if (c.masterBoardId === currentBoardId && c.id !== initial?.id && c.controlDeviceTypeId) {
+        set.add(c.controlDeviceTypeId);
       }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [initial]);
+    }
+    return set;
+  }, [existingControls, currentBoardId, initial?.id]);
+
+  const parsedPin = pinCode ? parseInt(pinCode, 10) : NaN;
+  const pinInUse = Boolean(
+    !Number.isNaN(parsedPin) && existingControls && currentBoardId && existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.pinCode === parsedPin),
+  );
 
   useEffect(() => {
-    setName(initial?.name ?? "");
     setPinCode(initial?.pinCode != null ? String(initial.pinCode) : "");
-    setMasterBoardId(initial?.masterBoardId ?? null);
-    setTypeName(initial?.controlDeviceTypeName ?? "");
-    setState(initial?.state ?? false);
+    if (initial) {
+      const byId = initial.controlDeviceTypeId ?? null;
+      const byName = controlDeviceTypes.find((t) => t.name === initial.controlDeviceTypeName)?.id ?? null;
+      setControlDeviceTypeId(byId ?? byName);
+    } else {
+      setControlDeviceTypeId(null);
+    }
     setCommandOn(initial?.commandOn ?? "");
     setCommandOff(initial?.commandOff ?? "");
     setFieldErrors({});
     setFormError(null);
-  }, [initial, open]);
+  }, [initial, open, defaultMasterBoardId, controlDeviceTypes]);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth>
-      <DialogTitle>{initial ? "Chỉnh sửa thiết bị điều khiển" : "Thêm thiết bị điều khiển"}</DialogTitle>
-      <DialogContent>
-        {formError && (
-          <Typography color="error" sx={{ mb: 1 }}>
-            {formError}
-          </Typography>
-        )}
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Tên" value={name} onChange={(e) => setName(e.target.value)} fullWidth error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} />
-          <TextField label="Pin" value={pinCode} onChange={(e) => setPinCode(e.target.value)} fullWidth error={Boolean(fieldErrors.pinCode)} helperText={fieldErrors.pinCode} />
-          <TextField select label="Masterboard" value={masterBoardId ?? ""} onChange={(e) => setMasterBoardId(e.target.value || null)}>
-            <MenuItem value="">(Chọn board)</MenuItem>
-            {masterBoards.map((mb) => (
-              <MenuItem key={mb.id} value={mb.id}>
-                {mb.name}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField label="Loại" value={typeName} onChange={(e) => setTypeName(e.target.value)} fullWidth />
-          <TextField
-            label="Lệnh bật"
-            value={commandOn}
-            onChange={(e) => setCommandOn(e.target.value)}
-            fullWidth
-            error={Boolean(fieldErrors.commandOn)}
-            helperText={fieldErrors.commandOn}
-            inputProps={{ style: { fontFamily: "Monospace" } }}
-          />
-          <TextField
-            label="Lệnh tắt"
-            value={commandOff}
-            onChange={(e) => setCommandOff(e.target.value)}
-            fullWidth
-            error={Boolean(fieldErrors.commandOff)}
-            helperText={fieldErrors.commandOff}
-            inputProps={{ style: { fontFamily: "Monospace" } }}
-          />
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography>Trạng thái</Typography>
-            <Switch checked={state} onChange={(e) => setState(e.target.checked)} />
-          </Stack>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={saving}>
-          Hủy
-        </Button>
-        <Button
-          onClick={async () => {
-            setSaving(true);
-            setFormError(null);
-            setFieldErrors({});
-            try {
-              await onSave({
-                name,
-                pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
-                masterBoardId: masterBoardId ?? undefined,
-                controlDeviceTypeName: typeName || undefined,
-                state,
-                commandOn: commandOn || undefined,
-                commandOff: commandOff || undefined,
-              });
-            } catch (e) {
-              const err = e as ApiError;
-              if (err && err.data && (err.data as Record<string, unknown>).errors) {
-                const errs = (err.data as Record<string, unknown>).errors as Record<string, string[]>;
-                const mapped: Record<string, string> = {};
-                for (const k of Object.keys(errs)) {
-                  const key = k.toLowerCase();
-                  const msg = errs[k].join(" ");
-                  if (key.includes("pin")) mapped.pinCode = msg;
-                  else if (key.includes("name")) mapped.name = msg;
-                  else mapped[k] = msg;
-                }
-                setFieldErrors(mapped);
-              } else {
-                setFormError((err && err.message) || String(e) || "Save failed");
+    <>
+      <Dialog open={open} onClose={onClose} fullWidth>
+        <DialogTitle>{initial ? "Chỉnh sửa thiết bị điều khiển" : "Thêm thiết bị điều khiển"}</DialogTitle>
+        <DialogContent>
+          {formError && (
+            <Typography color="error" sx={{ mb: 1 }}>
+              {formError}
+            </Typography>
+          )}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {/* name is hidden — app uses type only */}
+            <TextField
+              label={
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <PinDropIcon fontSize="small" />
+                  Pin
+                </span>
               }
-            } finally {
-              setSaving(false);
-            }
-          }}
-          variant="contained"
-          disabled={!name || saving}
-        >
-          Lưu
-        </Button>
-      </DialogActions>
-    </Dialog>
+              value={pinCode}
+              onChange={(e) => setPinCode(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.pinCode) || pinInUse}
+              helperText={fieldErrors.pinCode ?? (pinInUse ? "Mã pin đã được sử dụng trên bảng mạch này." : undefined)}
+            />
+            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+              <TextField
+                select
+                label={
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <CategoryIcon fontSize="small" />
+                    Loại thiết bị
+                  </span>
+                }
+                value={controlDeviceTypeId ?? ""}
+                onChange={(e) => setControlDeviceTypeId(e.target.value || null)}
+                error={Boolean(fieldErrors.controlDeviceTypeId)}
+                helperText={fieldErrors.controlDeviceTypeId}
+                sx={{ flex: 1 }}
+              >
+                <MenuItem value="">(Chọn loại)</MenuItem>
+                {controlDeviceTypes.map((t) => (
+                  <MenuItem key={t.id} value={t.id} disabled={usedControlTypeIds.has(t.id)}>
+                    {t.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Tooltip title="Thêm loại thiết bị mới">
+                <IconButton onClick={() => setCreateTypeDialogOpen(true)} size="small" sx={{ mt: 1, color: "primary.main" }}>
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Quản lý loại">
+                <IconButton onClick={() => setManageDialogOpen(true)} size="small" sx={{ mt: 1, color: "text.primary" }}>
+                  <ListIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            <TextField
+              label={
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <PowerSettingsNewIcon fontSize="small" />
+                  Lệnh bật
+                </span>
+              }
+              value={commandOn}
+              onChange={(e) => setCommandOn(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.commandOn)}
+              helperText={fieldErrors.commandOn}
+              inputProps={{ style: { fontFamily: "Monospace" } }}
+            />
+            <TextField
+              label={
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <PowerSettingsNewIcon fontSize="small" />
+                  Lệnh tắt
+                </span>
+              }
+              value={commandOff}
+              onChange={(e) => setCommandOff(e.target.value)}
+              fullWidth
+              error={Boolean(fieldErrors.commandOff)}
+              helperText={fieldErrors.commandOff}
+              inputProps={{ style: { fontFamily: "Monospace" } }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose} disabled={saving}>
+            Hủy
+          </Button>
+
+          <Button
+            onClick={async () => {
+              // --- VALIDATE FRONTEND CHỐNG TRÙNG LẶP ---
+              const currentBoardId = defaultMasterBoardId || initial?.masterBoardId;
+              if (existingControls && currentBoardId) {
+                const isDuplicateType =
+                  controlDeviceTypeId && existingControls.some((c) => c.masterBoardId === currentBoardId && c.id !== initial?.id && c.controlDeviceTypeId === controlDeviceTypeId);
+
+                if (isDuplicateType) {
+                  setFieldErrors({ controlDeviceTypeId: "Loại thiết bị này đã tồn tại trên bảng mạch này." });
+                  return; // Chặn gọi API
+                }
+              }
+
+              setSaving(true);
+              setFormError(null);
+              setFieldErrors({});
+              try {
+                await onSave({
+                  name: "Thiết bị điều khiển (tự động)",
+                  pinCode: pinCode ? parseInt(pinCode, 10) : undefined,
+                  masterBoardId: defaultMasterBoardId ?? undefined,
+                  controlDeviceTypeId: controlDeviceTypeId ?? undefined,
+                  state: initial?.state ?? false,
+                  commandOn: commandOn || undefined,
+                  commandOff: commandOff || undefined,
+                });
+              } catch (e) {
+                const err = e as ApiError;
+                const errorData = err?.data as Record<string, unknown> | undefined;
+
+                if (errorData?.errors) {
+                  const errs = errorData.errors as Record<string, string[]>;
+                  const mapped: Record<string, string> = {};
+                  for (const k of Object.keys(errs)) {
+                    const key = k.toLowerCase();
+                    const msg = errs[k].join(" ");
+                    if (key.includes("pin")) mapped.pinCode = msg;
+                    else if (key.includes("name")) mapped.name = msg;
+                    else if (key.includes("type")) mapped.controlDeviceTypeId = msg;
+                    else mapped[k] = msg;
+                  }
+                  setFieldErrors(mapped);
+                } else if (errorData?.message && typeof errorData.message === "string") {
+                  const apiMessage = errorData.message;
+                  const lowerMsg = apiMessage.toLowerCase();
+
+                  if (lowerMsg.includes("mã chân") || lowerMsg.includes("pin")) {
+                    setFieldErrors({ pinCode: apiMessage });
+                  } else if (lowerMsg.includes("tên") || lowerMsg.includes("name")) {
+                    setFieldErrors({ name: apiMessage });
+                  } else {
+                    setFormError(apiMessage);
+                  }
+                } else {
+                  setFormError((err && err.message) || String(e) || "Lưu thất bại");
+                }
+              } finally {
+                setSaving(false);
+              }
+            }}
+            variant="contained"
+            disabled={saving || pinInUse}
+          >
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <ControlDeviceTypeDialog
+        open={createTypeDialogOpen}
+        onClose={() => setCreateTypeDialogOpen(false)}
+        onCreate={createControlDeviceType}
+        onCreated={(created) => {
+          setControlDeviceTypeId(created.id);
+          toast.success("Loại thiết bị đã được tạo");
+        }}
+        existingNames={controlDeviceTypes.map((t) => t.name)}
+      />
+
+      <ManageTypesDialog<ControlDeviceType, Partial<{ name: string; description?: string }>>
+        open={manageDialogOpen}
+        onClose={() => setManageDialogOpen(false)}
+        title="Quản lý loại thiết bị"
+        items={controlDeviceTypes}
+        updateItem={updateControlDeviceType}
+        deleteItem={deleteControlDeviceType}
+        DialogComponent={ControlDeviceTypeDialog}
+        renderSecondary={(it) => it.description ?? ""}
+        onDeleted={(id) => {
+          if (controlDeviceTypeId === id) {
+            setControlDeviceTypeId(null);
+            toast.info("Loại vừa xóa đã được bỏ chọn. Vui lòng chọn loại khác.");
+          }
+        }}
+      />
+    </>
   );
 };
 

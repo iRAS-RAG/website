@@ -1,105 +1,127 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Box,
   Typography,
   Stack,
   IconButton,
-  Chip,
-  Avatar,
   Button,
   Divider,
+  CircularProgress,
   useTheme,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { alertApi } from "../../api/alerts";
 import CloseIcon from "@mui/icons-material/Close";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import SendIcon from "@mui/icons-material/Send";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 
-// 1. Cập nhật Interface khớp với AlertCenter.tsx
+// 1. CẬP NHẬT INTERFACE: Xóa level, sửa status
 export interface AlertData {
-  id: number;
+  id: string | number;
   time: string;
   sensorCode: string;
   sensorName: string;
   value: string;
   limit: string;
-  level: "Nghiêm trọng" | "Cao" | "Trung bình" | "Thấp";
   tank: string;
+  tankId: string;
   staff: string;
-  status: "Đang xử lý" | "Chờ xử lý" | "Đã xử lý";
+  status: "Đang xử lý" | "Chờ xử lý" | "Đóng sự cố" | "Đã bỏ qua";
+  hasCorrectiveAction: boolean;
 }
-
-// Dữ liệu biểu đồ giả lập (Trong thực tế sẽ lấy từ API dựa trên id cảnh báo)
-const shortTermData = [
-  { time: "08:00", value: 6.5 },
-  { time: "08:30", value: 6.2 },
-  { time: "09:00", value: 5.9 },
-  { time: "09:30", value: 5.4 },
-  { time: "10:00", value: 4.8 },
-  { time: "10:30", value: 4.2 },
-];
 
 interface AlertDetailModalProps {
   open: boolean;
   onClose: () => void;
   data: AlertData | null;
+  onStatusChange?: () => void;
 }
 
 export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   open,
   onClose,
   data,
+  onStatusChange,
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const [pendingStatus, setPendingStatus] = useState<"Acknowledged" | "Dismissed" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // Local status override: used to stay open and show new buttons after "Tiếp nhận"
+  const [localStatus, setLocalStatus] = useState<AlertData["status"] | null>(null);
+  const currentStatus = localStatus ?? data?.status;
 
-  if (!data) return null;
+  // Reset local status when modal opens with a different alert
+  useEffect(() => {
+    setLocalStatus(null);
+  }, [data?.id]);
 
-  // Helper để lấy màu dựa trên mức độ cảnh báo
-  const getLevelColorInfo = (level: string) => {
-    switch (level) {
-      case "Nghiêm trọng":
-        return {
-          main: theme.palette.error.main,
-          light: theme.palette.error.light,
-          bg: "#FEF2F2",
-        };
-      case "Cao":
-        return {
-          main: theme.palette.warning.main,
-          light: theme.palette.warning.light,
-          bg: "#FFF7ED",
-        };
-      case "Trung bình":
-        return {
-          main: theme.palette.warning.main,
-          light: theme.palette.warning.light,
-          bg: "#FFFBEB",
-        };
-      default:
-        return {
-          main: theme.palette.text.secondary,
-          light: theme.palette.action.hover,
-          bg: "#F3F4F6",
-        };
+  // Task 1: chuyển sang trang AI Advisor với prompt mở đầu điền sẵn
+  const handleConsultAI = () => {
+    if (!data) return;
+    const prompt =
+      `${data.tank} đang có chỉ số ${data.sensorName} là ${data.value} ` +
+      `(vượt ngưỡng an toàn ${data.limit}). ` +
+      `Hãy hướng dẫn tôi quy trình xử lý SOP khẩn cấp cho tình huống này.`;
+    navigate("/operator/ai-advisory", {
+      state: {
+        tankId: data.tankId,
+        tankName: data.tank,
+        prefillPrompt: prompt,
+      },
+    });
+    onClose();
+  };
+
+  const handleGoToCorrectiveAction = () => {
+    if (!data) return;
+    navigate("/operator/maintenance", {
+      state: { openCreate: true, alertId: String(data.id) },
+    });
+    onClose();
+  };
+
+  const handleStatusConfirm = async () => {
+    if (!data || !pendingStatus) return;
+    setSubmitting(true);
+    try {
+      await alertApi.updateStatus(String(data.id), pendingStatus);
+      onStatusChange?.();
+      if (pendingStatus === "Acknowledged") {
+        // Stay open, show "Đã xử lý" + "Tham vấn AI"
+        setLocalStatus("Đang xử lý");
+        setPendingStatus(null);
+      } else {
+        // Dismissed — close confirmation first, then the modal.
+        setPendingStatus(null);
+        onClose();
+      }
+    } catch (err) {
+      console.error("Lỗi khi cập nhật trạng thái:", err);
+      setPendingStatus(null);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const levelColor = getLevelColorInfo(data.level);
+  if (!data) return null;
+
+  // Cố định một màu đỏ cho tất cả các cảnh báo (thay vì phụ thuộc vào Level)
+  const alertTheme = {
+    main: theme.palette.error.main,
+    light: theme.palette.error.light,
+    bg: "#FEF2F2",
+  };
 
   return (
+    <>
     <Dialog
       open={open}
       onClose={onClose}
@@ -125,10 +147,6 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Chi tiết cảnh báo
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Mã: ALT-{new Date().getFullYear()}-
-            {data.id.toString().padStart(3, "0")}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -189,55 +207,69 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </Box>
         </Stack>
 
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
-          <Box>
+        <Stack direction="row" spacing={2} mb={2}>
+          <Box
+            sx={{
+              flex: 1,
+              p: 1.5,
+              bgcolor: "#F8FAFC",
+              borderRadius: "12px",
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{
-                fontWeight: 700,
-                fontSize: "10px",
-                textTransform: "uppercase",
-              }}
+              sx={{ fontWeight: 700, fontSize: "10px", textTransform: "uppercase" }}
             >
               Cảm biến
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {data.sensorCode}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {data.sensorName}
+          </Box>
+          <Box
+            sx={{
+              flex: 1,
+              p: 1.5,
+              bgcolor: "#F8FAFC",
+              borderRadius: "12px",
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 700, fontSize: "10px", textTransform: "uppercase" }}
+            >
+              Trạng thái
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                ...(currentStatus === "Đang xử lý" && { color: theme.palette.primary.main }),
+                ...(currentStatus === "Chờ xử lý" && { color: theme.palette.warning.main }),
+                ...(currentStatus === "Đóng sự cố" && { color: theme.palette.success.main }),
+                ...(currentStatus === "Đã bỏ qua" && { color: theme.palette.text.secondary }),
+              }}
+            >
+              {currentStatus}
             </Typography>
           </Box>
-
-          <Chip
-            label={data.level}
-            sx={{
-              fontWeight: 700,
-              borderRadius: "8px",
-              bgcolor: levelColor.bg,
-              color: levelColor.main,
-              border: `1px solid ${levelColor.light}`,
-            }}
-          />
         </Stack>
 
-        {/* Thông báo phân tích */}
+        {/* CÂU THÔNG BÁO: Dùng sensorName */}
         <Typography
           variant="body2"
           sx={{
             p: 2,
-            bgcolor: levelColor.bg,
+            bgcolor: alertTheme.bg,
             borderRadius: "12px",
-            color: levelColor.main,
+            color: alertTheme.main,
             mb: 3,
             fontWeight: 500,
-            border: `1px solid ${levelColor.light}`,
+            border: `1px solid ${alertTheme.light}`,
           }}
         >
           Giá trị <strong>{data.sensorName}</strong> đang ở mức {data.value},
@@ -250,7 +282,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             sx={{
               flex: 1,
               p: 2,
-              border: `1px solid ${levelColor.light}`,
+              border: `1px solid ${alertTheme.light}`,
               borderRadius: "16px",
               bgcolor: "#fff",
             }}
@@ -260,11 +292,11 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               color="text.secondary"
               sx={{ fontWeight: 700 }}
             >
-              GIÁ TRỊ HIỆN TẠI
+              GIÁ TRỊ VƯỢT NGƯỠNG BAN ĐẦU
             </Typography>
             <Typography
               variant="h4"
-              sx={{ fontWeight: 800, color: levelColor.main }}
+              sx={{ fontWeight: 800, color: alertTheme.main }}
             >
               {data.value}
             </Typography>
@@ -272,7 +304,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               direction="row"
               alignItems="center"
               spacing={0.5}
-              sx={{ color: levelColor.main }}
+              sx={{ color: alertTheme.main }}
             >
               <TrendingDownIcon sx={{ fontSize: 16 }} />
               <Typography variant="caption" sx={{ fontWeight: 700 }}>
@@ -310,148 +342,114 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           </Box>
         </Stack>
 
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-          Xu hướng gần đây
-        </Typography>
-        <Box sx={{ height: 200, mb: 3 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={shortTermData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#E2E8F0"
-              />
-              <XAxis
-                dataKey="time"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                domain={[0, "auto"]}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={levelColor.main}
-                strokeWidth={3}
-                dot={{ r: 4, fill: levelColor.main }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-
-        {/* AI Suggestion */}
-        <Box
-          sx={{
-            p: 2,
-            bgcolor: theme.palette.primary.light,
-            borderRadius: "16px",
-            display: "flex",
-            gap: 2,
-            mb: 3,
-            border: `1px solid ${theme.palette.primary.main}33`,
-          }}
-        >
-          <Avatar
-            sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}
-          >
-            <SmartToyIcon />
-          </Avatar>
-          <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, color: theme.palette.primary.main }}
-            >
-              Hướng dẫn từ AI Advisor
-            </Typography>
-            <Typography variant="body2" sx={{ my: 0.5, lineHeight: 1.5 }}>
-              Dựa trên dữ liệu cảm biến {data.sensorCode}, hệ thống đề xuất kiểm
-              tra thiết bị và thực hiện quy trình SOP tương ứng.
-            </Typography>
-            <Button
-              size="small"
-              variant="text"
-              sx={{ p: 0, minWidth: 0, fontWeight: 700 }}
-            >
-              Xem chi tiết SOP &rarr;
-            </Button>
-          </Box>
-        </Box>
-
         <Divider sx={{ mb: 3 }} />
 
-        {/* Footer Actions */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Avatar
-              sx={{
-                width: 36,
-                height: 36,
-                bgcolor: theme.palette.primary.main,
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
-              {data.staff ? data.staff.charAt(0) : "?"}
-            </Avatar>
-            <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontWeight: 700, display: "block", fontSize: "9px" }}
+{/* NÚT HÀNH ĐỘNG */}
+        <Stack direction="row" spacing={1.5}>
+          {/* "Chờ xử lý": Tiếp nhận + Bỏ qua */}
+          {currentStatus === "Chờ xử lý" && (
+            <>
+              <Button
+                variant="contained"
+                onClick={() => setPendingStatus("Acknowledged")}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, boxShadow: "none", p: 0 }}
               >
-                KỸ THUẬT VIÊN PHỤ TRÁCH
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {data.staff || "Chưa phân công"}
-              </Typography>
-            </Box>
-          </Stack>
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="outlined"
-              startIcon={<SendIcon />}
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                fontWeight: 600,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.secondary,
-              }}
-            >
-              Gửi hỗ trợ
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircleIcon />}
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                fontWeight: 700,
-                boxShadow: "none",
-              }}
-            >
-              Đã xử lý
-            </Button>
-          </Stack>
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Tiếp nhận
+                  </Box>
+                </Box>
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => setPendingStatus("Dismissed")}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <DeleteOutlineIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Bỏ qua
+                  </Box>
+                </Box>
+              </Button>
+            </>
+          )}
+
+          {/* "Đang xử lý": Đã xử lý + Tham vấn AI */}
+          {currentStatus === "Đang xử lý" && (
+            <>
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={handleGoToCorrectiveAction}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <AssignmentOutlinedIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Đã xử lý
+                  </Box>
+                </Box>
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleConsultAI}
+                sx={{ flex: 1, py: 1, borderRadius: "10px", textTransform: "none", fontWeight: 600, borderWidth: 2, "&:hover": { borderWidth: 2 }, p: 0 }}
+              >
+                <Box sx={{ display: "flex", width: "100%", alignItems: "center" }}>
+                  <Box sx={{ width: "40px", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                    <SmartToyOutlinedIcon sx={{ fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, display: "flex", justifyContent: "center", py: 1, pr: 1 }}>
+                    Tham vấn AI
+                  </Box>
+                </Box>
+              </Button>
+            </>
+          )}
         </Stack>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation dialog */}
+    <Dialog open={pendingStatus !== null} onClose={() => setPendingStatus(null)} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Xác nhận thay đổi trạng thái</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2">
+          {pendingStatus === "Acknowledged"
+            ? "Bạn có chắc muốn tiếp nhận cảnh báo này? Trạng thái sẽ chuyển sang Đang xử lý."
+            : "Bạn có chắc muốn bỏ qua cảnh báo này? Đây là thao tác không thể hoàn tác."}
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button
+          onClick={() => setPendingStatus(null)}
+          disabled={submitting}
+          sx={{ textTransform: "none" }}
+        >
+          Huỷ
+        </Button>
+        <Button
+          variant="contained"
+          color={pendingStatus === "Dismissed" ? "error" : "primary"}
+          disabled={submitting}
+          onClick={handleStatusConfirm}
+          startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : null}
+          sx={{ textTransform: "none", fontWeight: 600, boxShadow: "none" }}
+        >
+          {submitting ? "Đang xử lý..." : "Xác nhận"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };

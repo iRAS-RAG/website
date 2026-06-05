@@ -59,8 +59,33 @@ export function setTokens(accessToken: string | null, refreshToken?: string | nu
   notifyTokenListeners(accessToken, refreshToken ?? null);
 }
 
+/**
+ * Kiểm tra token JWT đã hết hạn chưa (dựa trên claim `exp`).
+ * - Trả về `true` nếu không decode được, không có exp, hoặc exp <= now.
+ * - Trả về `false` nếu còn hạn.
+ */
+export function isTokenExpired(token: string | null | undefined): boolean {
+  if (!token) return true;
+  const p = parseJwt(token);
+  if (!p) return true;
+  const exp = (p as Record<string, unknown>).exp;
+  if (typeof exp !== "number") return true;
+  // exp là epoch seconds; cho 5s buffer để tránh race với BE
+  const nowSec = Math.floor(Date.now() / 1000);
+  return exp - 5 <= nowSec;
+}
+
 export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_KEY);
+  const token = localStorage.getItem(ACCESS_KEY);
+  if (!token) return null;
+  // Tự dọn dẹp token hết hạn để tránh UI hiểu nhầm "đã đăng nhập"
+  if (isTokenExpired(token)) {
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    notifyTokenListeners(null, null);
+    return null;
+  }
+  return token;
 }
 
 export function getRefreshToken(): string | null {
@@ -89,4 +114,4 @@ export function addTokenListener(cb: TokenListener) {
   };
 }
 
-export default { parseJwt, getRoleFromToken, getUserFromToken, setTokens, getAccessToken, getRefreshToken, clearTokens };
+export default { parseJwt, getRoleFromToken, getUserFromToken, setTokens, getAccessToken, getRefreshToken, clearTokens, isTokenExpired };

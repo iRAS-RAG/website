@@ -1,20 +1,21 @@
-import React from "react";
+import FacebookIcon from "@mui/icons-material/Facebook";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import {
   Box,
   Container,
-  Typography,
-  Link,
-  Stack,
   Divider,
   IconButton,
+  Link,
+  Stack,
+  Typography,
 } from "@mui/material";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import LinkedInIcon from "@mui/icons-material/LinkedIn";
-import GitHubIcon from "@mui/icons-material/GitHub";
+import React from "react";
 
 const Footer: React.FC = () => {
   return (
     <Box
+      id="team"
       component="footer"
       sx={{
         bgcolor: "white",
@@ -26,7 +27,6 @@ const Footer: React.FC = () => {
       }}
     >
       <Container maxWidth="lg">
-        {/* --- 3 cột chính --- */}
         <Box
           sx={{
             display: "flex",
@@ -36,127 +36,153 @@ const Footer: React.FC = () => {
           }}
         >
           {/* Cột 1 */}
-          <Box sx={{ flex: { xs: "100%", md: "30%" } }}>
+          <Box sx={{ flex: { xs: "100%", md: "35%" } }}>
             <Typography
               variant="h6"
-              color="primary"
-              sx={{ fontWeight: 800, mb: 2 }}
+              sx={{
+                fontWeight: 800,
+                mb: 2,
+                color: "#0F172A",
+              }} /* Đổi sang màu Slate đậm chuyên nghiệp hơn */
             >
               iRAS-RAG System
             </Typography>
             <Typography
               variant="body2"
-              color="text.secondary"
-              sx={{ mb: 2, lineHeight: 1.7 }}
+              sx={{
+                mb: 3,
+                lineHeight: 1.8,
+                color: "#64748B",
+              }} /* Màu xám Slate dịu mắt */
             >
               Dự án nghiên cứu ứng dụng RAG trong quản lý vận hành hệ thống nông
-              nghiệp thông minh, tối ưu hóa quy trình nuôi cá tuần hoàn bằng trí
-              tuệ nhân tạo.
+              nghiệp thông minh, tối ưu hóa quy trình nuôi thuỷ-hải sản tuần
+              hoàn bằng trí tuệ nhân tạo.
             </Typography>
-
-            <Stack direction="row" spacing={1}>
-              <IconButton size="small" color="primary">
-                <FacebookIcon />
+            <Stack direction="row" spacing={1.5}>
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#64748B",
+                  bgcolor: "#F1F5F9",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    bgcolor: "#2A85FF",
+                    color: "white",
+                    transform: "translateY(-2px)",
+                  },
+                }}
+              >
+                <FacebookIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" color="primary">
-                <LinkedInIcon />
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#64748B",
+                  bgcolor: "#F1F5F9",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    bgcolor: "#0077B5",
+                    color: "white",
+                    transform: "translateY(-2px)",
+                  },
+                }}
+              >
+                <LinkedInIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" color="primary">
-                <GitHubIcon />
+              <IconButton
+                size="small"
+                sx={{
+                  color: "#64748B",
+                  bgcolor: "#F1F5F9",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    bgcolor: "#111827",
+                    color: "white",
+                    transform: "translateY(-2px)",
+                  },
+                }}
+              >
+                <GitHubIcon fontSize="small" />
               </IconButton>
             </Stack>
           </Box>
 
-          {/* Cột 2 */}
-          <Box sx={{ flex: { xs: "100%", md: "30%" } }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+          {/* Cột 2 & 3 giữ nguyên cấu trúc cũ, chỉ tối ưu UI */}
+          <Box sx={{ flex: { xs: "100%", md: "25%" } }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, mb: 3, color: "text.primary" }}
+            >
               QUẢN LÝ VẬN HÀNH
             </Typography>
-
-            <Box sx={{ display: "flex" }}>
-              <Stack spacing={1} sx={{ flex: 1 }}>
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="text.secondary"
-                  underline="hover"
-                >
-                  Báo cáo Downtime
-                </Link>
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="text.secondary"
-                  underline="hover"
-                >
-                  Lịch hiệu chuẩn
-                </Link>
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="text.secondary"
-                  underline="hover"
-                >
-                  Dự báo vật tư
-                </Link>
-              </Stack>
-
-              <Stack spacing={1} sx={{ flex: 1 }}>
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="text.secondary"
-                  underline="hover"
-                >
-                  Ngưỡng cảm biến
-                </Link>
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="text.secondary"
-                  underline="hover"
-                >
-                  Hệ thống RAG
-                </Link>
-                <Link
-                  href="#"
-                  variant="body2"
-                  color="text.secondary"
-                  underline="hover"
-                >
-                  Nhật ký bảo trì
-                </Link>
-              </Stack>
-            </Box>
+            <Stack spacing={1.5}>
+              <Link
+                href="#"
+                variant="body2"
+                color="text.secondary"
+                underline="hover"
+              >
+                Báo cáo Downtime
+              </Link>
+              <Link
+                href="#"
+                variant="body2"
+                color="text.secondary"
+                underline="hover"
+              >
+                Ngưỡng cảm biến
+              </Link>
+              <Link
+                href="#"
+                variant="body2"
+                color="text.secondary"
+                underline="hover"
+              >
+                Cơ sở tri thức RAG
+              </Link>
+            </Stack>
           </Box>
 
-          {/* Cột 3 */}
           <Box sx={{ flex: { xs: "100%", md: "25%" } }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-              LIÊN HỆ PHÒNG LAB
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, mb: 3, color: "text.primary" }}
+            >
+              ĐỘI NGŨ & LIÊN HỆ
             </Typography>
-
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              FPT Education / Đại học FPT
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+              Phòng Lab Đại học FPT
             </Typography>
-
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography
+              variant="body2"
+              color="primary.main"
+              sx={{ fontWeight: 600, mb: 2 }}
+            >
               GVHD: Trương Long
             </Typography>
-
             <Link
               href="mailto:namptse180525@fpt.edu.vn"
               variant="body2"
+              color="text.secondary"
               display="block"
-              sx={{ mt: 1 }}
+              sx={{
+                mb: 1,
+                textDecoration: "none",
+                "&:hover": { color: "primary.main" },
+              }}
             >
               namptse180525@fpt.edu.vn
             </Link>
-
             <Link
               href="mailto:longt5@fe.edu.vn"
               variant="body2"
+              color="text.secondary"
               display="block"
+              sx={{
+                textDecoration: "none",
+                "&:hover": { color: "primary.main" },
+              }}
             >
               longt5@fe.edu.vn
             </Link>
@@ -165,7 +191,6 @@ const Footer: React.FC = () => {
 
         <Divider sx={{ my: 4 }} />
 
-        {/* Bản quyền */}
         <Box
           sx={{
             display: "flex",
@@ -179,7 +204,6 @@ const Footer: React.FC = () => {
             © 2026 Nhóm SP26SE102. Phát triển cho mục đích nghiên cứu nông
             nghiệp thông minh.
           </Typography>
-
           <Stack direction="row" spacing={3}>
             <Link
               href="#"

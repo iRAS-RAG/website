@@ -1,67 +1,37 @@
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloseIcon from "@mui/icons-material/Close";
+import ErrorIcon from "@mui/icons-material/Error";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SearchIcon from "@mui/icons-material/Search";
-import { Badge, Box, Divider, IconButton, InputBase, Menu, Paper, Stack, Typography, useTheme } from "@mui/material";
-import React, { useState } from "react";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { Badge, Box, Fade, IconButton, InputBase, Menu, MenuItem, Paper, Typography, useTheme } from "@mui/material";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
-interface NotificationItemProps {
-  type: "error" | "warning" | "success";
-  title: string;
-  time: string;
-}
+type Notification = { id?: string; type: "error" | "warning" | "success"; title: string; time: string };
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ type, title, time }) => {
-  const theme = useTheme();
-
-  const colors = {
-    error: theme.palette.error.main,
-    warning: theme.palette.warning.main,
-    success: theme.palette.success.main,
-  } as const;
-
-  return (
-    <Box
-      sx={{
-        p: 1.5,
-        "&:hover": { bgcolor: theme.palette.background.default },
-        cursor: "pointer",
-      }}
-    >
-      <Stack direction="row" spacing={1.5}>
-        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: colors[type], mt: 0.8 }} />
-        <Box>
-          <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: theme.palette.text.primary }}>{title}</Typography>
-          <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>{time}</Typography>
-        </Box>
-      </Stack>
-    </Box>
-  );
-};
-
-interface NotificationItemProps {
-  type: "error" | "warning" | "success";
-  title: string;
-  time: string;
-}
+export type AlertPopup = { key: number; type: "error" | "warning" | "success"; title: string };
 
 interface DashboardHeaderProps {
   title?: string;
-  badgeCount?: number;
-  seeAllRoute?: string; // route to navigate when clicking "See all"
   searchPlaceholder?: string;
-  notifications?: NotificationItemProps[];
+  badgeCount?: number;
+  notifications?: Notification[];
+  seeAllRoute?: string;
+  showNotifications?: boolean;
+  alertPopup?: AlertPopup | null;
+  onAlertPopupDismiss?: () => void;
+  onNotificationClick?: (id?: string) => void;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, badgeCount = 0, seeAllRoute = "/operator/alerts", searchPlaceholder = "Tìm nhanh mã bể, cảm biến...", notifications }) => {
-  const theme = useTheme();
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute, showNotifications = true, alertPopup, onAlertPopupDismiss, onNotificationClick }) => {
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const theme = useTheme();
 
-  const handleSeeAll = () => {
-    setAnchorEl(null);
-    if (seeAllRoute) navigate(seeAllRoute);
-  };
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+  const handleClose = () => setAnchorEl(null);
 
   return (
     <Box
@@ -97,7 +67,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, badgeCount = 0
       </Paper>
 
       {/* Title centered if provided */}
-      <Box sx={{ flex: 1, textAlign: "center" }}>
+      <Box sx={{ flex: 1, textAlign: "center", pr: "400px" }}>
         {title && (
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             {title}
@@ -105,55 +75,95 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, badgeCount = 0
         )}
       </Box>
 
-      {/* Notifications on right */}
-      <Stack direction="row" spacing={1} alignItems="center">
-        <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ bgcolor: open ? theme.palette.primary.light : theme.palette.background.default, border: `1px solid ${theme.palette.divider}` }}>
-          <Badge badgeContent={badgeCount} color="error">
-            <NotificationsIcon sx={{ color: open ? theme.palette.primary.main : theme.palette.text.secondary }} />
-          </Badge>
-        </IconButton>
+      {/* Right: notifications */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {showNotifications && (
+          <Box sx={{ position: "relative" }}>
+            <IconButton onClick={handleOpen} size="large" aria-label="notifications">
+              <Badge badgeContent={badgeCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
 
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={() => setAnchorEl(null)}
-          PaperProps={{
-            sx: {
-              width: 320,
-              mt: 1.5,
-              borderRadius: "12px",
-              boxShadow: "0px 10px 15px -3px rgba(0,0,0,0.1)",
-              border: `1px solid ${theme.palette.divider}`,
-            },
-          }}
-          transformOrigin={{ horizontal: "right", vertical: "top" }}
-          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        >
-          <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>Cảnh báo mới nhất</Typography>
-            <Typography onClick={handleSeeAll} sx={{ fontSize: "0.75rem", color: theme.palette.primary.main, fontWeight: 700, cursor: "pointer" }}>
+            {alertPopup && (
+              <Fade key={alertPopup.key} in timeout={300}>
+                <Paper
+                  elevation={4}
+                  onClick={onAlertPopupDismiss}
+                  sx={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    width: 300,
+                    p: 1.5,
+                    zIndex: 1400,
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    border: `1px solid ${
+                      alertPopup.type === "error"
+                        ? theme.palette.error.light
+                        : alertPopup.type === "warning"
+                          ? theme.palette.warning.light
+                          : theme.palette.success.light
+                    }`,
+                  }}
+                >
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                    {alertPopup.type === "error" ? (
+                      <ErrorIcon fontSize="small" color="error" sx={{ mt: 0.25 }} />
+                    ) : alertPopup.type === "warning" ? (
+                      <WarningAmberIcon fontSize="small" color="warning" sx={{ mt: 0.25 }} />
+                    ) : (
+                      <CheckCircleIcon fontSize="small" color="success" sx={{ mt: 0.25 }} />
+                    )}
+                    <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
+                      {alertPopup.title}
+                    </Typography>
+                    <CloseIcon fontSize="small" sx={{ color: "text.secondary", mt: 0.25 }} />
+                  </Box>
+                </Paper>
+              </Fade>
+            )}
+          </Box>
+        )}
+
+        {showNotifications && <Menu anchorEl={anchorEl} open={open} onClose={handleClose} PaperProps={{ sx: { width: 320 } }}>
+          {notifications && notifications.length > 0 ? (
+            notifications.map((n, i) => (
+              <MenuItem key={i} onClick={() => { handleClose(); onNotificationClick?.(n.id); }} sx={{ alignItems: "flex-start", cursor: onNotificationClick && n.id ? "pointer" : "default" }}>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  {n.type === "error" ? (
+                    <ErrorIcon fontSize="small" color="error" />
+                  ) : n.type === "warning" ? (
+                    <WarningAmberIcon fontSize="small" color="warning" />
+                  ) : (
+                    <CheckCircleIcon fontSize="small" color="success" />
+                  )}
+                  <Box>
+                    <Typography variant="body2">{n.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {n.time}
+                    </Typography>
+                  </Box>
+                </Box>
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem disabled>Không có thông báo</MenuItem>
+          )}
+          {seeAllRoute && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                navigate(seeAllRoute);
+              }}
+              sx={{ justifyContent: "center" }}
+            >
               Xem tất cả
-            </Typography>
-          </Box>
-
-          <Divider />
-
-          {(
-            notifications ?? [
-              { type: "error", title: "Bể A-03: Ammonia vượt ngưỡng", time: "2 phút trước" },
-              { type: "warning", title: "Bể B-01: Oxy hòa tan thấp", time: "15 phút trước" },
-              { type: "success", title: "Bể A-01: Đã ổn định trở lại", time: "1 giờ trước" },
-            ]
-          ).map((n, idx) => (
-            <NotificationItem key={idx} type={n.type} title={n.title} time={n.time} />
-          ))}
-
-          <Divider />
-          <Box sx={{ p: 1, textAlign: "center" }}>
-            <Typography sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>Bạn có {badgeCount} thông báo chưa đọc</Typography>
-          </Box>
-        </Menu>
-      </Stack>
+            </MenuItem>
+          )}
+        </Menu>}
+      </Box>
     </Box>
   );
 };

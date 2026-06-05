@@ -1,27 +1,68 @@
-import { Email, Lock, Login, Visibility, VisibilityOff } from "@mui/icons-material";
-import { Alert, Box, Button, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  Email,
+  Lock,
+  Visibility,
+  VisibilityOff,
+  ArrowBack,
+} from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  IconButton,
+  InputAdornment,
+  Link,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import type { Role } from "../../api/auth";
-import { clearCurrentUser, currentUser, login, setCurrentUser } from "../../api/auth";
+import { currentUser, login, setCurrentUser } from "../../api/auth";
 import * as jwt from "../../api/jwt";
 import bg from "../../assets/backgrounds.png";
+import { useToast } from "../../components/common/toastContext";
 
 const LoginPage = () => {
+  // ==========================================
+  // LOGIC ĐƯỢC GIỮ NGUYÊN 100%
+  // ==========================================
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const toast = useToast();
 
-  const isLoggedIn = Boolean(currentUser.id);
+  const dashboardPath = (r: Role | null): string => {
+    if (r === "Admin") return "/admin/dashboard";
+    if (r === "Supervisor") return "/supervisor/dashboard";
+    if (r === "Operator") return "/operator/dashboard";
+    return "/";
+  };
+
+  // Nếu đã đăng nhập với token còn hạn → tự chuyển thẳng vào dashboard,
+  // không cần user phải bấm "Đăng xuất" trước. Token hết hạn sẽ được
+  // jwt.getAccessToken() tự dọn dẹp → currentUser.id rỗng → hiển thị form bình thường.
+  useEffect(() => {
+    const access = jwt.getAccessToken();
+    if (access && currentUser.id) {
+      navigate(dashboardPath(currentUser.role), { replace: true });
+    }
+    // chỉ chạy 1 lần khi mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    setError("");
     try {
       type LoginResp = {
-        token?: { accessToken?: string; refreshToken?: string; access_token?: string; refresh_token?: string };
+        token?: {
+          accessToken?: string;
+          refreshToken?: string;
+          access_token?: string;
+          refresh_token?: string;
+        };
         message?: string;
       } & Record<string, unknown>;
 
@@ -37,11 +78,19 @@ const LoginPage = () => {
         return null;
       }
 
-      const accessToken = getStringField(tokenObj, "accessToken", "access_token");
-      const refreshToken = getStringField(tokenObj, "refreshToken", "refresh_token");
+      const accessToken = getStringField(
+        tokenObj,
+        "accessToken",
+        "access_token",
+      );
+      const refreshToken = getStringField(
+        tokenObj,
+        "refreshToken",
+        "refresh_token",
+      );
 
       if (!accessToken) {
-        setError("Sai địa chỉ email hoặc mật khẩu!");
+        toast.error("Sai địa chỉ email hoặc mật khẩu!");
         return;
       }
 
@@ -68,15 +117,39 @@ const LoginPage = () => {
         const e = err as { data?: { message?: string }; message?: string };
         msg = e?.data?.message || e?.message || msg;
       }
-      setError(msg);
+      toast.error(msg);
     }
   };
 
-  function handleLogout() {
-    jwt.clearTokens();
-    clearCurrentUser();
-    navigate("/");
-  }
+  // ==========================================
+  // CUSTOM STYLE CHO Ô INPUT (MODERN SaaS STYLE)
+  // ==========================================
+  const textFieldSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "8px", // Giảm góc bo xuống 8px tạo cảm giác kỹ thuật
+      bgcolor: "#FFFFFF", // Nền trắng tinh thay vì xám nhạt
+      "& fieldset": { borderColor: "#E2E8F0" },
+      "&:hover fieldset": { borderColor: "#CBD5E1" },
+      "&.Mui-focused fieldset": {
+        borderColor: "#2A85FF",
+        borderWidth: "1px",
+        boxShadow: "0 0 0 3px rgba(42, 133, 255, 0.15)", // Hiệu ứng glow mỏng hơn
+      },
+    },
+    // Style cho nhãn label
+    "& .MuiInputLabel-root": {
+      color: "#64748B",
+      fontWeight: 500,
+      fontSize: "0.95rem",
+    },
+    "& .Mui-focused .MuiInputLabel-root": {
+      color: "#2A85FF",
+    },
+    "& .MuiInputBase-input": {
+      py: "16px", // Tăng chiều cao ô input để tạo độ thoáng
+      px: "14px",
+    },
+  };
 
   return (
     <Box
@@ -86,9 +159,9 @@ const LoginPage = () => {
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
-        overflow: "hidden",
       }}
     >
+      {/* 1. BACKGROUND KÈM OVERLAY XANH NAVY VÀ LÀM MỜ (Đã tối ưu độ mờ) */}
       <Box
         sx={{
           position: "absolute",
@@ -96,48 +169,68 @@ const LoginPage = () => {
           backgroundImage: `url(${bg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          filter: "blur(8px)",
-          transform: "scale(1.1)",
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            backgroundColor: "rgba(10, 25, 41, 0.75)", // Tăng overlay tối một chút
+            backdropFilter: "blur(10px)", // Tăng độ mờ một chút
+            WebkitBackdropFilter: "blur(10px)",
+          },
           zIndex: -1,
         }}
       />
 
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          bgcolor: "rgba(0, 0, 0, 0.4)",
-          zIndex: -1,
-        }}
-      />
-
+      {/* 2. AUTH CARD (Đã giảm BorderRadius xuống 16px) */}
       <Paper
-        elevation={6}
+        elevation={0}
         sx={{
-          p: 5,
+          position: "relative",
+          zIndex: 1,
           width: "100%",
-          maxWidth: 480,
-          borderRadius: 4,
-          bgcolor: "rgba(255, 255, 255, 0.95)",
+          maxWidth: 420,
+          p: { xs: 4, sm: 5 },
+          borderRadius: "16px", // Giảm góc bo để nhìn chuyên nghiệp hơn
+          bgcolor: "#FFFFFF",
+          border: "1px solid #E2E8F0", // Thêm viền mỏng để định hình card
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)", // Làm mềm shadow
         }}
       >
         <Box component="form" onSubmit={handleLogin}>
-          <Stack spacing={3}>
-            <Typography variant="h2" align="center" sx={{ fontSize: "1.7rem", fontWeight: 700 }}>
-              Đăng nhập iRAS-RAG
+          {/* 3. HEADER CỦA FORM */}
+          <Box sx={{ textAlign: "center", mb: 5 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 800,
+                color: "#0F172A",
+                mb: 1.5,
+                fontSize: "1.75rem",
+              }}
+            >
+              Chào mừng trở lại
             </Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "#64748B", lineHeight: 1.4 }}
+            >
+              Vui lòng đăng nhập để tiếp tục
+            </Typography>
+          </Box>
 
-            {error && <Alert severity="error">{error}</Alert>}
-
+          <Stack spacing={3}>
+            {/* 4. INPUT FIELDS (Chuyển sang dùng Label thay vì Placeholder) */}
             <TextField
               fullWidth
               label="Địa chỉ email"
+              variant="outlined"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              sx={textFieldSx}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Email color="primary" />
+                    <Email sx={{ color: "#94A3B8" }} />
                   </InputAdornment>
                 ),
               }}
@@ -146,35 +239,78 @@ const LoginPage = () => {
             <TextField
               fullWidth
               label="Mật khẩu"
+              variant="outlined"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              sx={textFieldSx}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock color="primary" />
+                    <Lock sx={{ color: "#94A3B8" }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      sx={{ color: "#94A3B8" }}
+                    >
+                      {showPassword ? (
+                        <VisibilityOff fontSize="small" />
+                      ) : (
+                        <Visibility fontSize="small" />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
               }}
             />
 
-            {isLoggedIn ? (
-              <Button variant="outlined" fullWidth size="large" onClick={handleLogout} sx={{ py: 1.8 }}>
-                Đăng xuất
-              </Button>
-            ) : (
-              <Button type="submit" variant="contained" fullWidth size="large" startIcon={<Login />} sx={{ py: 1.8 }}>
-                Đăng nhập
-              </Button>
-            )}
+            {/* 6. LOGIN BUTTON (Chỉnh borderRadius: "12px") */}
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{
+                py: 1.8, // Tăng padding dọc một chút
+                borderRadius: "12px", // Chỉnh lại góc bo chuyên nghiệp hơn
+                bgcolor: "#2A85FF",
+                fontWeight: 600,
+                textTransform: "none",
+                fontSize: "1rem",
+                boxShadow: "0 4px 14px 0 rgba(42, 133, 255, 0.2)", // Làm dịu bóng đổ
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                "&:hover": {
+                  bgcolor: "#1F6FDB",
+                  transform: "translateY(-1px)", // Giảm độ nẩy hover xuống 1px
+                  boxShadow: "0 6px 20px rgba(42, 133, 255, 0.3)",
+                },
+              }}
+            >
+              Đăng nhập hệ thống
+            </Button>
           </Stack>
+
+          {/* 7. FOOTER */}
+          <Box sx={{ mt: 5, textAlign: "center" }}>
+            <Link
+              component={RouterLink}
+              to="/"
+              underline="hover"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                color: "#64748B",
+                fontSize: "0.875rem",
+                "&:hover": { color: "#0F172A" },
+              }}
+            >
+              <ArrowBack sx={{ fontSize: 16, mr: 1 }} />
+              Quay lại trang chủ
+            </Link>
+          </Box>
         </Box>
       </Paper>
     </Box>

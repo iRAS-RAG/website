@@ -1,405 +1,306 @@
-import { Box, Chip, Paper, Stack, Typography, useTheme } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { Box, CircularProgress, FormControl, InputAdornment, MenuItem, Pagination, Paper, Select, Stack, TextField, Typography } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
-import { SensorCard } from "../../components/operator/SensorCard";
+import { RecentAlertsList } from "../../components/operator/RecentAlertsList";
+import { TankPulseCard } from "../../components/operator/TankPulseCard";
 
-// import SmartToyIcon from "@mui/icons-material/SmartToy";
-import AirIcon from "@mui/icons-material/Air";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import ScienceIcon from "@mui/icons-material/Science";
-import SpeedIcon from "@mui/icons-material/Speed";
-import ThermostatIcon from "@mui/icons-material/Thermostat";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
+import { getTanks } from "../../api/tanks";
+import { useOperatorDashboard, type DayFilter } from "../../hooks/useOperatorDashboard";
+import type { Tank } from "../../types/tank";
 
-import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-// Mock Data
-const trendData = [
-  { time: "00:00", do: 5.2, ph: 7.1 },
-  { time: "04:00", do: 5.8, ph: 7.4 },
-  { time: "08:00", do: 4.8, ph: 7.0 },
-  { time: "12:00", do: 5.1, ph: 7.3 },
-  { time: "16:00", do: 5.9, ph: 7.2 },
-  { time: "20:00", do: 5.3, ph: 7.1 },
+const DAY_OPTIONS: { value: DayFilter; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "today", label: "Hôm nay" },
+  { value: "7", label: "7 ngày" },
+  { value: "30", label: "30 ngày" },
 ];
 
-const comparisonData = [
-  { name: "Nhiệt độ", beA: 28.5, beB: 29.2, toiUu: 28.0 },
-  { name: "Độ pH", beA: 7.2, beB: 6.8, toiUu: 7.5 },
-  { name: "Oxy (DO)", beA: 5.4, beB: 4.2, toiUu: 6.0 },
-];
+// ─── Pie chart tooltip ────────────────────────────────────────────────────────
 
-// Tank Card component
-const TankCard = ({ id, area }: { id: string; area: string }) => {
-  const theme = useTheme();
+interface TooltipPayloadItem {
+  payload: { name: string; value: number; color: string };
+}
+
+const CustomTooltip = ({ active, payload, total }: { active?: boolean; payload?: TooltipPayloadItem[]; total: number }) => {
+  if (!active || !payload?.length) return null;
+  const { name, value, color } = payload[0].payload;
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+  return (
+    <Paper elevation={3} sx={{ p: 1.5, borderRadius: "10px", minWidth: 140, border: "1px solid #E2E8F0" }}>
+      <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+        <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: color, flexShrink: 0 }} />
+        <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E293B" }}>{name}</Typography>
+      </Stack>
+      <Typography sx={{ fontSize: "0.78rem", color: "#64748B" }}>
+        {value} ({pct}%)
+      </Typography>
+    </Paper>
+  );
+};
+
+// ─── Pie chart card ───────────────────────────────────────────────────────────
+
+interface PieSlice {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface PieChartCardProps {
+  title: string;
+  data: PieSlice[];
+  total: number;
+  totalLabel: string;
+  dayFilter?: DayFilter;
+  onDayFilterChange?: (v: DayFilter) => void;
+}
+
+const EMPTY_SLICE: PieSlice[] = [{ name: "Không có dữ liệu", value: 1, color: "#E2E8F0" }];
+
+const PieChartCard: React.FC<PieChartCardProps> = ({ title, data, total, totalLabel, dayFilter, onDayFilterChange }) => {
+  const hasData = total > 0;
+  const chartData = hasData ? data.filter((d) => d.value > 0) : EMPTY_SLICE;
 
   return (
     <Paper
+      elevation={0}
       sx={{
-        p: 2,
-        borderRadius: "12px",
-        border: `1px solid ${theme.palette.divider}`,
-        boxShadow: "none",
-        bgcolor: theme.palette.background.paper,
+        p: 2.5,
+        borderRadius: "14px",
+        border: "1px solid #E2E8F0",
+        bgcolor: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
       }}
     >
-      <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-        <Typography
-          sx={{
-            fontWeight: 800,
-            fontSize: "1rem",
-            color: theme.palette.text.primary,
-          }}
-        >
-          Bể {id}
-        </Typography>
-
-        <Chip
-          label="Bình thường"
-          sx={{
-            height: 18,
-            fontSize: "9px",
-            bgcolor: theme.palette.success.light,
-            color: theme.palette.success.main,
-            borderRadius: "8px",
-            fontWeight: 600,
-          }}
-        />
+      {/* Header */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</Typography>
+        {dayFilter !== undefined && onDayFilterChange && (
+          <FormControl size="small" sx={{ minWidth: 110 }}>
+            <Select value={dayFilter} onChange={(e) => onDayFilterChange(e.target.value as DayFilter)} sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.75, px: 1.5 } }}>
+              {DAY_OPTIONS.map((o) => (
+                <MenuItem key={o.value} value={o.value} sx={{ fontSize: "0.8rem" }}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
       </Stack>
 
-      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 2 }}>
-        <LocationOnIcon sx={{ fontSize: 12, color: theme.palette.primary.main }} />
-        <Typography
-          sx={{
-            fontSize: "11px",
-            color: theme.palette.text.secondary,
-            fontWeight: 500,
-          }}
-        >
-          Khu vực: {area}
-        </Typography>
-      </Stack>
+      {/* Pie chart */}
+      <Box sx={{ height: 180 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={chartData} cx="50%" cy="50%" innerRadius="45%" outerRadius="72%" paddingAngle={hasData ? 2 : 0} dataKey="value" stroke="none">
+              {chartData.map((entry, i) => (
+                <Cell key={i} fill={entry.color} />
+              ))}
+            </Pie>
+            {hasData && <Tooltip content={<CustomTooltip total={total} />} wrapperStyle={{ outline: "none" }} />}
+          </PieChart>
+        </ResponsiveContainer>
+      </Box>
 
-      <Stack direction="row" spacing={1} justifyContent="space-between">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <ThermostatIcon sx={{ fontSize: 12, color: theme.palette.text.secondary }} />
-          <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>28.5°C</Typography>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <ScienceIcon sx={{ fontSize: 12, color: theme.palette.text.secondary }} />
-          <Typography sx={{ fontSize: "11px", fontWeight: 700 }}>7.2 pH</Typography>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <AirIcon sx={{ fontSize: 12, color: theme.palette.text.secondary }} />
-          <Typography sx={{ fontSize: 11, fontWeight: 700 }}>5.4 DO</Typography>
-        </Box>
+      {/* Summary rows */}
+      <Stack spacing={0.75}>
+        {/* Total row */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 0.75, borderBottom: "1px solid #F1F5F9" }}>
+          <Typography sx={{ fontSize: "0.78rem", color: "#64748B", fontWeight: 600 }}>{totalLabel}</Typography>
+          <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "#0F172A" }}>{total}</Typography>
+        </Stack>
+        {/* Each slice */}
+        {data.map((slice) => (
+          <Stack key={slice.name} direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: slice.color, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: "0.75rem", color: "#64748B" }}>{slice.name}</Typography>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#1E293B" }}>{slice.value}</Typography>
+              {total > 0 && <Typography sx={{ fontSize: "0.68rem", color: "#94A3B8" }}>({((slice.value / total) * 100).toFixed(0)}%)</Typography>}
+            </Stack>
+          </Stack>
+        ))}
       </Stack>
     </Paper>
   );
 };
 
+// ─── OperatorDashboard ───────────────────────────────────────────────────────
+
 const OperatorDashboard = () => {
-  const theme = useTheme();
+  const [tanks, setTanks] = useState<Tank[]>([]);
+
+  const [alertDays, setAlertDays] = useState<DayFilter>("all");
+  const [batchDays, setBatchDays] = useState<DayFilter>("all");
+
+  const [tankSearch, setTankSearch] = useState("");
+  const [tankPage, setTankPage] = useState(1);
+  const TANKS_PER_PAGE = 4;
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    getTanks()
+      .then(setTanks)
+      .catch((err) => console.error("Không thể tải danh sách bể:", err));
+  }, []);
+
+  const { alertStats, batchStats, deviceStats, batches, loading } = useOperatorDashboard(undefined, alertDays, batchDays);
+
+  const filteredTanks = useMemo(() => {
+    const q = tankSearch.toLowerCase().trim();
+    return tanks.filter((t) => !q || t.name.toLowerCase().includes(q));
+  }, [tanks, tankSearch]);
+
+  const totalTankPages = Math.ceil(filteredTanks.length / TANKS_PER_PAGE);
+  const pagedTanks = filteredTanks.slice((tankPage - 1) * TANKS_PER_PAGE, tankPage * TANKS_PER_PAGE);
+
+  if (loading && !tanks.length) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: "#F8FAFC" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Pie chart data
+  const alertPieData: PieSlice[] = [
+    { name: "Chờ xử lý", value: alertStats.open, color: "#EF4444" },
+    { name: "Đang xử lý", value: alertStats.acknowledged, color: "#F59E0B" },
+    { name: "Đóng sự cố", value: alertStats.resolved, color: "#10B981" },
+    { name: "Bỏ qua", value: alertStats.dismissed, color: "#94A3B8" },
+  ];
+
+  const batchPieData: PieSlice[] = [
+    { name: "Đang nuôi", value: batchStats.active, color: "#2A85FF" },
+    { name: "Đã thu hoạch", value: batchStats.harvested, color: "#10B981" },
+    { name: "Tạm dừng", value: batchStats.paused, color: "#F59E0B" },
+    { name: "Đã hủy", value: batchStats.terminated, color: "#EF4444" },
+  ];
+
+  const devicePieData: PieSlice[] = [
+    { name: "Đang bật", value: deviceStats.running, color: "#10B981" },
+    { name: "Đang tắt", value: deviceStats.stopped, color: "#CBD5E1" },
+  ];
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        bgcolor: theme.palette.background.default,
-        minHeight: "100vh",
-        width: "100%",
-      }}
-    >
+    <Box sx={{ display: "flex", bgcolor: "#F8FAFC", minHeight: "100vh", width: "100%" }}>
       <OperatorSidebar />
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          ml: "240px",
-          display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-        }}
-      >
+      <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <OperatorHeader />
 
-        <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
-          {/* Header */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-              Bảng điều khiển
+        <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1, width: "100%" }}>
+          {/* ── Header ── */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
+              Tổng quan hệ thống iRAS-RAG
             </Typography>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5, mb: 2 }}>
-              Tổng quan chỉ số nuôi trồng thủy sản hệ thống iRAS-RAG
-            </Typography>
-
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: theme.palette.primary.main,
-                fontWeight: 700,
-                borderBottom: `2px solid ${theme.palette.primary.light}`,
-                display: "inline-block",
-                pb: 0.5,
-                textTransform: "uppercase",
-              }}
-            >
-              Chỉ số cảm biến
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              Tổng quan tình trạng vận hành toàn hệ thống iRAS-RAG
             </Typography>
           </Box>
 
-          {/* Sensor Cards */}
-          {/* Sensor Cards */}
+          {/* ── ZONE 1: Pie Charts ── */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: 2,
-              mb: 6,
-            }}
-          >
-            {/* Card 1: Nhiệt độ */}
-            <SensorCard
-              label="Nhiệt độ"
-              value="28.5"
-              unit="°C"
-              trend="+2.1% so với hôm qua"
-              status="An toàn"
-              statusColor="success"
-              icon={ThermostatIcon}
-              optimalRange="26-29°C" // Added purely to match the component interface, though not explicitly in the specific screenshot, it's good practice based on previous designs.
-            />
-
-            {/* Card 2: Độ pH */}
-            <SensorCard label="Độ pH" value="7.2" unit="pH" trend="-0.3% so với hôm qua" status="An toàn" statusColor="success" icon={ScienceIcon} optimalRange="7.0-7.5" />
-
-            {/* Card 3: Oxy hòa tan */}
-            <SensorCard label="Oxy hòa tan" value="5.8" unit="mg/L" trend="-5.2% so với hôm qua" status="Cảnh báo" statusColor="warning" icon={AirIcon} optimalRange="> 5.0 mg/L" />
-
-            {/* Card 4: Ammonia */}
-            <SensorCard label="Ammonia" value="0.8" unit="ppm" trend="+12.5% so với hôm qua" status="Nguy hiểm" statusColor="error" icon={WaterDropIcon} optimalRange="< 0.5 ppm" />
-
-            {/* Card 5: Tốc độ động cơ */}
-            <SensorCard label="Tốc độ động cơ" value="1,450" unit="RPM" trend="+0.5% so với hôm qua" status="An toàn" statusColor="success" icon={SpeedIcon} optimalRange="1400-1500 RPM" />
-          </Box>
-
-          {/* Tank List */}
-          <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600 }}>
-            Danh sách bể nuôi
-          </Typography>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
               gap: 2.5,
-              mb: 6,
+              mb: 3,
             }}
           >
-            {["A-01", "A-02", "A-03", "A-04", "A-05", "A-06"].map((id) => (
-              <TankCard key={id} id={id} area="Phân khu Ươm thủy sản" />
-            ))}
+            <PieChartCard title="Tổng quan cảnh báo" data={alertPieData} total={alertStats.total} totalLabel="Tổng số cảnh báo" dayFilter={alertDays} onDayFilterChange={setAlertDays} />
+            <PieChartCard title="Tổng quan vụ nuôi" data={batchPieData} total={batchStats.total} totalLabel="Tổng số vụ nuôi" dayFilter={batchDays} onDayFilterChange={setBatchDays} />
+            <PieChartCard title="Tổng quan thiết bị" data={devicePieData} total={deviceStats.total} totalLabel="Tổng số thiết bị" />
           </Box>
 
-          {/* Line Charts */}
+          {/* ── ZONE 2 + 3: Tank Grid + Side Panel ── */}
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 3,
-              mb: 6,
+              gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
+              gap: 2.5,
+              alignItems: "start",
             }}
           >
-            {/* DO Chart */}
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 3,
-                borderRadius: "16px",
-                border: `1px solid ${theme.palette.divider}`,
-                boxShadow: "none",
-              }}
-            >
-              <Typography
-                variant="body1"
-                sx={{
-                  mb: 3,
-                  fontWeight: 700,
-                  color: theme.palette.text.primary,
+            {/* Tank Grid */}
+            <Box>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
+                  Trạng thái các bể
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+                  {filteredTanks.length} bể được hiển thị
+                </Typography>
+              </Stack>
+
+              {/* Search */}
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Tìm kiếm theo tên bể..."
+                value={tankSearch}
+                onChange={(e) => {
+                  setTankSearch(e.target.value);
+                  setTankPage(1);
                 }}
-              >
-                Xu hướng DO (24 giờ)
-              </Typography>
-
-              <Box sx={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#E5E7EB" />
-                    <XAxis dataKey="time" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} dy={10} />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} domain={[0, 8]} ticks={[0, 2, 4, 6, 8]} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "8px",
-                        border: "none",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                      }}
-                      cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="do"
-                      stroke="#10B981" // Xanh ngọc
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
-                      activeDot={{ r: 6, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-
-            {/* pH Chart */}
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 3,
-                borderRadius: "16px",
-                border: `1px solid ${theme.palette.divider}`,
-                boxShadow: "none",
-              }}
-            >
-              <Typography
-                variant="body1"
-                sx={{
-                  mb: 3,
-                  fontWeight: 700,
-                  color: theme.palette.text.primary,
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" sx={{ color: "#94A3B8" }} />
+                    </InputAdornment>
+                  ),
                 }}
-              >
-                Xu hướng pH (24 giờ)
-              </Typography>
+                sx={{ mb: 1.5, bgcolor: "#fff", borderRadius: "10px", "& .MuiOutlinedInput-root": { borderRadius: "10px" }, "& .MuiOutlinedInput-notchedOutline": { borderColor: "#E2E8F0" } }}
+              />
 
-              <Box sx={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#E5E7EB" />
-                    <XAxis dataKey="time" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} dy={10} />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} domain={[0, 8]} ticks={[0, 2, 4, 6, 8]} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "8px",
-                        border: "none",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                      }}
-                      cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="ph"
-                      stroke="#3B82F6" // Xanh dương
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: "#3B82F6", strokeWidth: 0 }}
-                      activeDot={{ r: 6, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-          </Box>
-
-          {/* Comparison Chart + AI Advisory */}
-          {/* Comparison Chart + AI Advisory */}
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 3,
-              borderRadius: "16px",
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: "none",
-            }}
-          >
-            <Typography variant="body1" sx={{ mb: 4, fontWeight: 500, color: theme.palette.text.primary }}>
-              So sánh chỉ số giữa các bể (Bể A vs Bể B)
-            </Typography>
-
-            {/* Bar chart */}
-            <Box sx={{ height: 320, mb: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={comparisonData} barCategoryGap="25%" barGap={6} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
-                  <Tooltip
-                    cursor={{ fill: "transparent" }}
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+              {filteredTanks.length === 0 ? (
+                <Paper elevation={0} sx={{ p: 4, borderRadius: "14px", border: "1px dashed #CBD5E1", textAlign: "center", bgcolor: "#fff" }}>
+                  <Typography variant="body2" sx={{ color: "#94A3B8" }}>
+                    {tankSearch ? "Không tìm thấy bể phù hợp" : "Chưa có bể nào được cấu hình"}
+                  </Typography>
+                </Paper>
+              ) : (
+                <>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: pagedTanks.length === 1 ? "1fr" : { xs: "1fr", sm: "repeat(2, 1fr)" },
+                      gap: 2,
                     }}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    iconType="square"
-                    iconSize={10}
-                    formatter={(value) => (
-                      <span
-                        style={{
-                          color: "#6B7280",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          marginLeft: "4px",
-                        }}
-                      >
-                        {value}
-                      </span>
-                    )}
-                  />
+                  >
+                    {pagedTanks.map((tank) => {
+                      const tankBatch = batches.find((b) => b.fishTankId === tank.id);
+                      return <TankPulseCard key={tank.id} tankId={tank.id} tankName={tank.name} batch={tankBatch} onClick={() => navigate("/operator/sensors")} />;
+                    })}
+                  </Box>
 
-                  <Bar
-                    dataKey="beA"
-                    name="Bể A"
-                    fill="#3B82F6" // Xanh dương (Blue-500)
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
-                  />
-                  <Bar
-                    dataKey="beB"
-                    name="Bể B"
-                    fill="#10B981" // Xanh ngọc (Emerald-500) - Khớp với ảnh mẫu hơn
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
-                  />
-                  <Bar
-                    dataKey="toiUu"
-                    name="Tối ưu"
-                    fill="#34D399" // Xanh lá nhạt (Emerald-400)
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+                  {totalTankPages > 1 && (
+                    <Stack alignItems="center" mt={2}>
+                      <Pagination count={totalTankPages} page={tankPage} onChange={(_, p) => setTankPage(p)} size="small" color="primary" />
+                    </Stack>
+                  )}
+                </>
+              )}
             </Box>
 
-            {/* AI Analysis Box - Style tối giản như ảnh mẫu */}
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: "8px",
-                bgcolor: "#F9FAFB", // Nền xám rất nhạt
-                mt: 2,
-              }}
-            >
-              <Typography variant="body2" sx={{ color: "#374151", fontSize: "0.85rem", lineHeight: 1.6 }}>
-                <Box component="span" sx={{ fontWeight: 700, color: "#111827" }}>
-                  Phân tích:{" "}
-                </Box>
-                Bể B đang có nhiều chỉ số vượt mức tối ưu. Cần kiểm tra và điều chỉnh DO và pH ngay lập tức để đảm bảo môi trường nuôi trồng ổn định.
-              </Typography>
-            </Box>
-          </Paper>
+            {/* Side Panel */}
+            <Stack spacing={2.5}>
+              <RecentAlertsList limit={5} />
+            </Stack>
+          </Box>
         </Box>
       </Box>
     </Box>

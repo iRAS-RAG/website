@@ -1,775 +1,1209 @@
-import { Box, Button, IconButton, LinearProgress, Paper, Stack, Typography, useTheme } from "@mui/material";
-import React, { useState } from "react";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ConfirmActionModal } from "../../components/operator/ConfirmActionModal";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
+import dayjs from "dayjs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Brush, CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+// Components
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { SensorCard } from "../../components/operator/SensorCard";
 
-// --- ICONS ---
+// Hooks & API
+import { getActiveBatch, type SafeThreshold } from "../../api/batches";
+import { extractArray } from "../../api/client";
+import { getMasterBoards, getMasterBoardsByTank } from "../../api/masterboards";
+import { realtimeApi } from "../../api/realtimeApi";
+import { simulationApi } from "../../api/simulationApi";
+import { useToast } from "../../components/common/toastContext";
+import { useLiveTelemetry } from "../../hooks/useLiveTelemetry";
+import { useRealTimeTanks } from "../../hooks/useRealTimeTanks";
+
+// Icons
 import AirIcon from "@mui/icons-material/Air";
 import BoltIcon from "@mui/icons-material/Bolt";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CompressIcon from "@mui/icons-material/Compress";
-import ScienceIcon from "@mui/icons-material/Science";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import SpeedIcon from "@mui/icons-material/Speed";
-import ThermostatIcon from "@mui/icons-material/Thermostat";
-import VibrationIcon from "@mui/icons-material/Vibration";
-import WaterDropIcon from "@mui/icons-material/WaterDrop";
-// Icons cho AI Advisor
-import AdjustIcon from "@mui/icons-material/Adjust";
-import CloudQueueIcon from "@mui/icons-material/CloudQueue";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import DangerousIcon from "@mui/icons-material/Dangerous";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import PowerOffIcon from "@mui/icons-material/PowerOff";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import ScienceIcon from "@mui/icons-material/Science";
+import SensorOccupiedIcon from "@mui/icons-material/SensorOccupied";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
-// --- DATA MẪU ---
-const trendData = [
-  { time: "10:00", temp: 28.5, ph: 7.2, do: 5.4, nh3: 0.2 },
-  { time: "10:05", temp: 28.8, ph: 7.1, do: 5.2, nh3: 0.3 },
-  { time: "10:10", temp: 29.5, ph: 6.9, do: 4.8, nh3: 0.5 },
-  { time: "10:15", temp: 30.1, ph: 6.7, do: 4.5, nh3: 0.7 },
-  { time: "10:20", temp: 30.2, ph: 6.7, do: 4.3, nh3: 0.8 },
-  { time: "10:25", temp: 30.1, ph: 6.7, do: 4.2, nh3: 0.9 },
-];
+// --- TYPES ---
+type TimeFilter = "10s" | "1m" | "1h" | "1d" | "1w";
 
-// --- INTERFACES ---
-interface DetailedActionCardProps {
-  title: string;
-  risk: string;
-  method: string;
-  methodNote: string;
-  goal: string;
-  type: "error" | "warning";
-  onAction: () => void;
+interface ChartPoint {
+  time: string;
+  value: number | null;
+  ts?: number;
 }
 
+// --- FILTER CONFIG ---
+const LIVE_WINDOW_MS = 10_000; // must match useLiveTelemetry's WINDOW_MS
+
+const TIME_FILTERS: { label: string; value: TimeFilter; seconds: number }[] = [
+  { label: "2s", value: "10s", seconds: 2 },
+  { label: "1 phút", value: "1m", seconds: 60 },
+  { label: "1 giờ", value: "1h", seconds: 3600 },
+  { label: "1 ngày", value: "1d", seconds: 86400 },
+  { label: "1 tuần", value: "1w", seconds: 604800 },
+];
+
+// --- HELPERS ---
+const formatCountdown = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+  if (seconds < 86400) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${d}d ${h}:${m.toString().padStart(2, "0")}`;
+};
+
+const getSensorIcon = (name: string) => {
+  const lower = name?.toLowerCase() || "";
+  if (lower.includes("công suất")) return BoltIcon;
+  if (lower.includes("điện áp")) return BoltIcon;
+  if (lower.includes("dòng điện")) return BoltIcon;
+  if (lower.includes("lưu lượng")) return AirIcon;
+  if (lower.includes("mực nước")) return WaterDropIcon;
+  if (lower.includes("nhiệt độ")) return ThermostatIcon;
+  if (lower.includes("ph")) return ScienceIcon;
+  if (lower.includes("tds")) return WaterDropIcon;
+  if (lower.includes("oxy") || lower.includes("do")) return AirIcon;
+  if (lower.includes("ammonia") || lower.includes("nh3")) return WaterDropIcon;
+  return ScienceIcon;
+};
+
+const getSensorColor = (sensorTypeName: string) => {
+  const lower = sensorTypeName?.toLowerCase() || "";
+  if (lower.includes("công suất")) return "#EC4899";
+  if (lower.includes("điện áp")) return "#F97316";
+  if (lower.includes("dòng điện")) return "#EF4444";
+  if (lower.includes("lưu lượng")) return "#06B6D4";
+  if (lower.includes("mực nước")) return "#14B8A6";
+  if (lower.includes("nhiệt độ") || lower.includes("temp")) return "#3B82F6";
+  if (lower.includes("ph")) return "#8B5CF6";
+  if (lower.includes("tds")) return "#F59E0B";
+  if (lower.includes("oxy") || lower.includes("do")) return "#10B981";
+  return "#64748B";
+};
+
+// --- CUSTOM DOT ---
+interface CustomDotProps {
+  cx?: number;
+  cy?: number;
+  value?: number;
+  thresholds: { min: number; max: number } | null;
+  defaultColor: string;
+}
+
+const renderCustomDot = (props: CustomDotProps) => {
+  const { cx, cy, value, thresholds: thr, defaultColor } = props;
+  if (cx == null || cy == null || value == null) return null;
+  const isOut = thr != null && (value < thr.min || value > thr.max);
+  return <circle cx={cx} cy={cy} r={isOut ? 7 : 5} fill={isOut ? "#EF4444" : defaultColor} stroke={isOut ? "#FEE2E2" : "#ffffff"} strokeWidth={isOut ? 4 : 2} />;
+};
+
+// --- MAIN COMPONENT ---
 const RealTimeSensors = () => {
   const theme = useTheme();
-  const [selectedTank, setSelectedTank] = useState("B-02");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState("");
+  const toast = useToast();
 
-  const handleOpenModal = (title: string) => {
-    setSelectedAction(title);
-    setModalOpen(true);
+  const { tanks, selectedTank, setSelectedTank, latestData, devices, loading, refetch, refreshMetadata } = useRealTimeTanks();
+  const liveSeries = useLiveTelemetry(selectedTank?.id ?? null);
+
+  const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("10s");
+  const [tankSlide, setTankSlide] = useState(0);
+  const [sensorSlide, setSensorSlide] = useState(0);
+  const ITEMS_PER_SLIDE = 4;
+  const [countdown, setCountdown] = useState(10);
+  const [sensorChartData, setSensorChartData] = useState<ChartPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [deviceToToggle, setDeviceToToggle] = useState<(typeof devices)[number] | null>(null);
+  const [isToggling, setIsToggling] = useState(false);
+
+  const [accumulatedLive, setAccumulatedLive] = useState<ChartPoint[]>([]);
+  const lastAccumulatedTsRef = useRef<number>(0);
+  const pendingLiveRef = useRef<ChartPoint[]>([]);
+
+  // ── Simulation (disconnect + fake dangerous data) ──
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulatingMac, setSimulatingMac] = useState<string | null>(null);
+  const [simulationLoading, setSimulationLoading] = useState(false);
+  const [masterBoardMac, setMasterBoardMac] = useState<string | null>(null);
+
+  // Species-config safe thresholds from the active batch in this tank.
+  const [activeBatchThresholds, setActiveBatchThresholds] = useState<SafeThreshold[]>([]);
+
+  // Set of tank IDs that have at least one masterboard.
+  const [tanksWithMasterboard, setTanksWithMasterboard] = useState<Set<string>>(new Set());
+
+  // Fetch masterboard MAC for the selected tank
+  useEffect(() => {
+    if (!selectedTank) {
+      setMasterBoardMac(null);
+      setIsSimulating(false);
+      setSimulatingMac(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const boards = await getMasterBoardsByTank(selectedTank.id);
+        const mac = boards.find((b: { macAddress?: string }) => b.macAddress)?.macAddress ?? null;
+        if (!cancelled) setMasterBoardMac(mac);
+        if (!cancelled && mac) {
+          // Check simulation status
+          try {
+            const status = await simulationApi.getSimulationStatus(mac);
+            if (!cancelled) {
+              setIsSimulating(status.isSimulating);
+              if (status.isSimulating) setSimulatingMac(mac);
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTank]);
+
+  // Fetch active-batch safe thresholds (species config) for the selected tank.
+  useEffect(() => {
+    if (!selectedTank) {
+      setActiveBatchThresholds([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const info = await getActiveBatch(selectedTank.id);
+        if (!cancelled) {
+          setActiveBatchThresholds(info?.safeThresholds ?? []);
+        }
+      } catch {
+        if (!cancelled) setActiveBatchThresholds([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTank]);
+
+  // Build set of tank IDs that have a masterboard (fetched once on mount).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const boards = await getMasterBoards();
+        if (!cancelled) {
+          setTanksWithMasterboard(new Set(boards.map((b) => b.fishTankId).filter(Boolean) as string[]));
+        }
+      } catch {
+        if (!cancelled) setTanksWithMasterboard(new Set());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Auto-select the first tank that has a masterboard once both lists are loaded.
+  const didAutoSelectRef = useRef(false);
+  useEffect(() => {
+    if (didAutoSelectRef.current) return;
+    if (tanks.length === 0 || tanksWithMasterboard.size === 0) return;
+    const firstWithBoard = tanks.find((t) => tanksWithMasterboard.has(t.id));
+    if (firstWithBoard) {
+      setSelectedTank(firstWithBoard);
+      didAutoSelectRef.current = true;
+    }
+  }, [tanks, tanksWithMasterboard, setSelectedTank]);
+
+  const [simConfirmOpen, setSimConfirmOpen] = useState(false);
+
+  const handleSimulationToggle = async () => {
+    if (!masterBoardMac) return;
+    setSimulationLoading(true);
+    try {
+      if (isSimulating) {
+        await simulationApi.stopSimulation(masterBoardMac);
+        setIsSimulating(false);
+        setSimulatingMac(null);
+        toast.success("Đã dừng mô phỏng. Dữ liệu thực sẽ được xử lý lại.");
+      } else {
+        await simulationApi.startSimulation(masterBoardMac);
+        setIsSimulating(true);
+        setSimulatingMac(masterBoardMac);
+        toast.warning("Đã kích hoạt mô phỏng dữ liệu nguy hiểm! Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C.");
+      }
+      // Immediately refresh latest-data to update the stats cards
+      refreshMetadata();
+      // Also do a full refetch for chart history
+      setTimeout(() => refetch(true), 500);
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể chuyển đổi chế độ mô phỏng");
+    } finally {
+      setSimulationLoading(false);
+    }
   };
 
-  const handleConfirmAction = () => {
-    console.log("Đã kích hoạt hành động:", selectedAction);
-    setModalOpen(false);
+  const currentSensorId = latestData.some((s) => s.sensorId === selectedSensorId) ? selectedSensorId : null;
+  const activeSensor = latestData.find((s) => s.sensorId === currentSensorId);
+
+  // Auto-select first sensor when latestData changes (e.g. tank switch)
+  useEffect(() => {
+    if (latestData.length === 0) return;
+    setSelectedSensorId((prev) => {
+      const stillValid = latestData.some((s) => s.sensorId === prev);
+      return stillValid ? prev : latestData[0].sensorId;
+    });
+  }, [latestData]);
+
+  // Species-config thresholds from the active batch (null when not configured).
+  const thresholds = useMemo((): { min: number; max: number } | null => {
+    if (!activeSensor) return null;
+    const sensorName = activeSensor.sensorTypeName?.toLowerCase() || "";
+    const speciesThreshold = activeBatchThresholds.find((t) => t.sensorTypeName?.toLowerCase() === sensorName);
+    if (speciesThreshold) {
+      return { min: speciesThreshold.minValue, max: speciesThreshold.maxValue };
+    }
+    return null;
+  }, [activeSensor, activeBatchThresholds]);
+
+  const fetchChartData = useCallback(async () => {
+    if (!currentSensorId || timeFilter === "10s") return;
+    setChartLoading(true);
+    try {
+      const now = dayjs();
+      let fromDate: string;
+      let intervalMin: number;
+      let timeFormat: string;
+
+      switch (timeFilter) {
+        case "1m":
+          fromDate = now.subtract(2, "hour").toISOString();
+          intervalMin = 1;
+          timeFormat = "HH:mm";
+          break;
+        case "1h":
+          fromDate = now.subtract(48, "hour").toISOString();
+          intervalMin = 60;
+          timeFormat = "DD/MM HH:mm";
+          break;
+        case "1d":
+          fromDate = now.subtract(24, "hour").toISOString();
+          intervalMin = 120;
+          timeFormat = "HH:mm";
+          break;
+        case "1w":
+          fromDate = now.subtract(7, "day").toISOString();
+          intervalMin = 1440;
+          timeFormat = "DD/MM";
+          break;
+        default:
+          return;
+      }
+
+      const res = await realtimeApi.getSensorHistory(currentSensorId, fromDate, now.toISOString(), intervalMin);
+
+      type RawLog = {
+        recordedAt?: string;
+        createdAt?: string;
+        created_at?: string;
+        timestamp?: string;
+        value?: number;
+        averageValue?: number;
+        data?: number;
+      };
+
+      const raw = extractArray(res) as RawLog[];
+
+      // Build lookup from API data: formatted-time → value
+      const apiLookup = new Map<string, number | null>();
+      (raw as RawLog[]).forEach((d) => {
+        const ts = d.recordedAt || d.createdAt || d.created_at || d.timestamp;
+        if (!ts) return;
+        const val = d.value ?? d.averageValue ?? d.data ?? null;
+        const key = dayjs(ts).format(timeFormat);
+        if (!apiLookup.has(key)) {
+          apiLookup.set(key, val !== null ? Number(Number(val).toFixed(2)) : null);
+        }
+      });
+
+      // Generate a complete skeleton of expected time slots so every interval
+      // appears on the X-axis — null slots show as explicit gaps (no dot, line break)
+      // instead of a misleading straight line connecting two distant real points.
+      const skeleton: ChartPoint[] = [];
+      const slotMs = intervalMin * 60 * 1000;
+      const fromMs = dayjs(fromDate).valueOf();
+      const toMs = now.valueOf();
+      for (let t = fromMs; t <= toMs + slotMs; t += slotMs) {
+        const label = dayjs(t).format(timeFormat);
+        skeleton.push({ time: label, value: apiLookup.get(label) ?? null });
+      }
+      // Deduplicate by label (keep first occurrence)
+      const seen = new Set<string>();
+      const points = skeleton.filter((p) => {
+        if (seen.has(p.time)) return false;
+        seen.add(p.time);
+        return true;
+      });
+
+      setSensorChartData(points);
+    } catch (err) {
+      console.error("Error fetching sensor chart data:", err);
+    } finally {
+      setChartLoading(false);
+    }
+  }, [currentSensorId, timeFilter]);
+
+  // Buffer incoming live points into a ref on each SignalR push (no state update → cheap).
+  useEffect(() => {
+    if (!currentSensorId || timeFilter !== "10s") return;
+    const rawPoints = liveSeries.get(currentSensorId) ?? [];
+    if (rawPoints.length === 0) return;
+    const newPoints = rawPoints.filter((p) => p.ts > lastAccumulatedTsRef.current).map((p) => ({ time: p.time, value: p.value, ts: p.ts }));
+    if (newPoints.length > 0) {
+      lastAccumulatedTsRef.current = newPoints[newPoints.length - 1].ts;
+      pendingLiveRef.current.push(...newPoints);
+    }
+  }, [liveSeries, currentSensorId, timeFilter]);
+
+  // Flush buffered points to chart state every 2 s, trimming to the live window.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const pending = pendingLiveRef.current;
+      if (pending.length === 0) return;
+      pendingLiveRef.current = [];
+      const cutoff = Date.now() - LIVE_WINDOW_MS;
+      setAccumulatedLive((prev) => {
+        const merged = [...prev, ...pending].filter((p) => (p.ts ?? 0) >= cutoff);
+        // Safety cap: keep at most 120 points even if the live window is larger
+        return merged.length > 120 ? merged.slice(-120) : merged;
+      });
+    }, 2_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Immediately populate chart from SignalR buffer when sensor changes,
+  // instead of waiting up to 2s for the next flush interval.
+  useEffect(() => {
+    const rawPoints = liveSeries.get(currentSensorId ?? "") ?? [];
+    const cutoff = Date.now() - LIVE_WINDOW_MS;
+    const initial = rawPoints
+      .filter((p) => (p.ts ?? 0) >= cutoff)
+      .map((p) => ({ time: p.time, value: p.value }));
+    setAccumulatedLive(initial);
+    pendingLiveRef.current = [];
+    lastAccumulatedTsRef.current = rawPoints.length > 0 ? rawPoints[rawPoints.length - 1].ts ?? 0 : 0;
+  }, [currentSensorId, liveSeries]);
+
+  const displayChartData: ChartPoint[] = timeFilter === "10s" ? accumulatedLive : sensorChartData;
+
+  useEffect(() => {
+    setSensorChartData([]);
+    if (currentSensorId && timeFilter !== "10s") {
+      fetchChartData();
+    }
+  }, [currentSensorId, timeFilter, fetchChartData]);
+
+  // Auto-refresh countdown (skipped for "10s" live view).
+  useEffect(() => {
+    if (timeFilter === "10s") return;
+    const total = TIME_FILTERS.find((f) => f.value === timeFilter)?.seconds ?? 3600;
+    setCountdown(total);
+    const id = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (currentSensorId) fetchChartData();
+          return total;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timeFilter, currentSensorId, fetchChartData]);
+
+  const handleFilterChange = (filter: TimeFilter) => {
+    setTimeFilter(filter);
+    setSensorChartData([]);
+    if (filter === "10s") {
+      // Re-seed from the current live window when switching to live view.
+      lastAccumulatedTsRef.current = 0;
+      pendingLiveRef.current = [];
+      setAccumulatedLive([]);
+    }
   };
+
+  const handleConfirmToggle = async () => {
+    if (!deviceToToggle) return;
+    setIsToggling(true);
+    try {
+      await realtimeApi.toggleDevice(deviceToToggle.id, !deviceToToggle.state);
+      refetch(true);
+      toast.success(deviceToToggle.state ? "Đã tắt thiết bị" : "Đã bật thiết bị");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể chuyển trạng thái thiết bị");
+    } finally {
+      setIsToggling(false);
+      setDeviceToToggle(null);
+    }
+  };
+
+  const chartColor = activeSensor ? getSensorColor(activeSensor.sensorTypeName) : "#64748B";
+  const isBinary = activeSensor?.unitOfMeasure === "0/1";
+  const dailyMin: number | null = activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
+  const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
+  const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
+  const isCurrentDanger = thresholds !== null && (currentValue < thresholds.min || currentValue > thresholds.max);
+
+  // Sensor-type absolute domain hints (min, max) for a reasonable Y-axis range.
+  // Prevents threshold values being crowded at domain boundary.
+  const sensorTypeDomain = useMemo((): [number, number] | null => {
+    if (!activeSensor) return null;
+    const lower = activeSensor.sensorTypeName?.toLowerCase() || "";
+    if (lower.includes("nhiệt độ") || lower.includes("temp")) return [0, 50];
+    if (lower.includes("ph")) return [0, 14];
+    if (lower.includes("tds")) return [0, 1000];
+    if (lower.includes("oxy") || lower.includes("do")) return [0, 20];
+    if (lower.includes("ammonia") || lower.includes("nh3")) return [0, 10];
+    if (lower.includes("lưu lượng")) return [0, 200];
+    if (lower.includes("mực nước")) return [0, 500];
+    return null;
+  }, [activeSensor]);
+
+  const yDomain = useMemo(() => {
+    if (isBinary) return [-0.1, 1.1];
+    const values = displayChartData.map((d) => d.value).filter((v): v is number => v !== null);
+    const allValues: number[] = [...values, ...(thresholds ? [thresholds.min, thresholds.max] : []), ...(dailyMin != null ? [dailyMin] : []), ...(dailyMax != null ? [dailyMax] : [])];
+    if (allValues.length === 0) return sensorTypeDomain ?? [0, 100];
+    const dataMin = Math.min(...allValues);
+    const dataMax = Math.max(...allValues);
+    const range = Math.max(dataMax - dataMin, 1);
+    const pad = Math.ceil(range * 0.08);
+    // Clamp to sensor-type absolute domain when available
+    const absMin = sensorTypeDomain ? sensorTypeDomain[0] : dataMin - pad;
+    const absMax = sensorTypeDomain ? sensorTypeDomain[1] : dataMax + pad;
+    return [Math.max(absMin, Math.floor(dataMin - pad)), Math.min(absMax, Math.ceil(dataMax + pad))];
+  }, [displayChartData, thresholds, dailyMin, dailyMax, isBinary, sensorTypeDomain]);
+
+  const yAxisTicks = useMemo(() => {
+    if (isBinary) return [0, 1];
+    const domainRange = yDomain[1] - yDomain[0];
+    const minGap = domainRange * 0.12; // 12% of domain = minimum gap to show a tick
+    const thrTicks = thresholds ? [thresholds.min, thresholds.max] : [];
+    const candidates = [yDomain[0], ...thrTicks, yDomain[1]];
+    // Drop domain-boundary ticks that would overlap with a threshold tick
+    const filtered = candidates.filter((v) => {
+      const isDomainBoundary = v === yDomain[0] || v === yDomain[1];
+      if (!isDomainBoundary) return true;
+      return thrTicks.every((t) => Math.abs(v - t) >= minGap);
+    });
+    return Array.from(new Set(filtered.map((v) => Number(v.toFixed(1))))).sort((a, b) => a - b);
+  }, [yDomain, thresholds, isBinary]);
+
+  const binaryStats = useMemo(() => {
+    if (!isBinary || displayChartData.length === 0) return null;
+    let safe = 0;
+    let unsafe = 0;
+    let unknown = 0;
+    for (const d of displayChartData) {
+      if (d.value === null) unknown++;
+      else if (d.value >= 0.5) safe++;
+      else unsafe++;
+    }
+    const total = displayChartData.length;
+    return { safe, unsafe, unknown, total, safePct: Math.round((safe / total) * 100), unsafePct: Math.round((unsafe / total) * 100) };
+  }, [isBinary, displayChartData]);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        bgcolor: theme.palette.background.default,
-        minHeight: "100vh",
-      }}
-    >
+    <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh" }}>
       <OperatorSidebar />
-      <Box
-        sx={{
-          flexGrow: 1,
-          ml: "240px",
-          display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-        }}
-      >
+      <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <OperatorHeader />
 
-        <Box sx={{ display: "flex", flexGrow: 1, p: 3, gap: 4 }}>
-          {/* ================= CỘT TRÁI: DỮ LIỆU CẢM BIẾN (Flex Grow) ================= */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ mb: 4 }}>
-              <Typography
-                variant="h1"
-                sx={{
-                  fontSize: "2rem",
-                  fontWeight: 600,
-                  color: theme.palette.text.primary,
-                }}
-              >
-                Giám sát cảm biến thời gian thực
-              </Typography>
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-                Theo dõi chi tiết từng bể và nhận hướng dẫn can thiệp từ AI
-              </Typography>
-            </Box>
-
-            {/* CHỌN BỂ NUÔI */}
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
-              CHỌN BỂ NUÔI
+        <Box sx={{ p: 3, flexGrow: 1 }}>
+          {/* ── Title ── */}
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="h1" sx={{ fontSize: "2rem", fontWeight: 600, color: theme.palette.text.primary }}>
+              Giám sát cảm biến thời gian thực
             </Typography>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 2,
-                mb: 4,
-              }}
-            >
-              {["A-01", "A-02", "B-01", "B-02", "C-01", "C-02"].map((id) => (
-                <Paper
-                  key={id}
-                  onClick={() => setSelectedTank(id)}
-                  sx={{
-                    p: 2.5,
-                    cursor: "pointer",
-                    borderRadius: "16px",
-                    border: selectedTank === id ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
-                    bgcolor: selectedTank === id ? theme.palette.primary.light : theme.palette.background.paper,
-                    position: "relative",
-                  }}
-                >
-                  <Box
-                    className={id === "B-02" ? "pulse-red" : "pulse-green"}
-                    sx={{
-                      position: "absolute",
-                      top: 12,
-                      right: 12,
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      bgcolor: id === "B-02" ? theme.palette.error.main : theme.palette.success.main,
-                    }}
-                  />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Bể {id}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: theme.palette.text.secondary,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Phân khu nuôi {id.startsWith("A") ? "Ươm 1" : "Vỗ béo"}
-                  </Typography>
-                </Paper>
-              ))}
-            </Box>
-
-            <Stack direction="row" spacing={2} sx={{ mb: 5 }}>
-              <Button variant="contained" startIcon={<SmartToyIcon />} sx={{ borderRadius: "12px", px: 3, fontWeight: 600 }}>
-                Chạy chẩn đoán AI
-              </Button>
-            </Stack>
-
-            {/* CHỈ SỐ CẢM BIẾN */}
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                mb: 2.5,
-                color: theme.palette.text.primary,
-              }}
-            >
-              Chỉ số hiện tại - Bể {selectedTank}
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
+              Theo dõi chi tiết thông số cảm biến và trạng thái thiết bị của từng bể
             </Typography>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 2.5,
-                mb: 5,
-              }}
-            >
-              <SensorCard label="Nhiệt độ" value="28.5" unit="°C" trend="+2.1% so với hôm qua" status="An toàn" statusColor="success" icon={ThermostatIcon} optimalRange="26-29°C" />
-              <SensorCard label="Độ pH" value="7.2" unit="pH" trend="-0.3% so với hôm qua" status="An toàn" statusColor="success" icon={ScienceIcon} optimalRange="7.0-7.5" />
-              <SensorCard label="Oxy hòa tan" value="5.8" unit="mg/L" trend="-5.2% so với hôm qua" status="Cảnh báo" statusColor="warning" icon={AirIcon} optimalRange="> 5.0 mg/L" />
-              <SensorCard label="Ammonia" value="0.8" unit="ppm" trend="+12.5% so với hôm qua" status="Nguy hiểm" statusColor="error" icon={WaterDropIcon} optimalRange="< 0.5 ppm" />
-            </Box>
-
-            {/* BIỂU ĐỒ - Chiều cao 240px */}
-            <Box sx={{ mb: 5 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  mb: 2,
-                  color: theme.palette.text.primary,
-                }}
-              >
-                Biểu đồ thời gian thực (30 phút gần đây)
-              </Typography>
-
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 3,
-                }}
-              >
-                {/* 1. Nhiệt độ & pH */}
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 3,
-                    borderRadius: "16px",
-                    border: `1px solid ${theme.palette.divider}`,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      mb: 3,
-                      color: theme.palette.text.secondary,
-                    }}
-                  >
-                    Nhiệt độ & pH
-                  </Typography>
-                  <Box sx={{ height: 240 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} domain={["auto", "auto"]} />
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "8px",
-                            border: "none",
-                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          }}
-                        />
-                        <Legend
-                          verticalAlign="bottom"
-                          height={36}
-                          iconType="circle"
-                          formatter={(value) => (
-                            <span
-                              style={{
-                                color: "#6B7280",
-                                fontSize: "12px",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {value}
-                            </span>
-                          )}
-                        />
-                        <Line
-                          name="Nhiệt độ (°C)"
-                          type="monotone"
-                          dataKey="temp"
-                          stroke="#EF4444" // Đỏ
-                          strokeWidth={2}
-                          dot={{ r: 4, fill: "#EF4444", strokeWidth: 0 }}
-                          activeDot={{ r: 6 }}
-                        />
-                        <Line
-                          name="pH"
-                          type="monotone"
-                          dataKey="ph"
-                          stroke="#3B82F6" // Xanh dương
-                          strokeWidth={2}
-                          dot={{ r: 4, fill: "#3B82F6", strokeWidth: 0 }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </Paper>
-
-                {/* 2. DO & Ammonia */}
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 3,
-                    borderRadius: "16px",
-                    border: `1px solid ${theme.palette.divider}`,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      mb: 3,
-                      color: theme.palette.text.secondary,
-                    }}
-                  >
-                    DO & Ammonia
-                  </Typography>
-                  <Box sx={{ height: 240 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#6B7280" }} domain={[0, 10]} />
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "8px",
-                            border: "none",
-                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          }}
-                        />
-                        <Legend
-                          verticalAlign="bottom"
-                          height={36}
-                          iconType="circle"
-                          formatter={(value) => (
-                            <span
-                              style={{
-                                color: "#6B7280",
-                                fontSize: "12px",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {value}
-                            </span>
-                          )}
-                        />
-                        <Line
-                          name="DO (mg/L)"
-                          type="monotone"
-                          dataKey="do"
-                          stroke="#10B981" // Xanh ngọc
-                          strokeWidth={2}
-                          dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
-                          activeDot={{ r: 6 }}
-                        />
-                        <Line
-                          name="NH3 (ppm)"
-                          type="monotone"
-                          dataKey="nh3"
-                          stroke="#F59E0B" // Cam
-                          strokeWidth={2}
-                          dot={{ r: 4, fill: "#F59E0B", strokeWidth: 0 }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </Paper>
-              </Box>
-            </Box>
-
-            {/* TRẠNG THÁI THIẾT BỊ - Bố cục ngang */}
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                mb: 2.5,
-                color: theme.palette.text.primary,
-              }}
-            >
-              Trạng thái thiết bị
-            </Typography>
-            <Box
-              sx={{
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: "16px",
-                p: 3,
-                bgcolor: "white",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(5, 1fr)",
-                  gap: 3,
-                }}
-              >
-                {[
-                  {
-                    label: "Tốc độ RPM",
-                    value: "1450",
-                    subLabel: "Mục tiêu: 1500",
-                    icon: <SpeedIcon />,
-                    color: theme.palette.primary.main,
-                    bgColor: theme.palette.primary.light,
-                  },
-                  {
-                    label: "Rung động",
-                    value: "2.3",
-                    subLabel: "Bình thường",
-                    subLabelColor: theme.palette.success.main,
-                    icon: <VibrationIcon />,
-                    color: theme.palette.success.main,
-                    bgColor: theme.palette.success.light,
-                  },
-                  {
-                    label: "Áp suất",
-                    value: "2.4",
-                    subLabel: "bar",
-                    icon: <CompressIcon />,
-                    color: theme.palette.warning.main,
-                    bgColor: theme.palette.warning.light,
-                  },
-                  {
-                    label: "Công suất",
-                    value: "85%",
-                    subLabel: "Tối ưu",
-                    icon: <BoltIcon />,
-                    color: theme.palette.warning.main,
-                    bgColor: theme.palette.warning.light,
-                  },
-                  {
-                    label: "Trạng thái",
-                    value: "OK",
-                    subLabel: "Hoạt động tốt",
-                    icon: <CheckCircleIcon />,
-                    color: theme.palette.success.main,
-                    bgColor: theme.palette.success.light,
-                  },
-                ].map((item, idx) => (
-                  <Stack key={idx} direction="row" spacing={2} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: "12px",
-                        bgcolor: item.bgColor,
-                        color: item.color,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {item.icon}
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: theme.palette.text.secondary,
-                          fontSize: "0.75rem",
-                          display: "block",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {item.label}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: "1.25rem",
-                          color: theme.palette.text.primary,
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {item.value}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: item.subLabelColor || theme.palette.text.secondary,
-                          fontSize: "0.7rem",
-                          display: "block",
-                        }}
-                      >
-                        {item.subLabel}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                ))}
-              </Box>
-            </Box>
           </Box>
 
-          {/* ================= CỘT PHẢI: AI ADVISOR (340px) ================= */}
-          <Box
-            sx={{
-              width: 340,
-              p: 3,
-              bgcolor: "white",
-              borderLeft: `1px solid ${theme.palette.divider}`,
-              height: "100vh",
-              overflowY: "auto",
-            }}
-          >
-            {/* 1. Mức độ rủi ro hiện tại */}
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                mb: 2,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <WarningAmberIcon fontSize="small" sx={{ color: "text.secondary" }} /> Mức độ rủi ro hiện tại
-            </Typography>
+          {/* ── Tank selector — slider ── */}
+          {(() => {
+            const totalTankPages = Math.ceil(tanks.length / ITEMS_PER_SLIDE);
+            const visibleTanks = tanks.slice(tankSlide * ITEMS_PER_SLIDE, (tankSlide + 1) * ITEMS_PER_SLIDE);
+            return (
+              <Box sx={{ mb: 2.5 }}>
+                <Typography variant="overline" sx={{ fontWeight: 700, color: "text.secondary", letterSpacing: 1, mb: 1, display: "block" }}>
+                  Chọn bể nuôi
+                </Typography>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  {totalTankPages > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setTankSlide((p) => Math.max(0, p - 1))}
+                      disabled={tankSlide === 0}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, height: 32 }}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${ITEMS_PER_SLIDE}, 1fr)`, gap: 1.5, flex: 1 }}>
+                    {visibleTanks.map((tank) => (
+                      <Paper
+                        key={tank.id}
+                        onClick={() => setSelectedTank(tank)}
+                        sx={{
+                          p: 2,
+                          cursor: "pointer",
+                          borderRadius: "14px",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          gap: 1,
+                          minHeight: 88,
+                          border: selectedTank?.id === tank.id ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+                          bgcolor: selectedTank?.id === tank.id ? theme.palette.primary.light + "20" : theme.palette.background.paper,
+                          transition: "all 0.15s",
+                          "&:hover": { borderColor: theme.palette.primary.light },
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.3 }}>
+                          {tank.name}
+                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                          {(() => {
+                            const hasMb = tanksWithMasterboard.has(tank.id);
+                            const dotColor = tank.hasOpenAlert ? theme.palette.error.main : hasMb ? theme.palette.success.main : theme.palette.text.disabled;
+                            const label = tank.hasOpenAlert ? "Có cảnh báo" : hasMb ? "An toàn" : "Không có bộ mạch";
+                            const labelColor = tank.hasOpenAlert ? theme.palette.error.main : hasMb ? theme.palette.success.main : theme.palette.text.disabled;
+                            return (
+                              <>
+                                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0 }} />
+                                <Typography variant="caption" sx={{ color: labelColor, fontWeight: 600 }}>
+                                  {label}
+                                </Typography>
+                              </>
+                            );
+                          })()}
+                        </Stack>
+                      </Paper>
+                    ))}
+                    {/* Fill empty slots to keep grid stable */}
+                    {Array.from({ length: ITEMS_PER_SLIDE - visibleTanks.length }).map((_, i) => (
+                      <Box key={`empty-tank-${i}`} />
+                    ))}
+                  </Box>
+                  {totalTankPages > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setTankSlide((p) => Math.min(totalTankPages - 1, p + 1))}
+                      disabled={tankSlide >= totalTankPages - 1}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, height: 32 }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Stack>
+                {tanks.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Đang tải danh sách bể...
+                  </Typography>
+                )}
+              </Box>
+            );
+          })()}
 
+          {/* ── Simulation (disconnect) button ── */}
+          {selectedTank && (
             <Paper
               variant="outlined"
               sx={{
                 p: 2,
-                borderRadius: "12px",
-                borderColor: theme.palette.error.light,
-                bgcolor: "#FEF2F2", // Nền đỏ rất nhạt
-                mb: 4,
+                mb: 2.5,
+                borderRadius: "16px",
+                borderColor: isSimulating ? theme.palette.error.main : theme.palette.divider,
+                bgcolor: isSimulating ? "#FEF2F2" : theme.palette.background.paper,
               }}
             >
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: theme.palette.error.main }}>
-                  Rủi ro Cao
+              <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  {isSimulating ? <DangerousIcon sx={{ color: theme.palette.error.main, fontSize: 28 }} /> : <SensorOccupiedIcon sx={{ color: theme.palette.warning.main, fontSize: 28 }} />}
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: isSimulating ? theme.palette.error.main : theme.palette.text.primary }}>
+                      {isSimulating ? "ĐANG MÔ PHỎNG DỮ LIỆU NGUY HIỂM" : "Công cụ mô phỏng"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                      {isSimulating
+                        ? `Nhiệt độ đang được thay bằng giá trị ngẫu nhiên 50-60°C (nguy hiểm). MAC: ${simulatingMac}`
+                        : masterBoardMac
+                          ? `Bấm "Mô phỏng dữ liệu nguy hiểm" để thay nhiệt độ thực bằng giá trị ngẫu nhiên 50-60°C.`
+                          : "Bể này chưa có bộ mạch chủ với địa chỉ MAC để mô phỏng."}
+                    </Typography>
+                  </Box>
+                </Box>
+                {masterBoardMac && (
+                  <Button
+                    variant={isSimulating ? "outlined" : "contained"}
+                    color={isSimulating ? "error" : "warning"}
+                    onClick={() => {
+                      if (isSimulating) handleSimulationToggle();
+                      else setSimConfirmOpen(true);
+                    }}
+                    disabled={simulationLoading}
+                    startIcon={isSimulating ? undefined : <DangerousIcon />}
+                    sx={{ borderRadius: "8px", fontWeight: 700, textTransform: "none", boxShadow: "none", whiteSpace: "nowrap" }}
+                  >
+                    {simulationLoading ? "Đang xử lý..." : isSimulating ? "Kết nối lại (dừng mô phỏng)" : "Mô phỏng mất kết nối"}
+                  </Button>
+                )}
+              </Stack>
+            </Paper>
+          )}
+
+          {/* ── Confirmation dialog before starting simulation ── */}
+          <Dialog open={simConfirmOpen} onClose={() => setSimConfirmOpen(false)} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
+              <DangerousIcon color="warning" />
+              Xác nhận mô phỏng mất kết nối
+            </DialogTitle>
+            <DialogContent>
+              <Stack spacing={2}>
+                <Typography>
+                  Hành động này sẽ <strong>ngắt kết nối thực tế</strong> với board mạch chủ của bể <strong>{selectedTank?.name}</strong> và thay thế dữ liệu cảm biến thực bằng{" "}
+                  <strong>dữ liệu giả lập nguy hiểm</strong> (nhiệt độ 50-60°C).
                 </Typography>
-                <IconButton size="small" sx={{ color: theme.palette.error.main }}>
-                  <HighlightOffIcon />
-                </IconButton>
+                <Box sx={{ bgcolor: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 2, p: 2 }}>
+                  <Typography variant="body2" sx={{ color: "#991B1B", fontWeight: 600, mb: 0.5 }}>
+                    ⚠️ Lưu ý quan trọng:
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#7F1D1D" }}>
+                    - Hệ thống sẽ ngừng nhận dữ liệu từ cảm biến thật của bể này.
+                    <br />
+                    - Các thao tác điều khiển thiết bị (bơm, quạt, sục khí...) sẽ không hoạt động.
+                    <br />
+                    - Dữ liệu giả lập sẽ hiển thị trên biểu đồ và có thể kích hoạt cảnh báo.
+                    <br />- Nhấn <strong>"Kết nối lại"</strong> để khôi phục trạng thái thực tế.
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setSimConfirmOpen(false)} sx={{ color: "#64748B", fontWeight: 600, textTransform: "none" }}>
+                Hủy
+              </Button>
+              <Button
+                variant="contained"
+                color="warning"
+                onClick={() => {
+                  setSimConfirmOpen(false);
+                  handleSimulationToggle();
+                }}
+                sx={{ borderRadius: "8px", fontWeight: 600, textTransform: "none" }}
+              >
+                Xác nhận mô phỏng
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* ── Sensor cards — slider ── */}
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
+            Chỉ số hiện tại{selectedTank ? ` — ${selectedTank.name}` : ""}
+          </Typography>
+          {loading ? (
+            <CircularProgress sx={{ mb: 4 }} />
+          ) : (
+            (() => {
+              const totalSensorPages = Math.ceil(latestData.length / ITEMS_PER_SLIDE);
+              const visibleSensors = latestData.slice(sensorSlide * ITEMS_PER_SLIDE, (sensorSlide + 1) * ITEMS_PER_SLIDE);
+              return (
+                <Stack direction="row" alignItems="stretch" spacing={1} sx={{ mb: 3 }}>
+                  {totalSensorPages > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setSensorSlide((p) => Math.max(0, p - 1))}
+                      disabled={sensorSlide === 0}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, alignSelf: "center" }}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${ITEMS_PER_SLIDE}, 1fr)`, gap: 2.5, flex: 1 }}>
+                    {visibleSensors.map((sensor) => {
+                      const sensorIsBinary = sensor.unitOfMeasure === "0/1";
+                      const rawVal = sensor.latestData?.latestAvg;
+                      const displayValue = sensorIsBinary ? (rawVal !== undefined && rawVal !== null ? (rawVal >= 0.5 ? "An toàn" : "Bất thường") : "--") : (rawVal?.toFixed(2) ?? "--");
+                      // Compute isWarning client-side: priority = species batch threshold > sensor API field
+                      const sensorBatchThr = activeBatchThresholds.find(
+                        (t) => t.sensorTypeName?.toLowerCase() === sensor.sensorTypeName?.toLowerCase()
+                      );
+                      const minThr = sensorBatchThr?.minValue ?? sensor.minThreshold ?? sensor.minValue ?? null;
+                      const maxThr = sensorBatchThr?.maxValue ?? sensor.maxThreshold ?? sensor.maxValue ?? null;
+                      const computedIsWarning = rawVal != null && minThr != null && maxThr != null
+                        ? (rawVal < minThr || rawVal > maxThr)
+                        : (sensor.latestData?.isWarning ?? false);
+                      const statusLabel = sensorIsBinary
+                        ? rawVal !== undefined && rawVal !== null
+                          ? rawVal >= 0.5
+                            ? "An toàn"
+                            : "Bất thường"
+                          : "—"
+                        : computedIsWarning
+                          ? "Vượt ngưỡng"
+                          : "An toàn";
+                      const statusCol = sensorIsBinary ? (rawVal !== undefined && rawVal !== null && rawVal >= 0.5 ? "success" : "error") : computedIsWarning ? "error" : "success";
+                      return (
+                        <SensorCard
+                          key={sensor.sensorId}
+                          label={sensor.sensorTypeName}
+                          value={displayValue}
+                          unit={sensorIsBinary ? "" : sensor.unitOfMeasure}
+                          status={statusLabel}
+                          statusColor={statusCol as "success" | "warning" | "error"}
+                          icon={getSensorIcon(sensor.sensorTypeName)}
+                          isSelected={currentSensorId === sensor.sensorId}
+                          onClick={() => setSelectedSensorId(sensor.sensorId)}
+                        />
+                      );
+                    })}
+                    {Array.from({ length: ITEMS_PER_SLIDE - visibleSensors.length }).map((_, i) => (
+                      <Box key={`empty-sensor-${i}`} />
+                    ))}
+                  </Box>
+                  {totalSensorPages > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setSensorSlide((p) => Math.min(totalSensorPages - 1, p + 1))}
+                      disabled={sensorSlide >= totalSensorPages - 1}
+                      sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "8px", width: 32, alignSelf: "center" }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {latestData.length === 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      {selectedTank ? "Bể này chưa có dữ liệu cảm biến." : "Chọn một bể để xem chỉ số."}
+                    </Typography>
+                  )}
+                </Stack>
+              );
+            })()
+          )}
+
+          {/* ── Chart — full width bên dưới ── */}
+          {activeSensor && (
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: "16px", borderColor: theme.palette.divider, mb: 3 }}>
+              {/* Chart header */}
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5} flexWrap="wrap" gap={1.5}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Biểu đồ: {activeSensor.sensorTypeName}
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip
+                    icon={timeFilter === "10s" ? undefined : <RefreshIcon sx={{ fontSize: 14 }} />}
+                    label={timeFilter === "10s" ? "Trực tiếp" : formatCountdown(countdown)}
+                    size="small"
+                    variant="outlined"
+                    color={timeFilter === "10s" ? "success" : "default"}
+                    sx={{ fontWeight: 600, fontSize: "0.75rem", color: timeFilter === "10s" ? theme.palette.success.main : theme.palette.text.secondary }}
+                  />
+                  {TIME_FILTERS.map((f) => (
+                    <Button
+                      key={f.value}
+                      size="small"
+                      variant={timeFilter === f.value ? "contained" : "outlined"}
+                      onClick={() => handleFilterChange(f.value)}
+                      sx={{ minWidth: 0, px: 1.5, py: 0.4, textTransform: "none", fontWeight: 600, fontSize: "0.75rem", borderRadius: "8px", boxShadow: "none" }}
+                    >
+                      {f.label}
+                    </Button>
+                  ))}
+                </Stack>
               </Stack>
 
-              <LinearProgress
-                variant="determinate"
-                value={85}
-                sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  bgcolor: "#FECACA", // Đỏ nhạt
-                  "& .MuiLinearProgress-bar": {
-                    bgcolor: theme.palette.error.main, // Đỏ đậm
-                    borderRadius: 4,
-                  },
-                  mb: 1,
-                }}
-              />
-              <Typography variant="caption" sx={{ color: theme.palette.error.main, fontSize: "0.75rem" }}>
-                Nghiêm trọng - DO thấp, NH3 cao
-              </Typography>
+              {/* Chart area */}
+              <Box sx={{ height: timeFilter === "1h" ? 360 : 320, width: "100%", mb: 2 }}>
+                {chartLoading ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                    <CircularProgress size={32} />
+                  </Box>
+                ) : isBinary ? (
+                  /* ── Binary sensor timeline ── */
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", px: 1 }}>
+                    {/* Legend */}
+                    <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 1.5 }}>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#10B981", flexShrink: 0 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          An toàn (1)
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#EF4444", flexShrink: 0 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          Bất thường (0)
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: "#E2E8F0", flexShrink: 0 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          Không có dữ liệu
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                    {/* Timeline bar */}
+                    <Box sx={{ flex: 1, borderRadius: "10px", overflow: "hidden", border: "1px solid #E2E8F0", display: "flex", minHeight: 40 }}>
+                      {displayChartData.map((point, i) => {
+                        const color = point.value === null ? "#E2E8F0" : point.value >= 0.5 ? "#10B981" : "#EF4444";
+                        const label = point.value === null ? "Không có dữ liệu" : point.value >= 0.5 ? "An toàn (1)" : "Bất thường (0)";
+                        return <Box key={i} sx={{ flex: 1, bgcolor: color, minWidth: 1, transition: "background-color 0.3s" }} title={`${point.time}: ${label}`} />;
+                      })}
+                    </Box>
+                    {/* Time labels */}
+                    {displayChartData.length > 0 && (
+                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.75 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {displayChartData[0].time}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {displayChartData[displayChartData.length - 1].time}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  /* ── Analog sensor line chart ── */
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={displayChartData} margin={{ top: 32, right: 24, left: 0, bottom: timeFilter === "1h" ? 42 : 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="time"
+                        axisLine={false}
+                        tickLine={false}
+                        dy={8}
+                        tick={(props: { x?: string | number; y?: string | number; payload?: { value?: string } }) => {
+                          const x = Number(props.x ?? 0);
+                          const y = Number(props.y ?? 0);
+                          const { payload } = props;
+                          const raw = payload?.value ?? "";
+                          // For 1h filter, time is "DD/MM HH:mm" — split into 2 lines
+                          const parts = timeFilter === "1h" ? raw.match(/^(\d+\/\d+)\s+(\d+:\d+)$/) : null;
+                          if (parts) {
+                            return (
+                              <g transform={`translate(${x},${y})`}>
+                                <text textAnchor="middle" fill="#6B7280" fontSize={11}>
+                                  <tspan x={0} dy={8}>{parts[2]}</tspan>
+                                  <tspan x={0} dy={14}>{parts[1]}</tspan>
+                                </text>
+                              </g>
+                            );
+                          }
+                          return (
+                            <g transform={`translate(${x},${y})`}>
+                              <text textAnchor="middle" fill="#6B7280" fontSize={11} dy={8}>{raw}</text>
+                            </g>
+                          );
+                        }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        domain={yDomain}
+                        ticks={yAxisTicks}
+                        tick={(props: { x?: string | number; y?: string | number; payload?: { value?: number | string } }) => {
+                          const { x, y, payload } = props;
+                          const tickValue = payload?.value ?? 0;
+                          const isThresholdTick = thresholds !== null && (Math.abs(Number(tickValue) - thresholds.min) < 0.05 || Math.abs(Number(tickValue) - thresholds.max) < 0.05);
+                          return (
+                            <text
+                              x={x}
+                              y={y}
+                              textAnchor="end"
+                              dominantBaseline="middle"
+                              fontSize={isThresholdTick ? 12 : 11}
+                              fontWeight={isThresholdTick ? 700 : 400}
+                              fill={isThresholdTick ? "#10B981" : "#6B7280"}
+                            >
+                              {tickValue}
+                            </text>
+                          );
+                        }}
+                        label={{ value: activeSensor.unitOfMeasure, position: "top", offset: 8, fill: "#9CA3AF", fontSize: 12, fontWeight: 600, style: { textAnchor: "middle" } }}
+                      />
+                      <Tooltip
+                        contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                        formatter={(val: number | undefined) => [`${val ?? ""} ${activeSensor.unitOfMeasure}`, activeSensor.sensorTypeName]}
+                      />
+                      {thresholds && <ReferenceArea y1={thresholds.min} y2={thresholds.max} fill="#10B981" fillOpacity={0.08} stroke="#10B981" strokeOpacity={0.3} strokeDasharray="3 3" />}
+                      <Line
+                        name={activeSensor.sensorTypeName}
+                        type="monotone"
+                        dataKey="value"
+                        stroke={chartColor}
+                        strokeWidth={2}
+                        connectNulls={false}
+                        dot={(props: unknown) => renderCustomDot({ ...(props as CustomDotProps), thresholds, defaultColor: chartColor })}
+                        activeDot={{ r: 8 }}
+                      />
+                      {(timeFilter === "1m" || timeFilter === "1h") && displayChartData.length > 12 && (
+                        <Brush
+                          dataKey="time"
+                          height={22}
+                          startIndex={Math.max(0, displayChartData.length - 12)}
+                          endIndex={displayChartData.length - 1}
+                          stroke="#10B981"
+                          fill="#F0FDF4"
+                          travellerWidth={8}
+                          gap={1}
+                          tickFormatter={(v: string) => v}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </Box>
+
+              {displayChartData.length === 0 && !chartLoading && (
+                <Typography variant="body2" sx={{ textAlign: "center", color: theme.palette.text.secondary, mb: 1.5 }}>
+                  Chưa có dữ liệu trong khoảng thời gian này.
+                </Typography>
+              )}
+
+              <Divider sx={{ mb: 1.5 }} />
+
+              {/* Stats row */}
+              <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+                {isBinary ? (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                        Trạng thái hiện tại
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: currentValue >= 0.5 ? theme.palette.success.main : theme.palette.error.main }}>
+                        {currentValue >= 0.5 ? "An toàn (1)" : "Bất thường (0)"}
+                      </Typography>
+                    </Box>
+                    {binaryStats && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                          Thống kê
+                        </Typography>
+                        <Stack direction="row" spacing={2} sx={{ mt: 0.25 }}>
+                          <Typography variant="body2" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                            {binaryStats.safePct}% an toàn
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                            {binaryStats.unsafePct}% bất thường
+                          </Typography>
+                        </Stack>
+                      </Box>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                        Ngưỡng an toàn
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.success.main }}>
+                        {thresholds ? (
+                          <>
+                            {thresholds.min} – {thresholds.max}
+                            <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                              {activeSensor.unitOfMeasure}
+                            </Typography>
+                          </>
+                        ) : (
+                          "N/A"
+                        )}
+                      </Typography>
+                      {thresholds && (
+                        <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                          Mức tối ưu
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                        Giá trị gần nhất
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
+                        {currentValue.toFixed(2)}
+                        <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                          {activeSensor.unitOfMeasure}
+                        </Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : "text.secondary" }}>
+                        {thresholds ? (isCurrentDanger ? "Vượt ngưỡng" : "Bình thường") : "—"}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+                {!isBinary && dailyMin != null && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                      Thấp nhất hôm nay
+                      <Typography component="span" variant="caption" sx={{ color: "#94A3B8", fontWeight: 400, textTransform: "none", ml: 0.5, fontSize: "9px" }}>
+                        (tb theo phút)
+                      </Typography>
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.info.main }}>
+                      {dailyMin.toFixed(2)}
+                      <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                        {activeSensor.unitOfMeasure}
+                      </Typography>
+                    </Typography>
+                  </Box>
+                )}
+                {!isBinary && dailyMax != null && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
+                      Cao nhất hôm nay
+                      <Typography component="span" variant="caption" sx={{ color: "#94A3B8", fontWeight: 400, textTransform: "none", ml: 0.5, fontSize: "9px" }}>
+                        (tb theo phút)
+                      </Typography>
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.warning.main }}>
+                      {dailyMax.toFixed(2)}
+                      <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
+                        {activeSensor.unitOfMeasure}
+                      </Typography>
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             </Paper>
-
-            {/* 2. Gợi ý hành động từ AI */}
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 600,
-                mb: 2,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                color: theme.palette.text.primary,
-              }}
-            >
-              <CloudQueueIcon fontSize="small" color="primary" /> Gợi ý hành động từ AI
-            </Typography>
-
-            <Stack spacing={2}>
-              {/* Card 1: Xử lý DO */}
-              <DetailedActionCard
-                title="Xử lý khẩn cấp DO thấp"
-                risk="Mức DO giảm xuống 4.2 mg/L - dưới ngưỡng an toàn (5.5 mg/L)"
-                method="Tăng công suất sục khí lên 100%"
-                methodNote="Ngay lập tức"
-                goal="Mục tiêu: Đạt DO ≥ 5.5 mg/L trong 30 phút"
-                type="error"
-                onAction={() => handleOpenModal("Xử lý khẩn cấp DO thấp")}
-              />
-
-              {/* Card 2: Xử lý Ammonia */}
-              <DetailedActionCard
-                title="Xử lý Ammonia cao"
-                risk="NH3 vượt ngưỡng (0.9 ppm > 0.5 ppm) - nguy cơ nhiễm độc"
-                method="Thay nước 30% và thêm vi sinh Bacillus"
-                methodNote="Liều lượng: 5g/m³ nước"
-                goal="Mục tiêu: Giảm NH3 xuống < 0.5 ppm trong 4-6 giờ"
-                type="error"
-                onAction={() => handleOpenModal("Xử lý Ammonia cao")}
-              />
-
-              {/* Card 3: Điều chỉnh pH */}
-              <DetailedActionCard
-                title="Điều chỉnh pH"
-                risk="pH giảm xuống 6.7 - dưới mức tối ưu (7.0-7.5)"
-                method="Thêm vôi CaCO3"
-                methodNote="Liều lượng: 500 gram/m³"
-                goal="Mục tiêu: Đạt pH 7.0 - 7.5 trong 2 giờ"
-                type="warning"
-                onAction={() => handleOpenModal("Điều chỉnh pH")}
-              />
-
-              {/* Card 4: Giảm nhiệt độ */}
-              <DetailedActionCard
-                title="Giảm nhiệt độ nước"
-                risk="Nhiệt độ tăng lên 30.1°C - cao hơn mức tối ưu"
-                method="Tăng lưu lượng nước tuần hoàn"
-                methodNote="Tăng 20% lưu lượng"
-                goal="Mục tiêu: Giảm nhiệt độ xuống 28-29°C trong 1 giờ"
-                type="warning"
-                onAction={() => handleOpenModal("Giảm nhiệt độ nước")}
-              />
-            </Stack>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* MODAL XÁC NHẬN */}
-      <ConfirmActionModal open={modalOpen} onClose={() => setModalOpen(false)} onConfirm={handleConfirmAction} actionTitle={selectedAction} />
-    </Box>
-  );
-};
-
-// Component thẻ hành động chi tiết
-const DetailedActionCard: React.FC<DetailedActionCardProps> = ({ title, risk, method, methodNote, goal, type, onAction }) => {
-  const theme = useTheme();
-  const isError = type === "error";
-  const lightBg = isError ? "#FEF2F2" : "#FFFBEB";
-
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        borderRadius: "16px",
-        borderColor: isError ? theme.palette.error.light : theme.palette.warning.light,
-        overflow: "hidden",
-      }}
-    >
-      {/* Header Card */}
-      <Box sx={{ p: 2, bgcolor: lightBg }}>
-        <Stack direction="row" spacing={1} alignItems="flex-start">
-          {isError ? (
-            <AdjustIcon
-              sx={{
-                color: theme.palette.error.main,
-                fontSize: 20,
-                mt: 0.2,
-              }}
-            />
-          ) : (
-            <ErrorOutlineIcon
-              sx={{
-                color: theme.palette.warning.main,
-                fontSize: 20,
-                mt: 0.2,
-              }}
-            />
           )}
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-              {title}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: theme.palette.text.secondary,
-                lineHeight: 1.3,
-                display: "block",
-                mt: 0.5,
-              }}
-            >
-              {risk}
+
+          {/* ── Device section ── */}
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Quản lý thiết bị chuyên dụng
+          </Typography>
+          <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "16px", p: 3, bgcolor: "white" }}>
+            {loading ? (
+              <CircularProgress size={24} />
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {devices.map((device) => (
+                  <Paper key={device.id} variant="outlined" sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "12px" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: "10px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          bgcolor: device.state ? theme.palette.success.light : theme.palette.action.hover,
+                          color: device.state ? theme.palette.success.main : theme.palette.text.secondary,
+                        }}
+                      >
+                        {device.state ? <BoltIcon /> : <PowerOffIcon />}
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {device.controlDeviceTypeName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: device.state ? theme.palette.success.main : "text.secondary" }}>
+                          {device.state ? "Đang hoạt động" : "Đã tắt"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Button size="small" variant={device.state ? "outlined" : "contained"} color={device.state ? "error" : "primary"} onClick={() => setDeviceToToggle(device)}>
+                      {device.state ? "Tắt" : "Bật"}
+                    </Button>
+                  </Paper>
+                ))}
+                {devices.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    Không tìm thấy thiết bị điều khiển nào cho bể này.
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ── Device toggle dialog ── */}
+      <Dialog
+        open={Boolean(deviceToToggle)}
+        onClose={() => {
+          if (!isToggling) setDeviceToToggle(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{deviceToToggle?.state ? "Xác nhận TẮT thiết bị" : "Xác nhận BẬT thiết bị"}</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: theme.palette.text.secondary, mb: 2 }}>
+            Thiết bị{" "}
+            <Box component="span" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
+              {deviceToToggle?.controlDeviceTypeName}
+            </Box>
+            {selectedTank ? ` tại ${selectedTank.name}` : ""} hiện đang{" "}
+            <Box component="span" sx={{ fontWeight: 700, color: deviceToToggle?.state ? theme.palette.success.main : theme.palette.text.secondary }}>
+              {deviceToToggle?.state ? "BẬT" : "TẮT"}
+            </Box>
+            . Sau khi xác nhận, thiết bị sẽ chuyển sang trạng thái{" "}
+            <Box component="span" sx={{ fontWeight: 700, color: deviceToToggle?.state ? theme.palette.error.main : theme.palette.success.main }}>
+              {deviceToToggle?.state ? "TẮT" : "BẬT"}
+            </Box>
+            .
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1.5, bgcolor: "#FFF7ED", border: "1px solid #FFEDD5", borderRadius: "12px", p: 2 }}>
+            <ErrorOutlineIcon sx={{ color: "#EA580C", fontSize: 22, mt: "2px" }} />
+            <Typography variant="body2" sx={{ color: "#9A3412", lineHeight: 1.6 }}>
+              Đây là thiết bị đang vận hành trực tiếp trong môi trường bể nuôi. Bật/tắt sai thời điểm có thể làm thay đổi đột ngột điều kiện nước (oxy, nhiệt độ, dòng chảy...) và gây nguy hiểm cho vật
+              nuôi. Vui lòng kiểm tra kỹ tình trạng bể và các chỉ số cảm biến trước khi xác nhận.
             </Typography>
           </Box>
-        </Stack>
-      </Box>
-
-      {/* Body Card */}
-      <Box sx={{ p: 2 }}>
-        {/* Phương pháp - Tăng padding lên p: 2 */}
-        <Box sx={{ mb: 2, p: 2, bgcolor: "#F8FAFC", borderRadius: "8px" }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 700,
-              color: "#94A3B8",
-              fontSize: "0.65rem",
-              textTransform: "uppercase",
-            }}
-          >
-            PHƯƠNG PHÁP & LIỀU LƯỢNG
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 600,
-              color: theme.palette.text.primary,
-              mt: 0.5,
-            }}
-          >
-            {method}
-          </Typography>
-          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-            {methodNote}
-          </Typography>
-        </Box>
-
-        {/* Mục tiêu - Tăng padding lên p: 2 */}
-        <Box
-          sx={{
-            mb: 2,
-            p: 2,
-            bgcolor: "#ECFDF5",
-            borderRadius: "8px",
-            border: "1px solid #D1FAE5",
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 700,
-              color: "#94A3B8",
-              fontSize: "0.65rem",
-              textTransform: "uppercase",
-            }}
-          >
-            MỤC TIÊU
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 500,
-              color: "#065F46",
-              mt: 0.5,
-              fontSize: "0.8rem",
-            }}
-          >
-            {goal}
-          </Typography>
-        </Box>
-
-        {/* Actions - Button 36px, no-wrap, padding nhỏ */}
-        <Stack direction="row" spacing={1.5}>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setDeviceToToggle(null)} disabled={isToggling} sx={{ color: theme.palette.text.secondary, fontWeight: 600, textTransform: "none" }}>
+            Hủy
+          </Button>
           <Button
+            onClick={handleConfirmToggle}
             variant="contained"
-            fullWidth
-            size="small"
-            startIcon={<PlayArrowIcon />}
-            onClick={onAction}
-            sx={{
-              bgcolor: "#2563EB",
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "0.8rem",
-              boxShadow: "none",
-              height: 36,
-              whiteSpace: "nowrap",
-              px: 1,
-              "&:hover": { bgcolor: "#1D4ED8", boxShadow: "none" },
-            }}
+            color={deviceToToggle?.state ? "error" : "primary"}
+            disabled={isToggling}
+            sx={{ borderRadius: "8px", fontWeight: 600, boxShadow: "none", textTransform: "none" }}
           >
-            Thực hiện
+            {isToggling ? "Đang xử lý..." : deviceToToggle?.state ? "Xác nhận tắt" : "Xác nhận bật"}
           </Button>
-          <Button
-            variant="outlined"
-            fullWidth
-            size="small"
-            startIcon={<DescriptionOutlinedIcon />}
-            sx={{
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "0.8rem",
-              borderColor: theme.palette.primary.main,
-              color: theme.palette.primary.main,
-              height: 36,
-              whiteSpace: "nowrap",
-              px: 1,
-            }}
-          >
-            Xem SOP
-          </Button>
-        </Stack>
-      </Box>
-    </Paper>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

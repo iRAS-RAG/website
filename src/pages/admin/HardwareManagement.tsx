@@ -1,4 +1,21 @@
-import { Alert, Box, CircularProgress, Divider, Paper, Snackbar, Typography, useTheme } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import SensorsIcon from "@mui/icons-material/Sensors";
+import ThermostatIcon from "@mui/icons-material/Thermostat";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Paper,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
@@ -11,45 +28,175 @@ import SensorFormDialog from "../../components/admin/hardware/SensorFormDialog";
 import StructureList from "../../components/admin/hardware/StructureList";
 import TankDetail from "../../components/admin/hardware/TankDetail";
 import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
-import useHardwareData from "../../hooks/useHardwareData";
-import type { ControlDevice, MasterBoard, Sensor, Tank } from "../../types/hardware";
+import { useToast } from "../../components/common/toastContext";
+import useControlDevices from "../../hooks/useControlDevices";
+import useMasterBoards from "../../hooks/useMasterBoards";
+import useSensorTypes from "../../hooks/useSensorTypes";
+import useSensors from "../../hooks/useSensors";
+import useTanks from "../../hooks/useTanks";
+import type { ControlDevice } from "../../types/control-device";
+import type { MasterBoard } from "../../types/masterboard";
+import type { Sensor } from "../../types/sensor";
+import type { Tank } from "../../types/tank";
 
 const HardwareManagement: React.FC = () => {
   const theme = useTheme();
-  const { loading, sensorTypes, masterBoards, sensors, controlDevices, tanks, handleSaveMasterBoard, handleUpdateTank, handleSaveSensor, handleSaveControl, snackOpen, snackMsg, setSnackOpen } =
-    useHardwareData();
+  const toast = useToast();
+  const { items: sensorTypes, loading: sensorTypesLoading } = useSensorTypes();
+  const {
+    loading: tanksLoading,
+    tanks,
+    handleCreateTank,
+    handleUpdateTank,
+    handleDeleteTank,
+  } = useTanks();
+  const {
+    loading: masterBoardsLoading,
+    masterBoards,
+    handleSaveMasterBoard,
+    handleDeleteMasterBoard,
+    reloadMasterBoards,
+  } = useMasterBoards();
+  const {
+    loading: sensorsLoading,
+    sensors,
+    handleSaveSensor,
+    handleDeleteSensor,
+  } = useSensors();
+  const {
+    loading: controlDevicesLoading,
+    controlDevices,
+    handleSaveControl,
+    handleDeleteControl,
+  } = useControlDevices();
 
-  const [expandedTanks, setExpandedTanks] = useState<Record<string, boolean>>({});
-  const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>({});
-  const [selected, setSelected] = useState<{ type: "tank" | "board" | "sensor" | "control"; id: string | null }>({ type: "tank", id: null });
+  const loading =
+    sensorTypesLoading ||
+    tanksLoading ||
+    masterBoardsLoading ||
+    sensorsLoading ||
+    controlDevicesLoading;
+
+  const [expandedTanks, setExpandedTanks] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [expandedBoards, setExpandedBoards] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [selected, setSelected] = useState<{
+    type: "tank" | "board" | "sensor" | "control";
+    id: string | null;
+  }>({ type: "tank", id: null });
   const [mbDialogOpen, setMbDialogOpen] = useState(false);
+  const [selectedTankForBoard, setSelectedTankForBoard] = useState<
+    string | null
+  >(null);
   const [tankDialogOpen, setTankDialogOpen] = useState(false);
   const [editingTank, setEditingTank] = useState<Tank | null>(null);
   const [editingBoard, setEditingBoard] = useState<MasterBoard | null>(null);
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
+  const [selectedBoardForSensor, setSelectedBoardForSensor] = useState<
+    string | null
+  >(null);
   const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
   const [controlDialogOpen, setControlDialogOpen] = useState(false);
-  const [editingControl, setEditingControl] = useState<ControlDevice | null>(null);
+  const [selectedBoardForControl, setSelectedBoardForControl] = useState<
+    string | null
+  >(null);
+  const [editingControl, setEditingControl] = useState<ControlDevice | null>(
+    null,
+  );
+
+  // === STATE QUẢN LÝ POPUP XÁC NHẬN XÓA CHUNG ===
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: React.ReactNode;
+    onConfirm: () => Promise<void>;
+    isProcessing: boolean;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: async () => {},
+    isProcessing: false,
+  });
+
+  const openConfirmDelete = (
+    title: string,
+    message: React.ReactNode,
+    onConfirm: () => Promise<void>,
+  ) => {
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      onConfirm,
+      isProcessing: false,
+    });
+  };
 
   useEffect(() => {
     if (!loading && tanks && tanks.length > 0 && selected.id == null) {
-      const t = setTimeout(() => setSelected({ type: "tank", id: String(tanks[0].id) }), 0);
+      const t = setTimeout(
+        () => setSelected({ type: "tank", id: String(tanks[0].id) }),
+        0,
+      );
       return () => clearTimeout(t);
     }
     return;
   }, [loading, tanks, selected.id]);
 
   return (
-    <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh", width: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        bgcolor: theme.palette.background.default,
+        minHeight: "100vh",
+        width: "100%",
+      }}
+    >
       <AdminSidebar />
 
-      <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          ml: "240px",
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
         <AdminHeader />
 
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-            Phần cứng & Cảm biến
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <SensorsIcon fontSize="small" />
+                Phần cứng & Cảm biến
+              </span>
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditingTank(null);
+                setTankDialogOpen(true);
+              }}
+            >
+              Thêm bể
+            </Button>
+          </Box>
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", p: 6 }}>
@@ -67,6 +214,7 @@ const HardwareManagement: React.FC = () => {
                 expandedBoards={expandedBoards}
                 setExpandedBoards={setExpandedBoards}
                 setSelected={setSelected}
+                selected={selected}
               />
 
               <Box sx={{ flex: 1 }}>
@@ -74,8 +222,17 @@ const HardwareManagement: React.FC = () => {
                   {selected.type === "tank" && selected.id ? (
                     (() => {
                       const t = tanks.find((x) => x.id === selected.id);
-                      if (!t) return <Typography>Chọn một bể để xem chi tiết</Typography>;
-                      const boards = masterBoards.filter((b) => b.fishTankName === t.name);
+                      if (!t)
+                        return (
+                          <Typography>Chọn một bể để xem chi tiết</Typography>
+                        );
+                      // Ưu tiên lọc theo fishTankId (chính xác); fallback theo
+                      // tên cho dữ liệu cũ chưa có fishTankId.
+                      const boards = masterBoards.filter((b) =>
+                        b.fishTankId
+                          ? b.fishTankId === t.id
+                          : b.fishTankName === t.name,
+                      );
                       return (
                         <TankDetail
                           tank={t}
@@ -85,9 +242,35 @@ const HardwareManagement: React.FC = () => {
                             setEditingTank(tn);
                             setTankDialogOpen(true);
                           }}
-                          onAddBoard={() => {
-                            setEditingBoard(null);
-                            setMbDialogOpen(true);
+                          onDelete={(tn) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa bể?",
+                              <>
+                                Bạn có chắc chắn muốn xóa bể{" "}
+                                <strong>{tn.name}</strong>? Hành động này không
+                                thể hoàn tác.
+                              </>,
+                              async () => {
+                                const remaining = tanks.filter(
+                                  (x) => x.id !== tn.id,
+                                );
+                                await handleDeleteTank(tn.id);
+                                if (
+                                  selected.type === "tank" &&
+                                  selected.id === tn.id
+                                ) {
+                                  setSelected(
+                                    remaining.length > 0
+                                      ? {
+                                          type: "tank",
+                                          id: String(remaining[0].id),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success("Xóa bể thành công");
+                              },
+                            );
                           }}
                         />
                       );
@@ -95,9 +278,18 @@ const HardwareManagement: React.FC = () => {
                   ) : selected.type === "board" && selected.id ? (
                     (() => {
                       const b = masterBoards.find((x) => x.id === selected.id);
-                      if (!b) return <Typography>Chọn một board để xem chi tiết</Typography>;
-                      const boardSensors = sensors.filter((s) => s.masterBoardId === b.id);
-                      const boardControls = controlDevices.filter((c) => c.masterBoardId === b.id);
+                      if (!b)
+                        return (
+                          <Typography>
+                            Chọn một board để xem chi tiết
+                          </Typography>
+                        );
+                      const boardSensors = sensors.filter(
+                        (s) => s.masterBoardId === b.id,
+                      );
+                      const boardControls = controlDevices.filter(
+                        (c) => c.masterBoardId === b.id,
+                      );
                       return (
                         <MasterBoardDetail
                           board={b}
@@ -106,14 +298,54 @@ const HardwareManagement: React.FC = () => {
                           onEdit={(bb) => {
                             setEditingTank(null);
                             setEditingBoard(bb);
+                            const parentTank = tanks.find((t) =>
+                              bb.fishTankId
+                                ? t.id === bb.fishTankId
+                                : t.name === bb.fishTankName,
+                            );
+                            setSelectedTankForBoard(parentTank?.id ?? null);
                             setMbDialogOpen(true);
+                          }}
+                          onDelete={(bb) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa bảng mạch?",
+                              <>
+                                Bạn có chắc chắn muốn xóa bảng mạch{" "}
+                                <strong>{bb.name}</strong>? Các thiết bị liên
+                                kết cũng có thể bị ảnh hưởng.
+                              </>,
+                              async () => {
+                                await handleDeleteMasterBoard(bb.id);
+                                const parentTank = tanks.find((t) =>
+                                  bb.fishTankId
+                                    ? t.id === bb.fishTankId
+                                    : t.name === bb.fishTankName,
+                                );
+                                if (
+                                  selected.type === "board" &&
+                                  selected.id === bb.id
+                                ) {
+                                  setSelected(
+                                    parentTank
+                                      ? {
+                                          type: "tank",
+                                          id: String(parentTank.id),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success("Xóa bảng mạch thành công");
+                              },
+                            );
                           }}
                           onAddSensor={() => {
                             setEditingSensor(null);
+                            setSelectedBoardForSensor(b.id);
                             setSensorDialogOpen(true);
                           }}
                           onAddControl={() => {
                             setEditingControl(null);
+                            setSelectedBoardForControl(b.id);
                             setControlDialogOpen(true);
                           }}
                         />
@@ -122,27 +354,120 @@ const HardwareManagement: React.FC = () => {
                   ) : selected.type === "sensor" && selected.id ? (
                     (() => {
                       const s = sensors.find((x) => x.id === selected.id);
-                      if (!s) return <Typography>Chọn một cảm biến để xem chi tiết</Typography>;
+                      if (!s)
+                        return (
+                          <Typography>
+                            Chọn một cảm biến để xem chi tiết
+                          </Typography>
+                        );
                       return (
                         <SensorDetail
                           sensor={s}
                           onEdit={(ss) => {
                             setEditingSensor(ss);
+                            setSelectedBoardForSensor(ss.masterBoardId ?? null);
                             setSensorDialogOpen(true);
+                          }}
+                          onDelete={(ss) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa cảm biến?",
+                              <>
+                                Bạn có chắc chắn muốn xóa cảm biến{" "}
+                                <strong>{ss.name}</strong>?
+                              </>,
+                              async () => {
+                                await handleDeleteSensor(ss.id);
+                                if (
+                                  selected.type === "sensor" &&
+                                  selected.id === ss.id
+                                ) {
+                                  setSelected(
+                                    ss.masterBoardId
+                                      ? {
+                                          type: "board",
+                                          id: String(ss.masterBoardId),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success("Xóa cảm biến thành công");
+                              },
+                            );
                           }}
                         />
                       );
                     })()
                   ) : selected.type === "control" && selected.id ? (
                     (() => {
-                      const c = controlDevices.find((x) => x.id === selected.id);
-                      if (!c) return <Typography>Chọn một thiết bị điều khiển để xem chi tiết</Typography>;
+                      const c = controlDevices.find(
+                        (x) => x.id === selected.id,
+                      );
+                      if (!c)
+                        return (
+                          <Typography>
+                            Chọn một thiết bị điều khiển để xem chi tiết
+                          </Typography>
+                        );
                       return (
                         <ControlDeviceDetail
                           control={c}
                           onEdit={(cc) => {
                             setEditingControl(cc);
+                            setSelectedBoardForControl(
+                              cc.masterBoardId ?? null,
+                            );
                             setControlDialogOpen(true);
+                          }}
+                          onDelete={(cc) => {
+                            openConfirmDelete(
+                              "Xác nhận xóa thiết bị?",
+                              <>
+                                Bạn có chắc chắn muốn xóa thiết bị điều khiển{" "}
+                                <strong>{cc.name}</strong>?
+                              </>,
+                              async () => {
+                                await handleDeleteControl(cc.id);
+                                if (
+                                  selected.type === "control" &&
+                                  selected.id === cc.id
+                                ) {
+                                  setSelected(
+                                    cc.masterBoardId
+                                      ? {
+                                          type: "board",
+                                          id: String(cc.masterBoardId),
+                                        }
+                                      : { type: "tank", id: null },
+                                  );
+                                }
+                                toast.success(
+                                  "Xóa thiết bị điều khiển thành công",
+                                );
+                              },
+                            );
+                          }}
+                          onToggleState={async (cc, newState) => {
+                            try {
+                              await handleSaveControl(
+                                {
+                                  name: cc.name,
+                                  pinCode: cc.pinCode,
+                                  masterBoardId: cc.masterBoardId,
+                                  controlDeviceTypeId: cc.controlDeviceTypeId,
+                                  commandOn: cc.commandOn,
+                                  commandOff: cc.commandOff,
+                                  state: newState,
+                                },
+                                cc.id,
+                              );
+                              toast.success(
+                                `Đã ${newState ? "Bật" : "Tắt"} ${cc.name}`,
+                              );
+                            } catch {
+                              toast.error(
+                                `Lỗi khi thay đổi trạng thái ${cc.name}`,
+                              );
+                            }
                           }}
                         />
                       );
@@ -151,22 +476,82 @@ const HardwareManagement: React.FC = () => {
                     <Box>
                       <Typography variant="h6">Tổng quan phần cứng</Typography>
                       <Divider sx={{ my: 1 }} />
-                      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(2,1fr)", lg: "repeat(4,1fr)" } }}>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gap: 2,
+                          gridTemplateColumns: {
+                            xs: "1fr",
+                            md: "repeat(2,1fr)",
+                            lg: "repeat(4,1fr)",
+                          },
+                        }}
+                      >
                         <Paper sx={{ p: 2 }}>
-                          <Typography variant="subtitle2">Loại cảm biến</Typography>
-                          <Typography variant="h6">{sensorTypes.length}</Typography>
+                          <Typography variant="subtitle2">
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <SensorsIcon fontSize="small" />
+                              Loại cảm biến
+                            </span>
+                          </Typography>
+                          <Typography variant="h6">
+                            {sensorTypes.length}
+                          </Typography>
                         </Paper>
                         <Paper sx={{ p: 2 }}>
-                          <Typography variant="subtitle2">Masterboards</Typography>
-                          <Typography variant="h6">{masterBoards.length}</Typography>
+                          <Typography variant="subtitle2">
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <DeveloperBoardIcon fontSize="small" />
+                              Masterboards
+                            </span>
+                          </Typography>
+                          <Typography variant="h6">
+                            {masterBoards.length}
+                          </Typography>
                         </Paper>
                         <Paper sx={{ p: 2 }}>
-                          <Typography variant="subtitle2">Cảm biến</Typography>
+                          <Typography variant="subtitle2">
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <ThermostatIcon fontSize="small" />
+                              Cảm biến
+                            </span>
+                          </Typography>
                           <Typography variant="h6">{sensors.length}</Typography>
                         </Paper>
                         <Paper sx={{ p: 2 }}>
-                          <Typography variant="subtitle2">Thiết bị điều khiển</Typography>
-                          <Typography variant="h6">{controlDevices.length}</Typography>
+                          <Typography variant="subtitle2">
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <PowerSettingsNewIcon fontSize="small" />
+                              Thiết bị điều khiển
+                            </span>
+                          </Typography>
+                          <Typography variant="h6">
+                            {controlDevices.length}
+                          </Typography>
                         </Paper>
                       </Box>
                     </Box>
@@ -177,18 +562,50 @@ const HardwareManagement: React.FC = () => {
           )}
         </Box>
       </Box>
+
+      {/* CÁC DIALOG FORM TẠO/SỬA */}
       <MasterBoardFormDialog
         open={mbDialogOpen}
         onClose={() => {
           setMbDialogOpen(false);
           setEditingBoard(null);
+          setSelectedTankForBoard(null);
         }}
         onSave={async (v) => {
-          await handleSaveMasterBoard(v, editingBoard);
-          setEditingBoard(null);
-          setMbDialogOpen(false);
+          try {
+            const saved = await handleSaveMasterBoard(v, editingBoard);
+            const fresh = await reloadMasterBoards();
+            const updated = fresh.find((b) => b.id === saved.id) ?? saved;
+            const parentTank = tanks.find((t) =>
+              updated.fishTankId
+                ? t.id === updated.fishTankId
+                : t.name === updated.fishTankName,
+            );
+            if (parentTank) {
+              setExpandedTanks((p) => ({ ...p, [parentTank.id]: true }));
+              setExpandedBoards((p) => ({ ...p, [updated.id]: true }));
+              setSelected({ type: "board", id: String(updated.id) });
+            } else {
+              setSelected({ type: "board", id: String(updated.id) });
+            }
+
+            toast.success(
+              editingBoard
+                ? "Cập nhật bảng mạch thành công"
+                : "Tạo bảng mạch thành công",
+            );
+          } catch {
+            // <--- SỬA THÀNH NHƯ THẾ NÀY (Bỏ (error) đi)
+            toast.error("Không thể lưu bảng mạch");
+          } finally {
+            setEditingBoard(null);
+            setSelectedTankForBoard(null);
+            setMbDialogOpen(false);
+          }
         }}
         initial={editingBoard}
+        defaultFishTankId={selectedTankForBoard}
+        tanks={tanks}
       />
       <TankFormDialog
         open={tankDialogOpen}
@@ -197,7 +614,14 @@ const HardwareManagement: React.FC = () => {
           setEditingTank(null);
         }}
         onSave={async (v) => {
-          await handleUpdateTank(v, editingTank?.id);
+          if (editingTank?.id) {
+            await handleUpdateTank(v, editingTank.id);
+          } else {
+            await handleCreateTank(v);
+          }
+          toast.success(
+            editingTank ? "Cập nhật bể thành công" : "Tạo bể thành công",
+          );
           setEditingTank(null);
           setTankDialogOpen(false);
         }}
@@ -208,32 +632,105 @@ const HardwareManagement: React.FC = () => {
         onClose={() => {
           setSensorDialogOpen(false);
           setEditingSensor(null);
+          setSelectedBoardForSensor(null);
         }}
         onSave={async (v) => {
           await handleSaveSensor(v, editingSensor?.id);
+          toast.success(
+            editingSensor
+              ? "Cập nhật cảm biến thành công"
+              : "Tạo cảm biến thành công",
+          );
           setEditingSensor(null);
+          setSelectedBoardForSensor(null);
           setSensorDialogOpen(false);
         }}
         initial={editingSensor}
+        defaultMasterBoardId={selectedBoardForSensor}
+        existingSensors={sensors}
       />
       <ControlDeviceFormDialog
         open={controlDialogOpen}
         onClose={() => {
           setControlDialogOpen(false);
           setEditingControl(null);
+          setSelectedBoardForControl(null);
         }}
         onSave={async (v) => {
           await handleSaveControl(v, editingControl?.id);
+          toast.success(
+            editingControl
+              ? "Cập nhật thiết bị điều khiển thành công"
+              : "Tạo thiết bị điều khiển thành công",
+          );
           setEditingControl(null);
+          setSelectedBoardForControl(null);
           setControlDialogOpen(false);
         }}
         initial={editingControl}
+        defaultMasterBoardId={selectedBoardForControl}
+        existingControls={controlDevices}
       />
-      <Snackbar open={snackOpen} autoHideDuration={3000} onClose={() => setSnackOpen(false)}>
-        <Alert onClose={() => setSnackOpen(false)} severity="success" sx={{ width: "100%" }}>
-          {snackMsg}
-        </Alert>
-      </Snackbar>
+
+      {/* DIALOG XÁC NHẬN XÓA CHUNG */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => {
+          if (!confirmDialog.isProcessing) {
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          }
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "12px", p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: "#0F172A", pb: 1 }}>
+          {confirmDialog.title}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#475569" }}>
+            {confirmDialog.message}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() =>
+              setConfirmDialog((prev) => ({ ...prev, open: false }))
+            }
+            disabled={confirmDialog.isProcessing}
+            sx={{ color: "#64748B", fontWeight: 600, textTransform: "none" }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={async () => {
+              setConfirmDialog((prev) => ({ ...prev, isProcessing: true }));
+              try {
+                await confirmDialog.onConfirm();
+              } catch {
+                toast.error("Có lỗi xảy ra khi xóa.");
+              } finally {
+                setConfirmDialog((prev) => ({
+                  ...prev,
+                  open: false,
+                  isProcessing: false,
+                }));
+              }
+            }}
+            variant="contained"
+            color="error"
+            disabled={confirmDialog.isProcessing}
+            sx={{
+              borderRadius: "8px",
+              fontWeight: 600,
+              boxShadow: "none",
+              textTransform: "none",
+            }}
+          >
+            {confirmDialog.isProcessing ? "Đang xử lý..." : "Xóa"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
