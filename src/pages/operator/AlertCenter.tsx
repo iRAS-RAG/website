@@ -44,6 +44,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
+import BlockIcon from "@mui/icons-material/Block";
 import type { JSX } from "react";
 
 // Định nghĩa dữ liệu truyền vào Modal (Đã xóa trường level)
@@ -179,8 +180,8 @@ const AlertCenter = () => {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)", // Đổi lại thành 4 cột cho 4 trạng thái
-              gap: 3,
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 2,
               mb: 4,
             }}
           >
@@ -207,6 +208,12 @@ const AlertCenter = () => {
               value={statusCounts.resolved.toString()}
               icon={<CheckCircleOutlineIcon />}
               color="success"
+            />
+            <SummaryCard
+              label="Đã bỏ qua"
+              value={statusCounts.dismissed.toString()}
+              icon={<BlockIcon />}
+              color="grey"
             />
           </Box>
 
@@ -507,7 +514,8 @@ const AlertCenter = () => {
 // --- Sub-components ---
 const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
   const theme = useTheme();
-  const paletteColor = theme.palette[color] as PaletteColor;
+  const isGrey = color === "grey";
+  const paletteColor = isGrey ? null : (theme.palette[color] as PaletteColor);
 
   return (
     <Paper
@@ -545,8 +553,8 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
         sx={{
           p: 1.5,
           borderRadius: "12px",
-          bgcolor: paletteColor.light,
-          color: paletteColor.main,
+          bgcolor: isGrey ? theme.palette.grey[200] : paletteColor!.light,
+          color: isGrey ? theme.palette.grey[700] : paletteColor!.main,
           display: "flex",
         }}
       >
