@@ -112,7 +112,7 @@ const AlertCenter = () => {
     refetch,
   } = useAlerts(1, 10, filterStatuses, filterBatchId);
 
-  useAlertSignalR({ onAlertCreated: () => refetch() });
+  useAlertSignalR({ onAlertCreated: () => refetch(), onAlertStatusChanged: () => refetch() });
 
   const handleStatusFilterChange = (e: SelectChangeEvent) => {
     setStatusFilter(e.target.value);

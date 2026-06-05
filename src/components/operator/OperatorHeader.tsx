@@ -57,6 +57,8 @@ export const OperatorHeader: React.FC<{ title?: string }> = ({ title }) => {
   const popupKeyRef = useRef(0);
   const navigate = useNavigate();
 
+  const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useAlertSignalR({
     onReceiveAlert: (push: AlertPush) => {
       const bellTitle = `${push.tankName}: Cảnh báo ${push.sensorTypeName || "Cảm biến"}`;
@@ -73,9 +75,11 @@ export const OperatorHeader: React.FC<{ title?: string }> = ({ title }) => {
       setBadgeCount((prev) => prev + 1);
       popupKeyRef.current += 1;
       setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle, alertId: push.alertId });
+
+      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+      popupTimerRef.current = setTimeout(() => setAlertPopup(null), 6000);
     },
     onAlertStatusChanged: () => {
-      // Alert was resolved/acknowledged/dismissed — refetch to update badge
       setRefreshTrigger((prev) => prev + 1);
     },
   });

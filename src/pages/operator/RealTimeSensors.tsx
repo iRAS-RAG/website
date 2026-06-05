@@ -478,18 +478,11 @@ const RealTimeSensors = () => {
   const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
 
-  // Sensor-type absolute domain hints (min, max) for a reasonable Y-axis range.
-  // Prevents threshold values being crowded at domain boundary.
   const sensorTypeDomain = useMemo((): [number, number] | null => {
     if (!activeSensor) return null;
-    const lower = activeSensor.sensorTypeName?.toLowerCase() || "";
-    if (lower.includes("nhiệt độ") || lower.includes("temp")) return [0, 50];
-    if (lower.includes("ph")) return [0, 14];
-    if (lower.includes("tds")) return [0, 1000];
-    if (lower.includes("oxy") || lower.includes("do")) return [0, 20];
-    if (lower.includes("ammonia") || lower.includes("nh3")) return [0, 10];
-    if (lower.includes("lưu lượng")) return [0, 200];
-    if (lower.includes("mực nước")) return [0, 500];
+    const min = activeSensor.minPossibleValue;
+    const max = activeSensor.maxPossibleValue;
+    if (min != null && max != null && max > min) return [min, max];
     return null;
   }, [activeSensor]);
 
