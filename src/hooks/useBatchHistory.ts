@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getBatchHistory, type BatchHistoryDto } from "../api/supervisorMetrics";
 
 export function useBatchHistory(batchIdParam?: string, opts?: { start?: string; end?: string; days?: number; metrics?: string; interval?: string }) {
@@ -13,12 +13,7 @@ export function useBatchHistory(batchIdParam?: string, opts?: { start?: string; 
   const [error, setError] = useState<Error | null>(null);
   const [history, setHistory] = useState<BatchHistoryDto | null>(null);
 
-  const lastFetchRef = useRef<number>(0);
-
   const fetchHistory = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchRef.current < 1000) return;
-    lastFetchRef.current = now;
 
     if (!batchId) {
       setHistory(null);

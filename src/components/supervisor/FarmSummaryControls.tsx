@@ -30,8 +30,10 @@ export default function FarmSummaryControls({ start, end, metric = "totalFeedKg"
   React.useEffect(() => setLocalEnd(isoToDate(end)), [end]);
 
   const handleRefresh = () => {
-    const startIso = localStart ? new Date(localStart).toISOString() : undefined;
-    const endIso = localEnd ? new Date(localEnd).toISOString() : undefined;
+    // Keep start at midnight UTC, but set end to end-of-day UTC so records
+    // created today aren't excluded by truncation.
+    const startIso = localStart ? new Date(localStart + "T00:00:00.000Z").toISOString() : undefined;
+    const endIso = localEnd ? new Date(localEnd + "T23:59:59.999Z").toISOString() : undefined;
     onChange({ start: startIso, end: endIso, metric: localMetric, limit: Number(localLimit) });
   };
 

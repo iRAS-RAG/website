@@ -1,7 +1,7 @@
 import { Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import React from "react";
+import { useSupervisorMetricsEvents } from "../../contexts/SupervisorMetricsContext";
 import useFarmTimeseries from "../../hooks/useFarmTimeseries";
-import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
 import TimeseriesChart from "../common/charts/TimeseriesChart";
 import FarmTimeseriesControls from "./FarmTimeseriesControls";
 
@@ -14,8 +14,12 @@ function mapSeries(ts?: { series: { groupId?: string; groupName?: string; points
   });
 }
 
-const defaultEnd = new Date().toISOString();
-const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+function freshDateRange() {
+  return {
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    end: new Date().toISOString(),
+  };
+}
 
 const metricLabel = (k?: string) => {
   switch (k) {
@@ -38,7 +42,13 @@ type TimeseriesParams = {
 };
 
 const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: "feed" | "mortality"; height?: number }> = ({ farmId, defaultMetric = "feed", height = 420 }) => {
-  const [params, setParams] = React.useState<TimeseriesParams>({ start: defaultStart, end: defaultEnd, metric: defaultMetric, interval: "day", groupBy: "none", aggregations: ["sum"] });
+  const [params, setParams] = React.useState<TimeseriesParams>(() => ({
+    ...freshDateRange(),
+    metric: defaultMetric,
+    interval: "day",
+    groupBy: "none",
+    aggregations: ["sum"],
+  }));
 
   const { loading, error, timeseries, refetch } = useFarmTimeseries(farmId, {
     start: params.start,
@@ -65,14 +75,14 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: "feed" | 
     };
   }, []);
 
-  useSupervisorMetricsSignalR("aaaaaaaa-0000-0000-0000-000000000001", {
-    onFeeding: scheduleRefetch,
-    onMortality: scheduleRefetch,
-  });
+  // Subscribe to the single shared SignalR connection
+  const { subscribe } = useSupervisorMetricsEvents();
+  React.useEffect(() => {
+    return subscribe(scheduleRefetch);
+  }, [subscribe, scheduleRefetch]);
 
   const handleControlsChange = (p: { start?: string; end?: string; groupBy?: string; metric?: string; interval?: string; aggregations?: string[] }) => {
     setParams((prev) => {
-      // When switching to batch grouping, force a single aggregation to avoid chart clutter
       if (p.groupBy === "batch" && p.groupBy !== prev.groupBy) {
         return { ...prev, ...p, aggregations: ["sum"] } as TimeseriesParams;
       }
@@ -82,12 +92,10 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: "feed" | 
 
   const series = React.useMemo(() => mapSeries(timeseries), [timeseries]);
 
-  // Multi-select filter for batch series
   const allSeriesNames = React.useMemo(() => series.map((s) => s.name), [series]);
   const [visibleSeries, setVisibleSeries] = React.useState<string[]>([]);
   const initializedRef = React.useRef(false);
 
-  // Initialize visibleSeries once when data first arrives, or when groupBy changes
   React.useEffect(() => {
     if (allSeriesNames.length === 0) return;
     if (!initializedRef.current) {
@@ -96,7 +104,6 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: "feed" | 
     }
   }, [allSeriesNames, params.groupBy]);
 
-  // Reset initialization when groupBy mode changes
   React.useEffect(() => {
     initializedRef.current = false;
   }, [params.groupBy]);

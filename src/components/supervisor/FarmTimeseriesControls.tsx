@@ -43,8 +43,8 @@ export default function FarmTimeseriesControls({ start, end, groupBy = "none", m
   React.useEffect(() => setLocalGroupBy(groupBy), [groupBy]);
 
   const handleRefresh = () => {
-    const startIso = localStart ? new Date(localStart).toISOString() : undefined;
-    const endIso = localEnd ? new Date(localEnd).toISOString() : undefined;
+    const startIso = localStart ? new Date(localStart + "T00:00:00.000Z").toISOString() : undefined;
+    const endIso = localEnd ? new Date(localEnd + "T23:59:59.999Z").toISOString() : undefined;
     onChange({ start: startIso, end: endIso, groupBy: localGroupBy, metric: localMetric, interval: localInterval, aggregations: localAggs });
   };
 
