@@ -30,8 +30,10 @@ import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useAlerts } from "../../hooks/useAlerts";
 import { alertApi } from "../../api/alerts";
+import { operatorBatchesApi } from "../../api/operatorBatchesApi";
 import { useAlertSignalR } from "../../hooks/useAlertSignalR";
 import type { IAlert } from "../../types/alert";
+import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
 // Icons
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -83,8 +85,19 @@ const AlertCenter = () => {
   const navigate = useNavigate();
 
   const [statusFilter, setStatusFilter] = useState<string>("OPEN");
+  const [batchFilter, setBatchFilter] = useState<string>("");
+  const [farmingBatches, setFarmingBatches] = useState<IOperatorFarmingBatch[]>([]);
 
   const filterStatuses = statusFilter === "ALL" ? undefined : [statusFilter];
+  const filterBatchId = batchFilter || undefined;
+
+  // Lấy danh sách vụ nuôi cho dropdown filter
+  useEffect(() => {
+    operatorBatchesApi.getBatches().then((res) => {
+      const items = Array.isArray(res) ? res : ((res as Record<string, unknown>)?.data as unknown[]) ?? [];
+      setFarmingBatches(items as IOperatorFarmingBatch[]);
+    }).catch(() => {});
+  }, []);
 
   // 1. GỌI HOOK LẤY DỮ LIỆU THẬT
   const {
@@ -96,12 +109,17 @@ const AlertCenter = () => {
     totalCount,
     statusCounts,
     refetch,
-  } = useAlerts(1, 10, filterStatuses);
+  } = useAlerts(1, 10, filterStatuses, filterBatchId);
 
   useAlertSignalR({ onAlertCreated: () => refetch() });
 
   const handleStatusFilterChange = (e: SelectChangeEvent) => {
     setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
+  const handleBatchFilterChange = (e: SelectChangeEvent) => {
+    setBatchFilter(e.target.value);
     setPage(1);
   };
 
@@ -193,7 +211,22 @@ const AlertCenter = () => {
           </Box>
 
           {/* FILTER BAR */}
-          <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3, mb: 1 }}>
+          <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3, mb: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Vụ nuôi</InputLabel>
+              <Select
+                value={batchFilter}
+                label="Vụ nuôi"
+                onChange={handleBatchFilterChange}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                {farmingBatches.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    {b.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>Trạng thái</InputLabel>
               <Select
@@ -237,7 +270,8 @@ const AlertCenter = () => {
                       "Cảm biến",
                       "Giá trị",
                       "Ngưỡng",
-                      "Bể ảnh hưởng", // Đã xóa cột Mức độ
+                      "Bể ảnh hưởng",
+                      "Vụ nuôi",
                       "Trạng thái",
                       "Hành động",
                     ].map((head, index) => (
@@ -339,6 +373,17 @@ const AlertCenter = () => {
                         {row.fishTankName}
                       </TableCell>
 
+                      {/* Vụ nuôi */}
+                      <TableCell
+                        sx={{
+                          fontWeight: 500,
+                          color: theme.palette.text.primary,
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {row.farmingBatchName || "—"}
+                      </TableCell>
+
                       {/* Trạng thái */}
                       <TableCell>
                         <Stack direction="row" spacing={1} alignItems="center">
@@ -390,7 +435,7 @@ const AlertCenter = () => {
                   ))}
                   {alerts.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                         Chưa có cảnh báo nào
                       </TableCell>
                     </TableRow>

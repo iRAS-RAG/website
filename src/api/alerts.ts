@@ -11,6 +11,7 @@ export const alertApi = {
     if (params.statuses?.length) params.statuses.forEach((s) => query.append("statuses", s.toString()));
     // server expects TankId query param for filtering by tank
     if (params.tankId) query.append("TankId", params.tankId);
+    if (params.farmingBatchId) query.append("BatchId", params.farmingBatchId);
     if (params.sortBy) query.append("sortBy", params.sortBy);
     if (params.sortDir) query.append("sortDir", params.sortDir);
 

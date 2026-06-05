@@ -30,6 +30,7 @@ export interface IAlertListRequest {
   pageSize?: number;
   statuses?: AlertStatus[];
   tankId?: string;
+  farmingBatchId?: string;
   sortBy?: string;
   sortDir?: "asc" | "desc";
 }
