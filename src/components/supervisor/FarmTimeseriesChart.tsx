@@ -37,7 +37,7 @@ type TimeseriesParams = {
   aggregations: string[];
 };
 
-const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; height?: number }> = ({ farmId, defaultMetric = "feed", height = 420 }) => {
+const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: "feed" | "mortality"; height?: number }> = ({ farmId, defaultMetric = "feed", height = 420 }) => {
   const [params, setParams] = React.useState<TimeseriesParams>({ start: defaultStart, end: defaultEnd, metric: defaultMetric, interval: "day", groupBy: "none", aggregations: ["sum"] });
 
   const { loading, error, timeseries, refetch } = useFarmTimeseries(farmId, {
@@ -70,13 +70,13 @@ const FarmTimeseriesChart: React.FC<{ farmId?: string; defaultMetric?: string; h
     onMortality: scheduleRefetch,
   });
 
-  const handleControlsChange = (p: Partial<TimeseriesParams>) => {
+  const handleControlsChange = (p: { start?: string; end?: string; groupBy?: string; metric?: string; interval?: string; aggregations?: string[] }) => {
     setParams((prev) => {
       // When switching to batch grouping, force a single aggregation to avoid chart clutter
       if (p.groupBy === "batch" && p.groupBy !== prev.groupBy) {
-        return { ...prev, ...p, aggregations: ["sum"] };
+        return { ...prev, ...p, aggregations: ["sum"] } as TimeseriesParams;
       }
-      return { ...prev, ...p };
+      return { ...prev, ...p } as TimeseriesParams;
     });
   };
 

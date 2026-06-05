@@ -75,8 +75,8 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
 
   useSupervisorMetricsSignalR(DEFAULT_FARM_ID, { onFeeding: scheduleRefetch, onMortality: scheduleRefetch });
 
-  const handleControlsChange = (p: Partial<HistoryParams>) => {
-    setParams((prev) => ({ ...prev, ...p }));
+  const handleControlsChange = (p: { start?: string; end?: string; metrics?: string[]; interval?: string }) => {
+    setParams((prev) => ({ ...prev, ...(p as Partial<HistoryParams>) }));
   };
 
   const series = mapHistory(history);

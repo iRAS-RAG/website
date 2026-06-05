@@ -908,8 +908,10 @@ const RealTimeSensors = () => {
                         axisLine={false}
                         tickLine={false}
                         dy={8}
-                        tick={(props: { x?: number; y?: number; payload?: { value?: string } }) => {
-                          const { x = 0, y = 0, payload } = props;
+                        tick={(props: { x?: string | number; y?: string | number; payload?: { value?: string } }) => {
+                          const x = Number(props.x ?? 0);
+                          const y = Number(props.y ?? 0);
+                          const { payload } = props;
                           const raw = payload?.value ?? "";
                           // For 1h filter, time is "DD/MM HH:mm" — split into 2 lines
                           const parts = timeFilter === "1h" ? raw.match(/^(\d+\/\d+)\s+(\d+:\d+)$/) : null;

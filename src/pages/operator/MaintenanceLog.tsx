@@ -82,9 +82,12 @@ const MaintenanceLog: React.FC = () => {
         ]);
 
         const extractItems = (res: unknown): IAlertOption[] => {
-          const rawData = (res as any)?.data;
-          if (Array.isArray(rawData)) return rawData;
-          if (Array.isArray(rawData?.items)) return rawData.items;
+          const obj = res as Record<string, unknown> | null;
+          if (obj?.data && Array.isArray(obj.data)) return obj.data as IAlertOption[];
+          if (obj?.data && typeof obj.data === "object") {
+            const items = (obj.data as Record<string, unknown>).items;
+            if (Array.isArray(items)) return items as IAlertOption[];
+          }
           if (Array.isArray(res)) return res as IAlertOption[];
           return [];
         };
