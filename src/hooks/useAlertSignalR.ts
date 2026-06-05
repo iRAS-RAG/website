@@ -1,4 +1,4 @@
-import { HubConnectionBuilder, type HubConnection } from "@microsoft/signalr";
+import { HubConnectionBuilder, HttpTransportType, type HubConnection, type IHttpConnectionOptions } from "@microsoft/signalr";
 import { useEffect, useRef } from "react";
 import { API_BASE } from "../api/client";
 import { getAccessToken } from "../api/jwt";
@@ -25,6 +25,18 @@ interface Handlers {
   onAlertCreated?: (notification: AlertCreatedNotification) => void;
 }
 
+function buildConnection(transport?: HttpTransportType) {
+  const opts: IHttpConnectionOptions = {
+    accessTokenFactory: () => getAccessToken() ?? "",
+  };
+  if (transport !== undefined) opts.transport = transport;
+
+  return new HubConnectionBuilder()
+    .withUrl(HUB_URL, opts)
+    .withAutomaticReconnect()
+    .build();
+}
+
 export function useAlertSignalR(handlers: Handlers) {
   const connRef = useRef<HubConnection | null>(null);
   const handlersRef = useRef(handlers);
@@ -35,29 +47,81 @@ export function useAlertSignalR(handlers: Handlers) {
 
   useEffect(() => {
     let cancelled = false;
+    let conn: HubConnection;
 
-    const conn = new HubConnectionBuilder()
-      .withUrl(HUB_URL, { accessTokenFactory: () => getAccessToken() ?? "" })
-      .withAutomaticReconnect()
-      .build();
+    const startConnection = async () => {
+      conn = buildConnection();
 
-    conn.on("ReceiveAlert", (push: AlertPush) => {
-      handlersRef.current.onReceiveAlert?.(push);
-    });
+      conn.on("ReceiveAlert", (push: AlertPush) => {
+        handlersRef.current.onReceiveAlert?.(push);
+      });
 
-    conn.on("AlertCreated", (notification: AlertCreatedNotification) => {
-      handlersRef.current.onAlertCreated?.(notification);
-    });
+      conn.on("AlertCreated", (notification: AlertCreatedNotification) => {
+        handlersRef.current.onAlertCreated?.(notification);
+      });
 
-    conn.start().catch((e) => {
-      if (!cancelled) console.error("AlertSignalR connection failed:", e);
-    });
+      conn.onreconnecting(() => {
+        if (!cancelled) console.log("[AlertSignalR] Reconnecting...");
+      });
 
-    connRef.current = conn;
+      conn.onreconnected(async () => {
+        if (!cancelled) console.log("[AlertSignalR] Reconnected");
+      });
+
+      conn.onclose(() => {
+        if (!cancelled) console.log("[AlertSignalR] Connection closed");
+      });
+
+      connRef.current = conn;
+
+      try {
+        await conn.start();
+      } catch (e) {
+        if (cancelled) return;
+        console.warn("[AlertSignalR] WebSocket failed, falling back to LongPolling:", e);
+        // WebSocket failed — try LongPolling as a fallback
+        conn.stop().catch(() => {});
+        conn = buildConnection(HttpTransportType.LongPolling);
+
+        conn.on("ReceiveAlert", (push: AlertPush) => {
+          handlersRef.current.onReceiveAlert?.(push);
+        });
+
+        conn.on("AlertCreated", (notification: AlertCreatedNotification) => {
+          handlersRef.current.onAlertCreated?.(notification);
+        });
+
+        conn.onreconnecting(() => {
+          if (!cancelled) console.log("[AlertSignalR] Reconnecting...");
+        });
+
+        conn.onreconnected(async () => {
+          if (!cancelled) console.log("[AlertSignalR] Reconnected");
+        });
+
+        conn.onclose(() => {
+          if (!cancelled) console.log("[AlertSignalR] Connection closed");
+        });
+
+        connRef.current = conn;
+
+        try {
+          await conn.start();
+        } catch (e2) {
+          if (!cancelled) console.error("[AlertSignalR] All transport attempts failed:", e2);
+          connRef.current = null;
+          return;
+        }
+      }
+    };
+
+    startConnection();
 
     return () => {
       cancelled = true;
-      conn.stop().catch(() => {});
+      if (conn) {
+        conn.stop().catch(() => {});
+      }
       connRef.current = null;
     };
   }, []);

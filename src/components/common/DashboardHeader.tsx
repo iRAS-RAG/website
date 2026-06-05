@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 type Notification = { id?: string; type: "error" | "warning" | "success"; title: string; time: string };
 
-export type AlertPopup = { key: number; type: "error" | "warning" | "success"; title: string };
+export type AlertPopup = { key: number; type: "error" | "warning" | "success"; title: string; alertId?: string };
 
 interface DashboardHeaderProps {
   title?: string;
@@ -20,7 +20,7 @@ interface DashboardHeaderProps {
   seeAllRoute?: string;
   showNotifications?: boolean;
   alertPopup?: AlertPopup | null;
-  onAlertPopupDismiss?: () => void;
+  onAlertPopupDismiss?: (alertId?: string) => void;
   onNotificationClick?: (id?: string) => void;
 }
 
@@ -89,7 +89,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlacehol
               <Fade key={alertPopup.key} in timeout={300}>
                 <Paper
                   elevation={4}
-                  onClick={onAlertPopupDismiss}
+                  onClick={() => onAlertPopupDismiss?.(alertPopup.alertId)}
                   sx={{
                     position: "absolute",
                     top: "calc(100% + 8px)",

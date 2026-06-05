@@ -52,6 +52,7 @@ export const OperatorHeader: React.FC = () => {
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
   const liveNotifsRef = useRef<Notification[]>([]);
+  const liveDeltaRef = useRef(0); // SignalR increments since last API poll
   const popupKeyRef = useRef(0);
   const navigate = useNavigate();
 
@@ -67,9 +68,10 @@ export const OperatorHeader: React.FC = () => {
       };
       liveNotifsRef.current = [newNotif, ...liveNotifsRef.current].slice(0, 5);
       setNotifications((prev) => [newNotif, ...prev].slice(0, 10));
+      liveDeltaRef.current += 1;
       setBadgeCount((prev) => prev + 1);
       popupKeyRef.current += 1;
-      setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle });
+      setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle, alertId: push.alertId });
     },
   });
 
@@ -89,7 +91,11 @@ export const OperatorHeader: React.FC = () => {
           (a) => a.status === "OPEN" || a.status === "ACKNOWLEDGED",
         ).length;
 
-        setBadgeCount(activeCount);
+        // Preserve any SignalR increments from alerts the API might not yet reflect.
+        // This prevents the badge count from dropping when a SignalR push arrived
+        // but the next API poll hasn't indexed it yet.
+        setBadgeCount(activeCount + liveDeltaRef.current);
+        liveDeltaRef.current = 0;
 
         const fetchedNotifs: Notification[] = items.map((alert: AlertItem) => {
           let notifType: NotificationType = "error";
@@ -142,7 +148,10 @@ export const OperatorHeader: React.FC = () => {
       }
       seeAllRoute="/operator/alerts"
       alertPopup={alertPopup}
-      onAlertPopupDismiss={() => setAlertPopup(null)}
+      onAlertPopupDismiss={(alertId) => {
+        setAlertPopup(null);
+        if (alertId) navigate("/operator/alerts", { state: { openAlertId: alertId } });
+      }}
       onNotificationClick={(id) => {
         if (id) navigate("/operator/alerts", { state: { openAlertId: id } });
       }}
