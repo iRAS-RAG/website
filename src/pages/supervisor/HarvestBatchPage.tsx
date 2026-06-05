@@ -5,7 +5,6 @@ import dayjs from "dayjs";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../../components/common/toastContext";
-import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useBatches, { useBatchDetails } from "../../hooks/useBatches";
 
@@ -27,8 +26,7 @@ const HarvestBatchPage: React.FC = () => {
       <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
         <SupervisorSidebar />
         <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <SupervisorHeader />
-          <Box component="main" sx={{ p: 3, flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <Box component="main" sx={{ p: 3, flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
             <CircularProgress />
           </Box>
         </Box>
@@ -41,8 +39,7 @@ const HarvestBatchPage: React.FC = () => {
       <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
         <SupervisorSidebar />
         <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <SupervisorHeader />
-          <Box component="main" sx={{ p: 3, flexGrow: 1, textAlign: "center" }}>
+                    <Box component="main" sx={{ p: 3, flexGrow: 1, textAlign: "center" }}>
             <Typography variant="h6" color="text.secondary">
               Không tìm thấy vụ nuôi
             </Typography>
@@ -60,8 +57,7 @@ const HarvestBatchPage: React.FC = () => {
       <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
         <SupervisorSidebar />
         <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <SupervisorHeader />
-          <Box component="main" sx={{ p: 3, flexGrow: 1, textAlign: "center" }}>
+                    <Box component="main" sx={{ p: 3, flexGrow: 1, textAlign: "center" }}>
             <Typography variant="h6" color="text.secondary">
               Vụ nuôi này đã ở trạng thái {batch.status}
             </Typography>
@@ -119,8 +115,7 @@ const HarvestBatchPage: React.FC = () => {
     <Box sx={{ display: "flex", bgcolor: "background.default", minHeight: "100vh", width: "100%" }}>
       <SupervisorSidebar />
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <SupervisorHeader />
-        <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
+                <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           <Box sx={{ maxWidth: 1000, mx: "auto" }}>
             <Box sx={{ mb: 4 }}>
               <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/supervisor/batches/${id}`)} sx={{ mb: 2 }}>

@@ -3,7 +3,6 @@ import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isSupervisor } from "../../api/auth";
 import MetricsPanel from "../../components/supervisor/MetricsPanel";
-import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import { useSupervisorDashboard } from "../../hooks/useSupervisorDashboard";
 import FeedTypesTab from "./FeedTypesTab";
@@ -142,8 +141,6 @@ const SupervisorDashboard: React.FC<{ section?: string }> = ({ section }) => {
           minWidth: 0,
         }}
       >
-        <SupervisorHeader />
-
         <Box component="main" sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <SectionRenderer section={section} />

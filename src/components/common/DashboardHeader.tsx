@@ -2,9 +2,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CloseIcon from "@mui/icons-material/Close";
 import ErrorIcon from "@mui/icons-material/Error";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import SearchIcon from "@mui/icons-material/Search";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { Badge, Box, Fade, IconButton, InputBase, Menu, MenuItem, Paper, Typography, useTheme } from "@mui/material";
+import { Badge, Box, Fade, IconButton, Menu, MenuItem, Paper, Typography, useTheme } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,7 +13,6 @@ export type AlertPopup = { key: number; type: "error" | "warning" | "success"; t
 
 interface DashboardHeaderProps {
   title?: string;
-  searchPlaceholder?: string;
   badgeCount?: number;
   notifications?: Notification[];
   seeAllRoute?: string;
@@ -24,7 +22,7 @@ interface DashboardHeaderProps {
   onNotificationClick?: (id?: string) => void;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlaceholder = "Tìm nhanh mã lô nuôi, cảm biến...", badgeCount = 0, notifications = [], seeAllRoute, showNotifications = true, alertPopup, onAlertPopupDismiss, onNotificationClick }) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, badgeCount = 0, notifications = [], seeAllRoute, showNotifications = true, alertPopup, onAlertPopupDismiss, onNotificationClick }) => {
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -48,26 +46,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, searchPlacehol
         zIndex: 1000,
       }}
     >
-      {/* SEARCH on left */}
-      <Paper
-        elevation={0}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          width: 400,
-          bgcolor: theme.palette.background.default,
-          borderRadius: "12px",
-          px: 1.5,
-          py: 0.5,
-          border: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        <SearchIcon sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 20 }} />
-        <InputBase placeholder={searchPlaceholder} sx={{ flex: 1, fontSize: "0.875rem" }} />
-      </Paper>
-
       {/* Title centered if provided */}
-      <Box sx={{ flex: 1, textAlign: "center", pr: "400px" }}>
+      <Box sx={{ flex: 1, textAlign: "center" }}>
         {title && (
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             {title}

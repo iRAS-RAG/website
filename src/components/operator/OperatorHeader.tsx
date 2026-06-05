@@ -138,7 +138,6 @@ export const OperatorHeader: React.FC = () => {
       // Nếu có cảnh báo chưa xử lý (OPEN), ta có thể đếm riêng,
       // ở đây tạm hiển thị tổng số cảnh báo trong DB
       badgeCount={badgeCount}
-      searchPlaceholder="Tìm nhanh mã bể, cảm biến..."
       // Nếu không có cảnh báo nào, hiển thị mặc định 1 dòng thông báo tốt
       notifications={
         notifications.length > 0

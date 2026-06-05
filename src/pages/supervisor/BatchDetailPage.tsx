@@ -7,7 +7,6 @@ import TabAlertHistory from "../../components/supervisor/batches/TabAlertHistory
 import TabBatchHistory from "../../components/supervisor/batches/TabBatchHistory";
 import TabOperationsLog from "../../components/supervisor/batches/TabOperationsLog.tsx";
 import TabOverview from "../../components/supervisor/batches/TabOverview";
-import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import { useBatchDetails } from "../../hooks/useBatches";
 
@@ -55,7 +54,6 @@ const BatchDetailPage: React.FC = () => {
             minWidth: 0,
           }}
         >
-          <SupervisorHeader />
           <Box component="main" sx={{ p: 3, flexGrow: 1, textAlign: "center" }}>
             <Typography variant="h6" color="text.secondary">
               Không tìm thấy vụ nuôi
@@ -88,7 +86,6 @@ const BatchDetailPage: React.FC = () => {
           minWidth: 0,
         }}
       >
-        <SupervisorHeader />
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           {/* Back Button */}
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/supervisor/batches")} sx={{ mb: 2 }}>
