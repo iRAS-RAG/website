@@ -166,14 +166,6 @@ const OperatorDashboard = () => {
   const totalTankPages = Math.ceil(filteredTanks.length / TANKS_PER_PAGE);
   const pagedTanks = filteredTanks.slice((tankPage - 1) * TANKS_PER_PAGE, tankPage * TANKS_PER_PAGE);
 
-  if (loading && !tanks.length) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: "#F8FAFC" }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   // Pie chart data
   const alertPieData: PieSlice[] = [
     { name: "Chờ xử lý", value: alertStats.open, color: "#EF4444" },
@@ -202,6 +194,12 @@ const OperatorDashboard = () => {
         <OperatorHeader />
 
         <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1, width: "100%" }}>
+          {loading && !tanks.length ? (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 12 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
           {/* ── Header ── */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
@@ -301,6 +299,8 @@ const OperatorDashboard = () => {
               <RecentAlertsList limit={5} />
             </Stack>
           </Box>
+          </>
+          )}
         </Box>
       </Box>
     </Box>

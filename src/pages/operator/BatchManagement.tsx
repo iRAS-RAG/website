@@ -323,13 +323,6 @@ const BatchManagement = () => {
     }
   };
 
-  if (loading && batches.length === 0)
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-        <CircularProgress />
-      </Box>
-    );
-
   return (
     <Box
       sx={{
@@ -359,6 +352,11 @@ const BatchManagement = () => {
             height: "100vh",
           }}
         >
+          {loading && batches.length === 0 && (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
+              <CircularProgress />
+            </Box>
+          )}
           {/* Page heading */}
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
