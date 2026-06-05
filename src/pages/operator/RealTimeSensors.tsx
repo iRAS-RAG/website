@@ -541,18 +541,9 @@ const RealTimeSensors = () => {
     <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh" }}>
       <OperatorSidebar />
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <OperatorHeader />
+        <OperatorHeader title="Giám sát cảm biến thời gian thực" />
 
         <Box sx={{ p: 3, flexGrow: 1 }}>
-          {/* ── Title ── */}
-          <Box sx={{ mb: 2.5 }}>
-            <Typography variant="h1" sx={{ fontSize: "2rem", fontWeight: 600, color: theme.palette.text.primary }}>
-              Giám sát cảm biến thời gian thực
-            </Typography>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-              Theo dõi chi tiết thông số cảm biến và trạng thái thiết bị của từng bể
-            </Typography>
-          </Box>
 
           {/* ── Tank selector — slider ── */}
           {(() => {

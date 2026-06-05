@@ -191,7 +191,7 @@ const OperatorDashboard = () => {
       <OperatorSidebar />
 
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <OperatorHeader />
+        <OperatorHeader title="Tổng quan hệ thống iRAS-RAG" />
 
         <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1, width: "100%" }}>
           {loading && !tanks.length ? (
@@ -200,15 +200,6 @@ const OperatorDashboard = () => {
             </Box>
           ) : (
             <>
-          {/* ── Header ── */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
-              Tổng quan hệ thống iRAS-RAG
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#64748B" }}>
-              Tổng quan tình trạng vận hành toàn hệ thống iRAS-RAG
-            </Typography>
-          </Box>
 
           {/* ── ZONE 1: Pie Charts ── */}
           <Box

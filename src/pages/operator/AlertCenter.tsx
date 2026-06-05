@@ -154,27 +154,9 @@ const AlertCenter = () => {
           flexDirection: "column",
         }}
       >
-        <OperatorHeader />
+        <OperatorHeader title="Trung tâm cảnh báo" />
 
         <Box sx={{ p: 3 }}>
-          <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="h1"
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.text.primary,
-                fontSize: "2rem",
-              }}
-            >
-              Trung tâm cảnh báo
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
-            >
-              Quản lý và xử lý các cảnh báo từ hệ thống
-            </Typography>
-          </Box>
 
           <Box
             sx={{

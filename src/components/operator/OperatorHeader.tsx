@@ -47,7 +47,7 @@ const getTimeAgo = (dateString?: string) => {
   return `${diffInDays} ngày trước`;
 };
 
-export const OperatorHeader: React.FC = () => {
+export const OperatorHeader: React.FC<{ title?: string }> = ({ title }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
@@ -137,6 +137,7 @@ export const OperatorHeader: React.FC = () => {
     <DashboardHeader
       // Nếu có cảnh báo chưa xử lý (OPEN), ta có thể đếm riêng,
       // ở đây tạm hiển thị tổng số cảnh báo trong DB
+      title={title}
       badgeCount={badgeCount}
       // Nếu không có cảnh báo nào, hiển thị mặc định 1 dòng thông báo tốt
       notifications={
