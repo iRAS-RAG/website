@@ -1,7 +1,8 @@
 import { HubConnectionBuilder, HttpTransportType, type HubConnection, type IHttpConnectionOptions } from "@microsoft/signalr";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { API_BASE } from "../api/client";
 import { getAccessToken } from "../api/jwt";
+import { usePageVisibility } from "./usePageVisibility";
 
 const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/alerts";
 
@@ -136,4 +137,36 @@ export function useAlertSignalR(handlers: Handlers) {
       connRef.current = null;
     };
   }, []);
+
+  // When the user switches back to this tab, the browser may have disconnected
+  // the WebSocket. SignalR's auto-reconnect will kick in, but the immediate
+  // retry often fails because the browser hasn't fully restored the WebSocket
+  // subsystem yet. Explicitly check on visibility change and restart if needed.
+  const handlePageVisible = useCallback(() => {
+    const c = connRef.current;
+    if (c && c.state === "Disconnected") {
+      console.log("[AlertSignalR] Tab visible, restarting connection");
+      c.start().catch((e) => {
+        console.warn("[AlertSignalR] Restart on visibility failed, falling back:", e);
+        // Build a fresh LongPolling connection as fallback
+        const lp = buildConnection(HttpTransportType.LongPolling);
+        lp.on("ReceiveAlert", (push: AlertPush) => {
+          handlersRef.current.onReceiveAlert?.(push);
+        });
+        lp.on("AlertCreated", (notification: AlertCreatedNotification) => {
+          handlersRef.current.onAlertCreated?.(notification);
+        });
+        lp.on("AlertStatusChanged", (notification: AlertStatusChangedNotification) => {
+          handlersRef.current.onAlertStatusChanged?.(notification);
+        });
+        lp.onreconnecting(() => console.log("[AlertSignalR] Reconnecting..."));
+        lp.onreconnected(async () => console.log("[AlertSignalR] Reconnected"));
+        lp.onclose(() => console.log("[AlertSignalR] Connection closed"));
+        connRef.current = lp;
+        return lp.start();
+      });
+    }
+  }, []);
+
+  usePageVisibility(handlePageVisible);
 }

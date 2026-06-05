@@ -2,6 +2,7 @@ import { HubConnection, HubConnectionBuilder, HttpTransportType } from "@microso
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE } from "../api/client";
 import { getAccessToken } from "../api/jwt";
+import { usePageVisibility } from "./usePageVisibility";
 
 const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/supervisor-metrics";
 
@@ -9,10 +10,15 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
   const connRef = useRef<HubConnection | null>(null);
   const [connected, setConnected] = useState(false);
   const handlersRef = useRef(handlers);
+  const farmIdRef = useRef(farmId);
 
   useEffect(() => {
     handlersRef.current = handlers;
   });
+
+  useEffect(() => {
+    farmIdRef.current = farmId;
+  }, [farmId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +93,66 @@ export function useSupervisorMetricsSignalR(farmId?: string, handlers?: { onFeed
       setConnected(false);
     };
   }, [farmId]);
+
+  // On tab visibility restore, restart the connection if the browser paused it.
+  const handlePageVisible = useCallback(() => {
+    const c = connRef.current;
+    if (c && c.state === "Disconnected") {
+      console.log("[SupervisorMetrics] Tab visible, restarting connection");
+      c.start()
+        .then(async () => {
+          setConnected(true);
+          const fid = farmIdRef.current;
+          if (fid) {
+            try {
+              await c.invoke("JoinFarmGroup", fid);
+            } catch {
+              // ignore
+            }
+          }
+        })
+        .catch(() => {
+          // Build a LongPolling fallback
+          const opts: Record<string, unknown> = {
+            accessTokenFactory: () => getAccessToken() ?? "",
+            transport: HttpTransportType.LongPolling,
+          };
+          const lp = new HubConnectionBuilder().withUrl(HUB_URL, opts).withAutomaticReconnect().build();
+          lp.on("FeedingLogCreated", (payload: Record<string, unknown>) => {
+            handlersRef.current?.onFeeding?.(payload);
+          });
+          lp.on("MortalityLogCreated", (payload: Record<string, unknown>) => {
+            handlersRef.current?.onMortality?.(payload);
+          });
+          lp.onreconnected(async () => {
+            const fid = farmIdRef.current;
+            if (fid) {
+              try {
+                await lp.invoke("JoinFarmGroup", fid);
+              } catch {
+                // ignore
+              }
+            }
+          });
+          connRef.current = lp;
+          lp.start()
+            .then(async () => {
+              setConnected(true);
+              const fid = farmIdRef.current;
+              if (fid) {
+                try {
+                  await lp.invoke("JoinFarmGroup", fid);
+                } catch {
+                  // ignore
+                }
+              }
+            })
+            .catch(() => setConnected(false));
+        });
+    }
+  }, []);
+
+  usePageVisibility(handlePageVisible);
 
   const joinFarmGroup = useCallback(async (id: string) => {
     const conn = connRef.current;

@@ -1,8 +1,9 @@
-import { HubConnectionBuilder, type HubConnection } from "@microsoft/signalr";
-import { useEffect, useRef } from "react";
+import { HubConnectionBuilder, HttpTransportType, type HubConnection } from "@microsoft/signalr";
+import { useCallback, useEffect, useRef } from "react";
 import { API_BASE } from "../api/client";
 import { getAccessToken } from "../api/jwt";
 import { ragStatusFromInt, type DocumentRagStatus } from "../types/document";
+import { usePageVisibility } from "./usePageVisibility";
 
 const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/documents";
 
@@ -57,6 +58,42 @@ export function useDocumentSignalR(
       connRef.current = null;
     };
   }, []);
+
+  // Restart connection on tab visibility restore if browser paused the WebSocket.
+  const handlePageVisible = useCallback(() => {
+    const c = connRef.current;
+    if (c && c.state === "Disconnected") {
+      console.log("[DocumentSignalR] Tab visible, restarting connection");
+      c.start()
+        .then(() => {
+          documentIdsRef.current.forEach((id) => c.invoke("JoinDocument", id).catch(() => {}));
+        })
+        .catch(() => {
+          // Fallback to LongPolling
+          const lp = new HubConnectionBuilder()
+            .withUrl(HUB_URL, {
+              accessTokenFactory: () => getAccessToken() ?? "",
+              transport: HttpTransportType.LongPolling,
+            })
+            .withAutomaticReconnect()
+            .build();
+          lp.on("RagStatusUpdated", (payload: RagStatusPayload) => {
+            const mapped = ragStatusFromInt(payload.ragStatus);
+            onStatusUpdateRef.current(payload.documentId, mapped);
+          });
+          connRef.current = lp;
+          lp.start()
+            .then(() => {
+              documentIdsRef.current.forEach((id) => lp.invoke("JoinDocument", id).catch(() => {}));
+            })
+            .catch((e) => {
+              console.error("[DocumentSignalR] Fallback connection failed:", e);
+            });
+        });
+    }
+  }, []);
+
+  usePageVisibility(handlePageVisible);
 
   // Join any newly added IDs once connection is already live
   useEffect(() => {
