@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef } from "react";
+import React, { createContext, useCallback, useContext, useRef } from "react";
 import useSupervisorMetricsSignalR from "../hooks/useSupervisorMetricsSignalR";
 
 /**
