@@ -20,9 +20,16 @@ interface AlertCreatedNotification {
   tankId: string;
 }
 
+interface AlertStatusChangedNotification {
+  alertId: string;
+  tankId: string;
+  newStatus: string;
+}
+
 interface Handlers {
   onReceiveAlert?: (push: AlertPush) => void;
   onAlertCreated?: (notification: AlertCreatedNotification) => void;
+  onAlertStatusChanged?: (notification: AlertStatusChangedNotification) => void;
 }
 
 function buildConnection(transport?: HttpTransportType) {
@@ -58,6 +65,10 @@ export function useAlertSignalR(handlers: Handlers) {
 
       conn.on("AlertCreated", (notification: AlertCreatedNotification) => {
         handlersRef.current.onAlertCreated?.(notification);
+      });
+
+      conn.on("AlertStatusChanged", (notification: AlertStatusChangedNotification) => {
+        handlersRef.current.onAlertStatusChanged?.(notification);
       });
 
       conn.onreconnecting(() => {

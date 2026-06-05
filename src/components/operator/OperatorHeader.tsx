@@ -51,6 +51,7 @@ export const OperatorHeader: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const liveNotifsRef = useRef<Notification[]>([]);
   const liveDeltaRef = useRef(0); // SignalR increments since last API poll
   const popupKeyRef = useRef(0);
@@ -72,6 +73,10 @@ export const OperatorHeader: React.FC = () => {
       setBadgeCount((prev) => prev + 1);
       popupKeyRef.current += 1;
       setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle, alertId: push.alertId });
+    },
+    onAlertStatusChanged: () => {
+      // Alert was resolved/acknowledged/dismissed — refetch to update badge
+      setRefreshTrigger((prev) => prev + 1);
     },
   });
 
@@ -126,7 +131,7 @@ export const OperatorHeader: React.FC = () => {
 
     const interval = setInterval(fetchLatestAlerts, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]);
 
   return (
     <DashboardHeader
