@@ -1,11 +1,11 @@
 import { Stack } from "@mui/material";
 import React from "react";
+import SupervisorMetricsProvider, { useSupervisorMetricsEvents } from "../../contexts/SupervisorMetricsContext";
 import useSupervisorMetrics from "../../hooks/useSupervisorMetrics";
-import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
 import FarmSummaryChart from "./FarmSummaryChart";
 import FarmTimeseriesChart from "./FarmTimeseriesChart";
 
-const MetricsPanel: React.FC = () => {
+const MetricsPanelInner: React.FC = () => {
   const { refetch } = useSupervisorMetrics();
 
   // Debounced refetch to avoid spamming backend on many signalR events
@@ -26,18 +26,31 @@ const MetricsPanel: React.FC = () => {
     };
   }, []);
 
-  useSupervisorMetricsSignalR("aaaaaaaa-0000-0000-0000-000000000001", {
-    onFeeding: scheduleRefetch,
-    onMortality: scheduleRefetch,
-  });
-
-  // farm timeseries charts fetch their own data via `useFarmTimeseries`
+  // Subscribe to the single shared SignalR connection
+  const { subscribe } = useSupervisorMetricsEvents();
+  React.useEffect(() => {
+    return subscribe(scheduleRefetch);
+  }, [subscribe, scheduleRefetch]);
 
   return (
     <Stack spacing={3}>
       <FarmSummaryChart />
       <FarmTimeseriesChart defaultMetric="feed" height={520} />
     </Stack>
+  );
+};
+
+/**
+ * Orchestrator for the supervisor metrics section.
+ * Wraps child chart components in a SINGLE shared SignalR connection
+ * so that real-time events trigger data refreshes in all charts
+ * without creating redundant WebSocket connections.
+ */
+const MetricsPanel: React.FC = () => {
+  return (
+    <SupervisorMetricsProvider>
+      <MetricsPanelInner />
+    </SupervisorMetricsProvider>
   );
 };
 

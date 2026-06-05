@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getFarmSummary, getFarmTimeseries, getTopBatches, type BatchSummaryDto, type FarmSummaryDto, type TimeSeriesResponseDto } from "../api/supervisorMetrics";
 
 const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
@@ -16,14 +16,7 @@ export function useSupervisorMetrics(farmIdParam?: string, opts?: { start?: stri
   const [mortalityTimeseries, setMortalityTimeseries] = useState<TimeSeriesResponseDto | null>(null);
   const [topBatches, setTopBatches] = useState<BatchSummaryDto[]>([]);
 
-  const lastFetchRef = useRef<number>(0);
-
   const fetchAll = useCallback(async () => {
-    const now = Date.now();
-    // Simple rate limit: avoid calling more than once per second
-    if (now - lastFetchRef.current < 1000) return;
-    lastFetchRef.current = now;
-
     // Compute fresh window on every fetch so records created after mount are included
     const end = fixedEnd ?? new Date().toISOString();
     const start = fixedStart ?? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();

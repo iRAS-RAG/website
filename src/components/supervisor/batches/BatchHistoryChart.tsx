@@ -1,12 +1,10 @@
 import { Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
 import React from "react";
+import { useSupervisorMetricsEvents } from "../../../contexts/SupervisorMetricsContext";
 import useBatchHistory from "../../../hooks/useBatchHistory";
-import useSupervisorMetricsSignalR from "../../../hooks/useSupervisorMetricsSignalR";
 import TimeseriesChart from "../../common/charts/TimeseriesChart";
 import BatchHistoryControls from "./BatchHistoryControls";
 import type { BatchHistoryDto, TimeSeriesPointDto } from "../../../api/supervisorMetrics";
-
-const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 
 const metricLabel = (k?: string) => {
   switch (k) {
@@ -39,17 +37,24 @@ type HistoryParams = {
   interval: "day" | "hour";
 };
 
-const defaultEnd = new Date().toISOString();
-const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+function freshDateRange() {
+  return {
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    end: new Date().toISOString(),
+  };
+}
 
 const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; defaultEnd?: string; defaultMetrics?: string[]; height?: number }> = ({
   batchId,
-  defaultStart: ds = defaultStart,
-  defaultEnd: de = defaultEnd,
+  defaultStart: ds,
+  defaultEnd: de,
   defaultMetrics = ["feed", "mortality"],
   height = 420,
 }) => {
-  const [params, setParams] = React.useState<HistoryParams>({ start: ds, end: de, metrics: defaultMetrics, interval: "day" });
+  const [params, setParams] = React.useState<HistoryParams>(() => {
+    const fresh = freshDateRange();
+    return { start: ds ?? fresh.start, end: de ?? fresh.end, metrics: defaultMetrics, interval: "day" };
+  });
 
   const { loading, error, history, refetch } = useBatchHistory(batchId, {
     start: params.start,
@@ -73,7 +78,11 @@ const BatchHistoryChart: React.FC<{ batchId?: string; defaultStart?: string; def
     };
   }, []);
 
-  useSupervisorMetricsSignalR(DEFAULT_FARM_ID, { onFeeding: scheduleRefetch, onMortality: scheduleRefetch });
+  // Subscribe to the single shared SignalR connection
+  const { subscribe } = useSupervisorMetricsEvents();
+  React.useEffect(() => {
+    return subscribe(scheduleRefetch);
+  }, [subscribe, scheduleRefetch]);
 
   const handleControlsChange = (p: { start?: string; end?: string; metrics?: string[]; interval?: string }) => {
     setParams((prev) => ({ ...prev, ...(p as Partial<HistoryParams>) }));
