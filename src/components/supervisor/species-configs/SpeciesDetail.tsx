@@ -59,6 +59,7 @@ import ConfirmDialog from "../../common/ConfirmDialog";
 import { useToast } from "../../common/toastContext";
 import ThresholdEditor from "./ThresholdEditor";
 import useSensorTypes from "../../../hooks/useSensorTypes";
+import { isApiError } from "../../../api/client";
 import {
   createSpeciesThreshold,
   deleteSpeciesThreshold,
@@ -373,7 +374,13 @@ const SpeciesDetail: React.FC<Props> = ({
       setDeleteModalOpen(false);
     } catch (e) {
       console.error("Failed to delete species", e);
-      toast.error("Xóa loài thất bại");
+      let errMsg = "Xóa loài thất bại";
+      if (isApiError(e)) {
+        const data = e.data as Record<string, unknown> | undefined;
+        const msg = (data && typeof data === "object" ? (data as Record<string, unknown>).message ?? (data as Record<string, unknown>).Message : null);
+        if (typeof msg === "string" && msg) errMsg = msg;
+      }
+      toast.error(errMsg);
     } finally {
       setDeletingSpecies(false);
     }

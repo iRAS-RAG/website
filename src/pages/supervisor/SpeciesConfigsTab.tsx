@@ -2,6 +2,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, Paper, Popover, Stack, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
+import { isApiError } from "../../api/client";
 import { createSpecies, deleteSpecies, updateSpecies } from "../../api/species";
 import { getSpeciesStageConfigsBySpecies } from "../../api/species-stage-configs";
 import { getGrowthStagesBySpecies } from "../../api/growth-stages";
@@ -203,8 +204,13 @@ const SpeciesConfigsTab: React.FC = () => {
       toast.success("Xóa loài thành công");
     } catch (e) {
       console.error("Failed to delete species", e);
-      toast.error("Xóa loài thất bại");
-      throw e;
+      let errMsg = "Xóa loài thất bại";
+      if (isApiError(e)) {
+        const data = e.data as { message?: string } | Record<string, unknown> | undefined;
+        const msg = (data && typeof data === "object" ? (data as Record<string, unknown>).message ?? (data as Record<string, unknown>).Message : null);
+        if (typeof msg === "string" && msg) errMsg = msg;
+      }
+      toast.error(errMsg);
     }
   }
 
