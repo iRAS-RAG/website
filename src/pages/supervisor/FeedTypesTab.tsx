@@ -9,6 +9,7 @@ import DataTable, { type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
 import { useToast } from "../../components/common/toastContext";
+import { isApiError } from "../../api/client";
 import ConfirmDeleteDialog from "../../components/supervisor/feed-types/ConfirmDeleteDialog";
 import FeedFormDialog from "../../components/supervisor/feed-types/FeedFormDialog";
 import useFeedTypes from "../../hooks/useFeedTypes";
@@ -55,7 +56,8 @@ const FeedTypesTab: React.FC = () => {
       toast.success("Xóa cám thành công");
     } catch (e) {
       console.error("Xóa cám thất bại", e);
-      toast.error("Xóa cám thất bại");
+      const apiMsg = isApiError(e) ? ((e.data as Record<string, unknown>)?.message as string) : undefined;
+      toast.error(apiMsg || "Xóa cám thất bại");
     }
   };
 
