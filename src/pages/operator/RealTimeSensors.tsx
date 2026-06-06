@@ -1081,34 +1081,67 @@ const RealTimeSensors = () => {
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {devices.map((device) => (
-                  <Paper key={device.id} variant="outlined" sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "12px" }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "10px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          bgcolor: device.state ? theme.palette.success.light : theme.palette.action.hover,
-                          color: device.state ? theme.palette.success.main : theme.palette.text.secondary,
-                        }}
+                  <Paper
+                    key={device.id}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1.5,
+                      borderRadius: "12px",
+                      borderColor: theme.palette.warning.main,
+                      bgcolor: "#FFFDF5",
+                    }}
+                  >
+                    {/* Upper row: device info + toggle */}
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: "10px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: device.state ? theme.palette.success.light : theme.palette.action.hover,
+                            color: device.state ? theme.palette.success.main : theme.palette.text.secondary,
+                          }}
+                        >
+                          {device.state ? <BoltIcon /> : <PowerOffIcon />}
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {device.controlDeviceTypeName}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: device.state ? theme.palette.success.main : "text.secondary" }}>
+                            {device.state ? "Đang hoạt động" : "Đã tắt"}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant={device.state ? "outlined" : "contained"}
+                        color={device.state ? "error" : "primary"}
+                        onClick={() => setDeviceToToggle(device)}
+                        disabled
+                        sx={{ textTransform: "none", fontWeight: 600 }}
                       >
-                        {device.state ? <BoltIcon /> : <PowerOffIcon />}
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {device.controlDeviceTypeName}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: device.state ? theme.palette.success.main : "text.secondary" }}>
-                          {device.state ? "Đang hoạt động" : "Đã tắt"}
-                        </Typography>
-                      </Box>
+                        {device.state ? "Tắt" : "Bật"}
+                      </Button>
                     </Box>
-                    <Button size="small" variant={device.state ? "outlined" : "contained"} color={device.state ? "error" : "primary"} onClick={() => setDeviceToToggle(device)}>
-                      {device.state ? "Tắt" : "Bật"}
-                    </Button>
+                    {/* Warning row */}
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                      <ErrorOutlineIcon sx={{ color: theme.palette.warning.main, fontSize: 16, mt: "2px", flexShrink: 0 }} />
+                      <Typography variant="caption" sx={{ color: theme.palette.warning.dark, lineHeight: 1.5 }}>
+                        Không thể phát hiện thiết bị tại chân{" "}
+                        <Box component="span" sx={{ fontWeight: 700 }}>
+                          {device.pinCode}
+                        </Box>{" "}
+                        trên board mạch thực tế. Vui lòng kiểm tra lại kết nối phần cứng.
+                      </Typography>
+                    </Box>
                   </Paper>
                 ))}
                 {devices.length === 0 && (

@@ -33,6 +33,7 @@ export interface ILatestSensorData {
 export interface IControlDevice {
   id: string;
   name: string;
+  pinCode: number;
   state: boolean;
   controlDeviceTypeName: string;
 }
