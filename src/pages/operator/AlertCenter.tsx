@@ -85,7 +85,7 @@ const AlertCenter = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [statusFilter, setStatusFilter] = useState<string>("OPEN");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [batchFilter, setBatchFilter] = useState<string>("all");
   const [farmingBatches, setFarmingBatches] = useState<IOperatorFarmingBatch[]>([]);
 

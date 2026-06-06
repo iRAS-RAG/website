@@ -1,16 +1,6 @@
-import { useEffect, useState } from "react";
-import {
-  Box,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
-  Stack,
-  Typography,
-  Chip,
-} from "@mui/material";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import { Box, Chip, CircularProgress, List, ListItem, ListItemText, Paper, Stack, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { alertApi } from "../../api/alerts";
 import type { IAlert } from "../../types/alert";
@@ -39,10 +29,7 @@ interface AlertsResponse {
   data?: IAlert[];
 }
 
-export const RecentAlertsList = ({
-  tankId,
-  limit = 5,
-}: RecentAlertsListProps) => {
+export const RecentAlertsList = ({ tankId, limit = 5 }: RecentAlertsListProps) => {
   const [alerts, setAlerts] = useState<IAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -68,11 +55,7 @@ export const RecentAlertsList = ({
           list = r.items ?? r.data ?? [];
         }
         // Sort newest first
-        list = [...list].sort(
-          (a, b) =>
-            new Date(b.raisedAt ?? 0).getTime() -
-            new Date(a.raisedAt ?? 0).getTime(),
-        );
+        list = [...list].sort((a, b) => new Date(b.raisedAt ?? 0).getTime() - new Date(a.raisedAt ?? 0).getTime());
         setAlerts(list);
       } catch {
         if (mounted) setAlerts([]);
@@ -121,10 +104,7 @@ export const RecentAlertsList = ({
           <CircularProgress size={22} />
         </Box>
       ) : alerts.length === 0 ? (
-        <Typography
-          variant="body2"
-          sx={{ color: "#94A3B8", py: 2, textAlign: "center" }}
-        >
+        <Typography variant="body2" sx={{ color: "#94A3B8", py: 2, textAlign: "center" }}>
           Không có cảnh báo nào đang mở
         </Typography>
       ) : (
@@ -165,17 +145,13 @@ export const RecentAlertsList = ({
               />
               <ListItemText
                 primary={
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, color: "#0F172A" }}
-                  >
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#0F172A" }}>
                     {a.fishTankName || "Bể"} — {a.sensorTypeName}
                   </Typography>
                 }
                 secondary={
                   <Typography variant="caption" sx={{ color: "#64748B" }}>
-                    Giá trị: {a.triggerValue} {a.unitOfMeasure} •{" "}
-                    {relativeTime(a.raisedAt)}
+                    Giá trị: {a.triggerValue} {a.unitOfMeasure} • {relativeTime(a.raisedAt)}
                   </Typography>
                 }
               />
