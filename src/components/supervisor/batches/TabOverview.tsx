@@ -27,6 +27,18 @@ import type {
   IOperatorMortalityLog,
 } from "../../../types/operatorBatch";
 
+// Strip trailing zeros: 95.00 → 95, 0.50 → 0.5
+const stripZeros = (n: number): string => String(Number(n.toFixed(2)));
+
+// Format weight: ≥ 1000 kg → tấn, otherwise kg with trailing zeros stripped
+const formatWeight = (kg: number): string => {
+  if (kg >= 1000) {
+    const tons = kg / 1000;
+    return `${stripZeros(tons)} tấn`;
+  }
+  return `${stripZeros(kg)} kg`;
+};
+
 type Props = {
   batch: Batch;
   performance: BatchPerformance[];
@@ -263,7 +275,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
                                 Tổng trọng lượng:{" "}
                                 <strong>
                                   {s.expectedTotalWeightKg != null
-                                    ? `${s.expectedTotalWeightKg.toFixed(2)} kg`
+                                    ? formatWeight(s.expectedTotalWeightKg)
                                     : "—"}
                                 </strong>
                               </Typography>
@@ -280,7 +292,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
                                 Cám/ngày:{" "}
                                 <strong>
                                   {s.estimatedDailyFeedKg != null
-                                    ? `${s.estimatedDailyFeedKg.toFixed(2)} kg/ngày`
+                                    ? `${stripZeros(s.estimatedDailyFeedKg)} kg/ngày`
                                     : "—"}
                                 </strong>
                               </Typography>
@@ -394,10 +406,10 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
             desc={
               isFinished
                 ? batch.actualHarvestWeightKg != null
-                  ? `Tổng trọng lượng: ${batch.actualHarvestWeightKg.toFixed(2)} kg`
+                  ? `Tổng trọng lượng: ${formatWeight(batch.actualHarvestWeightKg)}`
                   : `Hao hụt: ${totalDead} ${batch.unitOfMeasure}`
                 : batch.estimatedHarvestWeightKg != null
-                  ? `Tổng trọng lượng: ${batch.estimatedHarvestWeightKg.toFixed(2)} kg`
+                  ? `Tổng trọng lượng: ${formatWeight(batch.estimatedHarvestWeightKg)}`
                   : ""
             }
           />
@@ -405,7 +417,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
           <KPICard
             icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />}
             label="FCR"
-            value={batch.fcr != null ? batch.fcr.toFixed(2) : "—"}
+            value={batch.fcr != null ? stripZeros(batch.fcr) : "—"}
             desc="Hệ số chuyển đổi thức ăn"
           />
           <KPICard

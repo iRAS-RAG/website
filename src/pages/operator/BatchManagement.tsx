@@ -76,6 +76,18 @@ const formatStageDate = (iso?: string | null): string => {
   return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`;
 };
 
+// Strip trailing zeros: 95.00 → 95, 0.50 → 0.5
+const stripZerosOp = (n: number): string => String(Number(n.toFixed(2)));
+
+// Format weight: ≥ 1000 kg → tấn, otherwise kg with trailing zeros stripped
+const formatWeightOp = (kg: number): string => {
+  if (kg >= 1000) {
+    const tons = kg / 1000;
+    return `${stripZerosOp(tons)} tấn`;
+  }
+  return `${stripZerosOp(kg)} kg`;
+};
+
 const BatchManagement = () => {
   const theme = useTheme();
   const toast = useToast();
@@ -725,17 +737,17 @@ const BatchManagement = () => {
                               desc={
                                 isHarvested
                                   ? selectedBatch.actualHarvestWeightKg != null
-                                    ? `Tổng trọng lượng: ${selectedBatch.actualHarvestWeightKg.toFixed(2)} kg`
+                                    ? `Tổng trọng lượng: ${formatWeightOp(selectedBatch.actualHarvestWeightKg)}`
                                     : ""
                                   : selectedBatch.estimatedHarvestWeightKg != null
-                                    ? `Tổng trọng lượng: ${selectedBatch.estimatedHarvestWeightKg.toFixed(2)} kg`
+                                    ? `Tổng trọng lượng: ${formatWeightOp(selectedBatch.estimatedHarvestWeightKg)}`
                                     : ""
                               }
                             />
                             <KPICard
                               icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />}
                               label="FCR"
-                              value={selectedBatch.fcr != null ? selectedBatch.fcr.toFixed(2) : "—"}
+                              value={selectedBatch.fcr != null ? stripZerosOp(selectedBatch.fcr) : "—"}
                               desc="Hệ số chuyển đổi thức ăn"
                             />
                             <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />
@@ -1316,12 +1328,12 @@ const StageCard = ({ stage: s, isActive }: { stage: PlannedStage; isActive: bool
               Dự kiến số lượng: <strong>{s.expectedCount != null ? `${s.expectedCount} con` : "—"}</strong>
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Tổng trọng lượng: <strong>{s.expectedTotalWeightKg != null ? `${s.expectedTotalWeightKg.toFixed(2)} kg` : "—"}</strong>
+              Tổng trọng lượng: <strong>{s.expectedTotalWeightKg != null ? formatWeightOp(s.expectedTotalWeightKg) : "—"}</strong>
             </Typography>
           </Stack>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }}>
             <Typography variant="caption" color="text.secondary">
-              Cám/ngày: <strong>{s.estimatedDailyFeedKg != null ? `${s.estimatedDailyFeedKg.toFixed(2)} kg/ngày` : "—"}</strong>
+              Cám/ngày: <strong>{s.estimatedDailyFeedKg != null ? `${stripZerosOp(s.estimatedDailyFeedKg)} kg/ngày` : "—"}</strong>
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Tần suất/ngày: <strong>{s.frequencyPerDay ?? "—"} lần</strong>
