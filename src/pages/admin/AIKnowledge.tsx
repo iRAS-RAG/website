@@ -59,9 +59,9 @@ const AIKnowledge: React.FC = () => {
   const { joinDocument } = useDocumentSignalR(documentIds, patchRagStatus);
 
   const [openUpload, setOpenUpload] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
   // State quản lý Modal Xóa
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -179,35 +179,39 @@ const AIKnowledge: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      // Luôn cập nhật title từ tên file khi chọn file mới
-      setTitle(selectedFile.name);
+      setFiles(Array.from(e.target.files));
     }
   };
 
   const handleUploadSubmit = async () => {
-    if (!file || !title)
-      return toast.error("Vui lòng chọn file và nhập tiêu đề");
+    if (files.length === 0)
+      return toast.error("Vui lòng chọn ít nhất một file PDF");
     setIsUploading(true);
-    try {
-      const res = await upload(file, title);
-      const newId = (res as Record<string, unknown>)?.id as string | undefined;
-      if (newId) joinDocument(newId);
-      toast.success("Tải lên tài liệu thành công!");
-      setOpenUpload(false);
-      setFile(null);
-      setTitle("");
-    } catch (error: unknown) {
-      console.error("Lỗi upload file:", error);
-      const err = error as Record<string, unknown>;
-      const msg =
-        (err?.data as Record<string, string>)?.message ||
-        (err?.message as string) ||
-        "Tải lên thất bại";
-      toast.error(msg);
-    } finally {
-      setIsUploading(false);
+    setUploadProgress({ current: 0, total: files.length });
+    let successCount = 0;
+    let errorCount = 0;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      setUploadProgress({ current: i + 1, total: files.length });
+      try {
+        // Dùng tên file (bỏ .pdf) làm tiêu đề
+        const title = f.name.replace(/\.pdf$/i, "");
+        const res = await upload(f, title);
+        const newId = (res as Record<string, unknown>)?.id as string | undefined;
+        if (newId) joinDocument(newId);
+        successCount++;
+      } catch (error: unknown) {
+        console.error(`Lỗi upload file "${f.name}":`, error);
+        errorCount++;
+      }
+    }
+    setOpenUpload(false);
+    setFiles([]);
+    setIsUploading(false);
+    if (errorCount === 0) {
+      toast.success(`Tải lên thành công ${successCount} tài liệu!`);
+    } else {
+      toast.success(`${successCount} tài liệu thành công, ${errorCount} tài liệu thất bại.`);
     }
   };
 
@@ -337,8 +341,7 @@ const AIKnowledge: React.FC = () => {
         open={openUpload}
         onClose={() => {
           if (isUploading) return;
-          setFile(null);
-          setTitle("");
+          setFiles([]);
           setOpenUpload(false);
         }}
         fullWidth
@@ -354,27 +357,36 @@ const AIKnowledge: React.FC = () => {
               component="label"
               sx={{ height: 100, borderStyle: "dashed" }}
             >
-              {file ? file.name : "Nhấp để chọn file (PDF, DOCX, TXT)"}
+              {files.length > 0
+                ? `${files.length} file PDF đã chọn`
+                : "Nhấp để chọn file PDF"}
               <input
                 type="file"
                 hidden
-                accept=".pdf,.doc,.docx,.txt"
+                multiple
+                accept=".pdf"
                 onChange={handleFileChange}
               />
             </Button>
-            <TextField
-              label="Tên hiển thị tài liệu"
-              fullWidth
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            {files.length > 0 && (
+              <Typography variant="body2" sx={{ color: "#64748B" }}>
+                {files.map((f) => f.name.replace(/\.pdf$/i, "")).join(", ")}
+              </Typography>
+            )}
+            {isUploading && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CircularProgress size={18} />
+                <Typography variant="body2" sx={{ color: "#64748B" }}>
+                  Đang tải {uploadProgress.current} / {uploadProgress.total}...
+                </Typography>
+              </Stack>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
           <Button
             onClick={() => {
-              setFile(null);
-              setTitle("");
+              setFiles([]);
               setOpenUpload(false);
             }}
             color="inherit"
@@ -385,9 +397,11 @@ const AIKnowledge: React.FC = () => {
           <Button
             variant="contained"
             onClick={handleUploadSubmit}
-            disabled={isUploading || !file || !title}
+            disabled={isUploading || files.length === 0}
           >
-            {isUploading ? "Đang tải lên..." : "Xác nhận"}
+            {isUploading
+              ? `Đang tải ${uploadProgress.current}/${uploadProgress.total}...`
+              : `Tải lên ${files.length > 0 ? `(${files.length} file)` : ""}`}
           </Button>
         </DialogActions>
       </Dialog>
