@@ -200,97 +200,96 @@ const OperatorDashboard = () => {
             </Box>
           ) : (
             <>
-
-          {/* ── ZONE 1: Pie Charts ── */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-              gap: 2.5,
-              mb: 3,
-            }}
-          >
-            <PieChartCard title="Tổng quan cảnh báo" data={alertPieData} total={alertStats.total} totalLabel="Tổng số cảnh báo" dayFilter={alertDays} onDayFilterChange={setAlertDays} />
-            <PieChartCard title="Tổng quan vụ nuôi" data={batchPieData} total={batchStats.total} totalLabel="Tổng số vụ nuôi" dayFilter={batchDays} onDayFilterChange={setBatchDays} />
-            <PieChartCard title="Tổng quan thiết bị" data={devicePieData} total={deviceStats.total} totalLabel="Tổng số thiết bị" />
-          </Box>
-
-          {/* ── ZONE 2 + 3: Tank Grid + Side Panel ── */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
-              gap: 2.5,
-              alignItems: "start",
-            }}
-          >
-            {/* Tank Grid */}
-            <Box>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
-                  Trạng thái các bể
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#94A3B8" }}>
-                  {filteredTanks.length} bể được hiển thị
-                </Typography>
-              </Stack>
-
-              {/* Search */}
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="Tìm kiếm theo tên bể..."
-                value={tankSearch}
-                onChange={(e) => {
-                  setTankSearch(e.target.value);
-                  setTankPage(1);
+              {/* ── ZONE 1: Pie Charts ── */}
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                  gap: 2.5,
+                  mb: 3,
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" sx={{ color: "#94A3B8" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: 1.5, bgcolor: "#fff", borderRadius: "10px", "& .MuiOutlinedInput-root": { borderRadius: "10px" }, "& .MuiOutlinedInput-notchedOutline": { borderColor: "#E2E8F0" } }}
-              />
+              >
+                <PieChartCard title="Tổng quan cảnh báo" data={alertPieData} total={alertStats.total} totalLabel="Tổng số cảnh báo" dayFilter={alertDays} onDayFilterChange={setAlertDays} />
+                <PieChartCard title="Tổng quan vụ nuôi" data={batchPieData} total={batchStats.total} totalLabel="Tổng số vụ nuôi" dayFilter={batchDays} onDayFilterChange={setBatchDays} />
+                <PieChartCard title="Tổng quan thiết bị điều khiển" data={devicePieData} total={deviceStats.total} totalLabel="Tổng số thiết bị điều khiển" />
+              </Box>
 
-              {filteredTanks.length === 0 ? (
-                <Paper elevation={0} sx={{ p: 4, borderRadius: "14px", border: "1px dashed #CBD5E1", textAlign: "center", bgcolor: "#fff" }}>
-                  <Typography variant="body2" sx={{ color: "#94A3B8" }}>
-                    {tankSearch ? "Không tìm thấy bể phù hợp" : "Chưa có bể nào được cấu hình"}
-                  </Typography>
-                </Paper>
-              ) : (
-                <>
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: pagedTanks.length === 1 ? "1fr" : { xs: "1fr", sm: "repeat(2, 1fr)" },
-                      gap: 2,
+              {/* ── ZONE 2 + 3: Tank Grid + Side Panel ── */}
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
+                  gap: 2.5,
+                  alignItems: "start",
+                }}
+              >
+                {/* Tank Grid */}
+                <Box>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B" }}>
+                      Trạng thái các bể
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+                      {filteredTanks.length} bể được hiển thị
+                    </Typography>
+                  </Stack>
+
+                  {/* Search */}
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Tìm kiếm theo tên bể..."
+                    value={tankSearch}
+                    onChange={(e) => {
+                      setTankSearch(e.target.value);
+                      setTankPage(1);
                     }}
-                  >
-                    {pagedTanks.map((tank) => {
-                      const tankBatch = batches.find((b) => b.fishTankId === tank.id);
-                      return <TankPulseCard key={tank.id} tankId={tank.id} tankName={tank.name} batch={tankBatch} onClick={() => navigate("/operator/sensors")} />;
-                    })}
-                  </Box>
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" sx={{ color: "#94A3B8" }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ mb: 1.5, bgcolor: "#fff", borderRadius: "10px", "& .MuiOutlinedInput-root": { borderRadius: "10px" }, "& .MuiOutlinedInput-notchedOutline": { borderColor: "#E2E8F0" } }}
+                  />
 
-                  {totalTankPages > 1 && (
-                    <Stack alignItems="center" mt={2}>
-                      <Pagination count={totalTankPages} page={tankPage} onChange={(_, p) => setTankPage(p)} size="small" color="primary" />
-                    </Stack>
+                  {filteredTanks.length === 0 ? (
+                    <Paper elevation={0} sx={{ p: 4, borderRadius: "14px", border: "1px dashed #CBD5E1", textAlign: "center", bgcolor: "#fff" }}>
+                      <Typography variant="body2" sx={{ color: "#94A3B8" }}>
+                        {tankSearch ? "Không tìm thấy bể phù hợp" : "Chưa có bể nào được cấu hình"}
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: pagedTanks.length === 1 ? "1fr" : { xs: "1fr", sm: "repeat(2, 1fr)" },
+                          gap: 2,
+                        }}
+                      >
+                        {pagedTanks.map((tank) => {
+                          const tankBatch = batches.find((b) => b.fishTankId === tank.id);
+                          return <TankPulseCard key={tank.id} tankId={tank.id} tankName={tank.name} batch={tankBatch} onClick={() => navigate("/operator/sensors")} />;
+                        })}
+                      </Box>
+
+                      {totalTankPages > 1 && (
+                        <Stack alignItems="center" mt={2}>
+                          <Pagination count={totalTankPages} page={tankPage} onChange={(_, p) => setTankPage(p)} size="small" color="primary" />
+                        </Stack>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </Box>
+                </Box>
 
-            {/* Side Panel */}
-            <Stack spacing={2.5}>
-              <RecentAlertsList limit={5} />
-            </Stack>
-          </Box>
-          </>
+                {/* Side Panel */}
+                <Stack spacing={2.5}>
+                  <RecentAlertsList limit={5} />
+                </Stack>
+              </Box>
+            </>
           )}
         </Box>
       </Box>

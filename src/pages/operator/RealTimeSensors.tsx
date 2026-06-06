@@ -411,12 +411,10 @@ const RealTimeSensors = () => {
   useEffect(() => {
     const rawPoints = liveSeries.get(currentSensorId ?? "") ?? [];
     const cutoff = Date.now() - LIVE_WINDOW_MS;
-    const initial = rawPoints
-      .filter((p) => (p.ts ?? 0) >= cutoff)
-      .map((p) => ({ time: p.time, value: p.value }));
+    const initial = rawPoints.filter((p) => (p.ts ?? 0) >= cutoff).map((p) => ({ time: p.time, value: p.value }));
     setAccumulatedLive(initial);
     pendingLiveRef.current = [];
-    lastAccumulatedTsRef.current = rawPoints.length > 0 ? rawPoints[rawPoints.length - 1].ts ?? 0 : 0;
+    lastAccumulatedTsRef.current = rawPoints.length > 0 ? (rawPoints[rawPoints.length - 1].ts ?? 0) : 0;
   }, [currentSensorId, liveSeries]);
 
   const displayChartData: ChartPoint[] = timeFilter === "10s" ? accumulatedLive : sensorChartData;
@@ -537,7 +535,6 @@ const RealTimeSensors = () => {
         <OperatorHeader title="Giám sát cảm biến thời gian thực" />
 
         <Box sx={{ p: 3, flexGrow: 1 }}>
-
           {/* ── Tank selector — slider ── */}
           {(() => {
             const totalTankPages = Math.ceil(tanks.length / ITEMS_PER_SLIDE);
@@ -744,23 +741,11 @@ const RealTimeSensors = () => {
                       const rawVal = sensor.latestData?.latestAvg;
                       const displayValue = sensorIsBinary ? (rawVal !== undefined && rawVal !== null ? (rawVal >= 0.5 ? "An toàn" : "Bất thường") : "--") : (rawVal?.toFixed(2) ?? "--");
                       // Compute isWarning client-side: priority = species batch threshold > sensor API field
-                      const sensorBatchThr = activeBatchThresholds.find(
-                        (t) => t.sensorTypeName?.toLowerCase() === sensor.sensorTypeName?.toLowerCase()
-                      );
+                      const sensorBatchThr = activeBatchThresholds.find((t) => t.sensorTypeName?.toLowerCase() === sensor.sensorTypeName?.toLowerCase());
                       const minThr = sensorBatchThr?.minValue ?? sensor.minThreshold ?? sensor.minValue ?? null;
                       const maxThr = sensorBatchThr?.maxValue ?? sensor.maxThreshold ?? sensor.maxValue ?? null;
-                      const computedIsWarning = rawVal != null && minThr != null && maxThr != null
-                        ? (rawVal < minThr || rawVal > maxThr)
-                        : (sensor.latestData?.isWarning ?? false);
-                      const statusLabel = sensorIsBinary
-                        ? rawVal !== undefined && rawVal !== null
-                          ? rawVal >= 0.5
-                            ? "An toàn"
-                            : "Bất thường"
-                          : "—"
-                        : computedIsWarning
-                          ? "Vượt ngưỡng"
-                          : "An toàn";
+                      const computedIsWarning = rawVal != null && minThr != null && maxThr != null ? rawVal < minThr || rawVal > maxThr : (sensor.latestData?.isWarning ?? false);
+                      const statusLabel = sensorIsBinary ? (rawVal !== undefined && rawVal !== null ? (rawVal >= 0.5 ? "An toàn" : "Bất thường") : "—") : computedIsWarning ? "Vượt ngưỡng" : "An toàn";
                       const statusCol = sensorIsBinary ? (rawVal !== undefined && rawVal !== null && rawVal >= 0.5 ? "success" : "error") : computedIsWarning ? "error" : "success";
                       return (
                         <SensorCard
@@ -902,15 +887,21 @@ const RealTimeSensors = () => {
                             return (
                               <g transform={`translate(${x},${y})`}>
                                 <text textAnchor="middle" fill="#6B7280" fontSize={11}>
-                                  <tspan x={0} dy={8}>{parts[2]}</tspan>
-                                  <tspan x={0} dy={14}>{parts[1]}</tspan>
+                                  <tspan x={0} dy={8}>
+                                    {parts[2]}
+                                  </tspan>
+                                  <tspan x={0} dy={14}>
+                                    {parts[1]}
+                                  </tspan>
                                 </text>
                               </g>
                             );
                           }
                           return (
                             <g transform={`translate(${x},${y})`}>
-                              <text textAnchor="middle" fill="#6B7280" fontSize={11} dy={8}>{raw}</text>
+                              <text textAnchor="middle" fill="#6B7280" fontSize={11} dy={8}>
+                                {raw}
+                              </text>
                             </g>
                           );
                         }}
@@ -1073,7 +1064,7 @@ const RealTimeSensors = () => {
 
           {/* ── Device section ── */}
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Quản lý thiết bị chuyên dụng
+            Quản lý thiết bị điều khiển
           </Typography>
           <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "16px", p: 3, bgcolor: "white" }}>
             {loading ? (
