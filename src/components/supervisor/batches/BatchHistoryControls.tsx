@@ -37,8 +37,8 @@ export default function BatchHistoryControls({ start, end, metrics = ["feed", "m
   React.useEffect(() => setLocalInterval(interval), [interval]);
 
   const handleRefresh = () => {
-    const startIso = localStart ? new Date(localStart).toISOString() : undefined;
-    const endIso = localEnd ? new Date(localEnd).toISOString() : undefined;
+    const startIso = localStart ? new Date(localStart + "T00:00:00.000Z").toISOString() : undefined;
+    const endIso = localEnd ? new Date(localEnd + "T23:59:59.999Z").toISOString() : undefined;
     onChange({ start: startIso, end: endIso, metrics: localMetrics, interval: localInterval });
   };
 

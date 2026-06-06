@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { HubConnectionBuilder, type HubConnection } from "@microsoft/signalr";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { HubConnectionBuilder, HttpTransportType, type HubConnection } from "@microsoft/signalr";
 import { API_BASE, extractArray } from "../api/client";
 import { realtimeApi, type TelemetryPush } from "../api/realtimeApi";
 import { getAccessToken } from "../api/jwt";
+import { usePageVisibility } from "./usePageVisibility";
 
 const WINDOW_MS = 10_000;
 const HUB_URL = API_BASE.replace(/\/api\/?$/, "") + "/hubs/telemetry";
@@ -103,6 +104,49 @@ export const useLiveTelemetry = (tankId: string | null) => {
       connRef.current = null;
     };
   }, [tankId]);
+
+  // When the user switches back to this tab, restart the connection if the
+  // browser paused the WebSocket and SignalR's auto-reconnect hasn't kicked in yet.
+  const handlePageVisible = useCallback(() => {
+    const c = connRef.current;
+    if (c && c.state === "Disconnected" && tankRef.current) {
+      console.log("[LiveTelemetry] Tab visible, restarting connection");
+      c.start().catch((e) => {
+        console.warn("[LiveTelemetry] Restart on visibility failed, falling back:", e);
+        // Build a fresh LongPolling connection as fallback
+        const lp = new HubConnectionBuilder()
+          .withUrl(HUB_URL, { accessTokenFactory: () => getAccessToken() ?? "", transport: HttpTransportType.LongPolling })
+          .withAutomaticReconnect()
+          .build();
+        lp.on("ReceiveTelemetry", (point: TelemetryPush) => {
+          if (point.tankId !== tankRef.current) return;
+          const pt = toPoint(point);
+          const cutoff = Date.now() - WINDOW_MS;
+          setSeries((prev) => {
+            const next = new Map(prev);
+            const existing = next.get(point.sensorId) ?? [];
+            next.set(point.sensorId, [...existing, pt].filter((p) => p.ts >= cutoff));
+            return next;
+          });
+        });
+        lp.onreconnected(async () => {
+          const tid = tankRef.current;
+          if (tid) {
+            try {
+              const data = await realtimeApi.getTelemetryWindow(tid);
+              setSeries(groupSeed(Array.isArray(data) ? data : (extractArray(data) as TelemetryPush[])));
+            } catch (err) {
+              console.error("Lỗi tải lại dữ liệu sau kết nối lại:", err);
+            }
+          }
+        });
+        connRef.current = lp;
+        return lp.start();
+      });
+    }
+  }, []);
+
+  usePageVisibility(handlePageVisible);
 
   return series;
 };

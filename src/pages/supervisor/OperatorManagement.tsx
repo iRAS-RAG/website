@@ -29,7 +29,6 @@ import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
 import { useToast } from "../../components/common/toastContext";
 import OperatorFormDialog from "../../components/supervisor/operators/OperatorFormDialog";
-import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useUserManagement from "../../hooks/useUserManagement";
 import type { User } from "../../types/user";
@@ -303,8 +302,6 @@ const OperatorManagement: React.FC = () => {
           minWidth: 0,
         }}
       >
-        <SupervisorHeader />
-
         <Box
           component="main"
           sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}

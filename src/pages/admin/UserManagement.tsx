@@ -25,7 +25,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { isAdmin, roles } from "../../api/auth";
 import { isApiError } from "../../api/client";
-import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import UserFormDialog from "../../components/admin/users/UserFormDialog";
 import type { Column } from "../../components/common/DataTable";
@@ -321,8 +320,6 @@ const UserManagement: React.FC = () => {
           minWidth: 0,
         }}
       >
-        <AdminHeader />
-
         <Box
           component="main"
           sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}

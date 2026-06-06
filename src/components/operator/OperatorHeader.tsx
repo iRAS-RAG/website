@@ -47,13 +47,17 @@ const getTimeAgo = (dateString?: string) => {
   return `${diffInDays} ngày trước`;
 };
 
-export const OperatorHeader: React.FC = () => {
+export const OperatorHeader: React.FC<{ title?: string }> = ({ title }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [alertPopup, setAlertPopup] = useState<AlertPopup | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const liveNotifsRef = useRef<Notification[]>([]);
+  const liveDeltaRef = useRef(0); // SignalR increments since last API poll
   const popupKeyRef = useRef(0);
   const navigate = useNavigate();
+
+  const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useAlertSignalR({
     onReceiveAlert: (push: AlertPush) => {
@@ -67,9 +71,16 @@ export const OperatorHeader: React.FC = () => {
       };
       liveNotifsRef.current = [newNotif, ...liveNotifsRef.current].slice(0, 5);
       setNotifications((prev) => [newNotif, ...prev].slice(0, 10));
+      liveDeltaRef.current += 1;
       setBadgeCount((prev) => prev + 1);
       popupKeyRef.current += 1;
-      setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle });
+      setAlertPopup({ key: popupKeyRef.current, type: "error", title: popupTitle, alertId: push.alertId });
+
+      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+      popupTimerRef.current = setTimeout(() => setAlertPopup(null), 6000);
+    },
+    onAlertStatusChanged: () => {
+      setRefreshTrigger((prev) => prev + 1);
     },
   });
 
@@ -89,7 +100,11 @@ export const OperatorHeader: React.FC = () => {
           (a) => a.status === "OPEN" || a.status === "ACKNOWLEDGED",
         ).length;
 
-        setBadgeCount(activeCount);
+        // Preserve any SignalR increments from alerts the API might not yet reflect.
+        // This prevents the badge count from dropping when a SignalR push arrived
+        // but the next API poll hasn't indexed it yet.
+        setBadgeCount(activeCount + liveDeltaRef.current);
+        liveDeltaRef.current = 0;
 
         const fetchedNotifs: Notification[] = items.map((alert: AlertItem) => {
           let notifType: NotificationType = "error";
@@ -120,14 +135,14 @@ export const OperatorHeader: React.FC = () => {
 
     const interval = setInterval(fetchLatestAlerts, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]);
 
   return (
     <DashboardHeader
       // Nếu có cảnh báo chưa xử lý (OPEN), ta có thể đếm riêng,
       // ở đây tạm hiển thị tổng số cảnh báo trong DB
+      title={title}
       badgeCount={badgeCount}
-      searchPlaceholder="Tìm nhanh mã bể, cảm biến..."
       // Nếu không có cảnh báo nào, hiển thị mặc định 1 dòng thông báo tốt
       notifications={
         notifications.length > 0
@@ -142,7 +157,10 @@ export const OperatorHeader: React.FC = () => {
       }
       seeAllRoute="/operator/alerts"
       alertPopup={alertPopup}
-      onAlertPopupDismiss={() => setAlertPopup(null)}
+      onAlertPopupDismiss={(alertId) => {
+        setAlertPopup(null);
+        if (alertId) navigate("/operator/alerts", { state: { openAlertId: alertId } });
+      }}
       onNotificationClick={(id) => {
         if (id) navigate("/operator/alerts", { state: { openAlertId: id } });
       }}

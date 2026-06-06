@@ -5,9 +5,7 @@ import SensorsIcon from "@mui/icons-material/Sensors";
 // import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import WaterIcon from "@mui/icons-material/Water";
-import { useEffect, useState } from "react";
-import { getMe } from "../../api/users";
-import type { User } from "../../types/user";
+import { useCachedProfile } from "../../hooks/useCachedProfile";
 import Sidebar, { type MenuItemType } from "../common/Sidebar";
 
 const menuItems: MenuItemType[] = [
@@ -37,13 +35,7 @@ const menuItems: MenuItemType[] = [
 ];
 
 export const OperatorSidebar = () => {
-  const [profile, setProfile] = useState<User | null>(null);
-
-  useEffect(() => {
-    getMe()
-      .then(setProfile)
-      .catch(() => {});
-  }, []);
+  const profile = useCachedProfile();
 
   return (
     <Sidebar

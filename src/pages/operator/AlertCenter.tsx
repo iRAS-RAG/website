@@ -30,8 +30,10 @@ import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useAlerts } from "../../hooks/useAlerts";
 import { alertApi } from "../../api/alerts";
+import { operatorBatchesApi } from "../../api/operatorBatchesApi";
 import { useAlertSignalR } from "../../hooks/useAlertSignalR";
 import type { IAlert } from "../../types/alert";
+import type { IOperatorFarmingBatch } from "../../types/operatorBatch";
 
 // Icons
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -42,6 +44,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
+import BlockIcon from "@mui/icons-material/Block";
 import type { JSX } from "react";
 
 // Định nghĩa dữ liệu truyền vào Modal (Đã xóa trường level)
@@ -83,8 +86,19 @@ const AlertCenter = () => {
   const navigate = useNavigate();
 
   const [statusFilter, setStatusFilter] = useState<string>("OPEN");
+  const [batchFilter, setBatchFilter] = useState<string>("all");
+  const [farmingBatches, setFarmingBatches] = useState<IOperatorFarmingBatch[]>([]);
 
   const filterStatuses = statusFilter === "ALL" ? undefined : [statusFilter];
+  const filterBatchId = batchFilter === "all" ? undefined : batchFilter;
+
+  // Lấy danh sách vụ nuôi cho dropdown filter
+  useEffect(() => {
+    operatorBatchesApi.getBatches().then((res) => {
+      const items = Array.isArray(res) ? res : ((res as Record<string, unknown>)?.data as unknown[]) ?? [];
+      setFarmingBatches(items as IOperatorFarmingBatch[]);
+    }).catch(() => {});
+  }, []);
 
   // 1. GỌI HOOK LẤY DỮ LIỆU THẬT
   const {
@@ -96,12 +110,17 @@ const AlertCenter = () => {
     totalCount,
     statusCounts,
     refetch,
-  } = useAlerts(1, 10, filterStatuses);
+  } = useAlerts(1, 10, filterStatuses, filterBatchId);
 
-  useAlertSignalR({ onAlertCreated: () => refetch() });
+  useAlertSignalR({ onAlertCreated: () => refetch(), onAlertStatusChanged: () => refetch() });
 
   const handleStatusFilterChange = (e: SelectChangeEvent) => {
     setStatusFilter(e.target.value);
+    setPage(1);
+  };
+
+  const handleBatchFilterChange = (e: SelectChangeEvent) => {
+    setBatchFilter(e.target.value);
     setPage(1);
   };
 
@@ -154,33 +173,15 @@ const AlertCenter = () => {
           flexDirection: "column",
         }}
       >
-        <OperatorHeader />
+        <OperatorHeader title="Trung tâm cảnh báo" />
 
         <Box sx={{ p: 3 }}>
-          <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="h1"
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.text.primary,
-                fontSize: "2rem",
-              }}
-            >
-              Trung tâm cảnh báo
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
-            >
-              Quản lý và xử lý các cảnh báo từ hệ thống
-            </Typography>
-          </Box>
 
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)", // Đổi lại thành 4 cột cho 4 trạng thái
-              gap: 3,
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 2,
               mb: 4,
             }}
           >
@@ -208,10 +209,31 @@ const AlertCenter = () => {
               icon={<CheckCircleOutlineIcon />}
               color="success"
             />
+            <SummaryCard
+              label="Đã bỏ qua"
+              value={statusCounts.dismissed.toString()}
+              icon={<BlockIcon />}
+              color="grey"
+            />
           </Box>
 
           {/* FILTER BAR */}
-          <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3, mb: 1 }}>
+          <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3, mb: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Vụ nuôi</InputLabel>
+              <Select
+                value={batchFilter}
+                label="Vụ nuôi"
+                onChange={handleBatchFilterChange}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                {farmingBatches.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    {b.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>Trạng thái</InputLabel>
               <Select
@@ -255,7 +277,8 @@ const AlertCenter = () => {
                       "Cảm biến",
                       "Giá trị",
                       "Ngưỡng",
-                      "Bể ảnh hưởng", // Đã xóa cột Mức độ
+                      "Bể ảnh hưởng",
+                      "Vụ nuôi",
                       "Trạng thái",
                       "Hành động",
                     ].map((head, index) => (
@@ -357,6 +380,17 @@ const AlertCenter = () => {
                         {row.fishTankName}
                       </TableCell>
 
+                      {/* Vụ nuôi */}
+                      <TableCell
+                        sx={{
+                          fontWeight: 500,
+                          color: theme.palette.text.primary,
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {row.farmingBatchName || "—"}
+                      </TableCell>
+
                       {/* Trạng thái */}
                       <TableCell>
                         <Stack direction="row" spacing={1} alignItems="center">
@@ -408,7 +442,7 @@ const AlertCenter = () => {
                   ))}
                   {alerts.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                         Chưa có cảnh báo nào
                       </TableCell>
                     </TableRow>
@@ -480,7 +514,8 @@ const AlertCenter = () => {
 // --- Sub-components ---
 const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
   const theme = useTheme();
-  const paletteColor = theme.palette[color] as PaletteColor;
+  const isGrey = color === "grey";
+  const paletteColor = isGrey ? null : (theme.palette[color] as PaletteColor);
 
   return (
     <Paper
@@ -518,8 +553,8 @@ const SummaryCard = ({ label, value, icon, color }: SummaryCardProps) => {
         sx={{
           p: 1.5,
           borderRadius: "12px",
-          bgcolor: paletteColor.light,
-          color: paletteColor.main,
+          bgcolor: isGrey ? theme.palette.grey[200] : paletteColor!.light,
+          color: isGrey ? theme.palette.grey[700] : paletteColor!.main,
           display: "flex",
         }}
       >

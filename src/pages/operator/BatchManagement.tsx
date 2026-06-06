@@ -323,13 +323,6 @@ const BatchManagement = () => {
     }
   };
 
-  if (loading && batches.length === 0)
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-        <CircularProgress />
-      </Box>
-    );
-
   return (
     <Box
       sx={{
@@ -348,7 +341,7 @@ const BatchManagement = () => {
           minWidth: 0,
         }}
       >
-        <OperatorHeader />
+        <OperatorHeader title="Quản lý Vụ nuôi" />
         <Box
           sx={{
             display: "flex",
@@ -359,15 +352,11 @@ const BatchManagement = () => {
             height: "100vh",
           }}
         >
-          {/* Page heading */}
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-              Quản lý Vụ nuôi
-            </Typography>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-              Theo dõi sinh trưởng, dinh dưỡng và vận hành của từng vụ.
-            </Typography>
-          </Box>
+          {loading && batches.length === 0 && (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
+              <CircularProgress />
+            </Box>
+          )}
 
           <Box sx={{ display: "flex", gap: 2.5, flexGrow: 1, minHeight: 0 }}>
             {/* LEFT — narrow list + filters */}

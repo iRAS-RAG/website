@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getFarmSummary, type FarmSummaryDto } from "../api/supervisorMetrics";
 
 const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
@@ -14,13 +14,7 @@ export function useFarmSummary(farmIdParam?: string, opts?: { start?: string; en
   const [error, setError] = useState<Error | null>(null);
   const [summary, setSummary] = useState<FarmSummaryDto | null>(null);
 
-  const lastFetchRef = useRef<number>(0);
-
   const fetchSummary = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchRef.current < 1000) return;
-    lastFetchRef.current = now;
-
     setLoading(true);
     setError(null);
 

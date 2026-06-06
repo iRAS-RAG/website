@@ -7,7 +7,6 @@ import { DataTable, type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
 import TableToolbar from "../../components/common/TableToolbar";
 import CreateBatchDialog from "../../components/supervisor/batches/CreateBatchDialog";
-import SupervisorHeader from "../../components/supervisor/SupervisorHeader";
 import SupervisorSidebar from "../../components/supervisor/SupervisorSidebar";
 import useBatches from "../../hooks/useBatches";
 import type { Batch, BatchStatus } from "../../types/batch";
@@ -243,9 +242,6 @@ const BatchListPage: React.FC = () => {
           minWidth: 0,
         }}
       >
-        <SupervisorHeader />
-
-        {/* Đã gỡ bỏ maxWidth, để flexGrow lấp đầy */}
         <Box component="main" sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}>
           {/* HEADER KHU VỰC NỘI DUNG */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>

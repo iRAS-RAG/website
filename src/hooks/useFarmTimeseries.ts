@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getFarmTimeseries, type TimeSeriesResponseDto } from "../api/supervisorMetrics";
 
 const DEFAULT_FARM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
@@ -17,13 +17,7 @@ export function useFarmTimeseries(farmIdParam?: string, opts?: { start?: string;
   const [error, setError] = useState<Error | null>(null);
   const [timeseries, setTimeseries] = useState<TimeSeriesResponseDto | null>(null);
 
-  const lastFetchRef = useRef<number>(0);
-
   const fetchTimeseries = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastFetchRef.current < 1000) return;
-    lastFetchRef.current = now;
-
     setLoading(true);
     setError(null);
 

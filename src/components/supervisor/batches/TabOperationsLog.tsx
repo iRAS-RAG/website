@@ -429,21 +429,32 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
           <Box sx={{ flexGrow: 1 }} />
 
           {!diagnosisLoading && !diagnosisExpanded && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<PsychologyIcon />}
-              onClick={handleDiagnoseMortality}
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: "0.8rem",
-                px: 2,
-              }}
+            <Tooltip
+              title={
+                mortalityLogs.length === 0
+                  ? "Chưa có dữ liệu hao hụt để phân tích"
+                  : ""
+              }
             >
-              Phân tích nguyên nhân vật nuôi chết
-            </Button>
+              <span>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<PsychologyIcon />}
+                  onClick={handleDiagnoseMortality}
+                  disabled={mortalityLogs.length === 0}
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.8rem",
+                    px: 2,
+                  }}
+                >
+                  Phân tích nguyên nhân vật nuôi chết
+                </Button>
+              </span>
+            </Tooltip>
           )}
         </Stack>
 
@@ -604,19 +615,29 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
                   <br />
                   Không cần nhập câu hỏi — chỉ cần nhấn nút bên dưới.
                 </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<PsychologyIcon />}
-                  onClick={handleDiagnoseMortality}
-                  disabled={diagnosisLoading}
-                  sx={{
-                    borderRadius: "8px",
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
+                <Tooltip
+                  title={
+                    mortalityLogs.length === 0
+                      ? "Chưa có dữ liệu hao hụt để phân tích"
+                      : ""
+                  }
                 >
-                  Phân tích nguyên nhân vật nuôi chết
-                </Button>
+                  <span>
+                    <Button
+                      variant="contained"
+                      startIcon={<PsychologyIcon />}
+                      onClick={handleDiagnoseMortality}
+                      disabled={diagnosisLoading || mortalityLogs.length === 0}
+                      sx={{
+                        borderRadius: "8px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Phân tích nguyên nhân vật nuôi chết
+                    </Button>
+                  </span>
+                </Tooltip>
               </Box>
             )}
         </Collapse>

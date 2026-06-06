@@ -22,7 +22,6 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 
 // Icons
@@ -628,7 +627,6 @@ const AdminDashboard: React.FC = () => {
     <Box sx={{ display: "flex", bgcolor: "#F8FAFC", minHeight: "100vh", width: "100%" }}>
       <AdminSidebar />
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <AdminHeader />
         <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1 }}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>

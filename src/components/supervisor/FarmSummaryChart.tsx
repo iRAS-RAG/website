@@ -1,8 +1,8 @@
 import { Box, Button, CircularProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useSupervisorMetricsEvents } from "../../contexts/SupervisorMetricsContext";
 import useFarmSummary from "../../hooks/useFarmSummary";
-import useSupervisorMetricsSignalR from "../../hooks/useSupervisorMetricsSignalR";
 import FarmSummaryControls from "./FarmSummaryControls";
 
 const COLORS = ["#2A85FF", "#10B981", "#F59E0B", "#9333EA", "#EF4444", "#06B6D4"];
@@ -13,11 +13,15 @@ function formatNumber(val: number | null | undefined, decimals = 2) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: decimals }).format(val);
 }
 
-const defaultEnd = new Date().toISOString();
-const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+function freshDateRange() {
+  return {
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    end: new Date().toISOString(),
+  };
+}
 
 const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
-  const [params, setParams] = React.useState({ start: defaultStart, end: defaultEnd, metric: "totalFeedKg", limit: 10 });
+  const [params, setParams] = React.useState(() => ({ ...freshDateRange(), metric: "totalFeedKg", limit: 10 }));
 
   const { loading, error, summary, refetch } = useFarmSummary(farmId, { start: params.start, end: params.end });
 
@@ -39,10 +43,11 @@ const FarmSummaryChart: React.FC<{ farmId?: string }> = ({ farmId }) => {
     };
   }, []);
 
-  useSupervisorMetricsSignalR("aaaaaaaa-0000-0000-0000-000000000001", {
-    onFeeding: scheduleRefetch,
-    onMortality: scheduleRefetch,
-  });
+  // Subscribe to the single shared SignalR connection
+  const { subscribe } = useSupervisorMetricsEvents();
+  React.useEffect(() => {
+    return subscribe(scheduleRefetch);
+  }, [subscribe, scheduleRefetch]);
 
   type ParamsType = { start: string; end: string; metric: string; limit: number };
   const handleControlsChange = (p: Partial<ParamsType>) => {

@@ -18,6 +18,8 @@ export interface ILatestSensorData {
   maxThreshold?: number;
   minValue?: number;
   maxValue?: number;
+  minPossibleValue?: number;
+  maxPossibleValue?: number;
 
   latestData?: {
     latestAvg: number; // Đổi từ latestValue -> latestAvg

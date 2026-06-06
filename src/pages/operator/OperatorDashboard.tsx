@@ -166,14 +166,6 @@ const OperatorDashboard = () => {
   const totalTankPages = Math.ceil(filteredTanks.length / TANKS_PER_PAGE);
   const pagedTanks = filteredTanks.slice((tankPage - 1) * TANKS_PER_PAGE, tankPage * TANKS_PER_PAGE);
 
-  if (loading && !tanks.length) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: "#F8FAFC" }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   // Pie chart data
   const alertPieData: PieSlice[] = [
     { name: "Chờ xử lý", value: alertStats.open, color: "#EF4444" },
@@ -199,18 +191,15 @@ const OperatorDashboard = () => {
       <OperatorSidebar />
 
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <OperatorHeader />
+        <OperatorHeader title="Tổng quan hệ thống iRAS-RAG" />
 
         <Box component="main" sx={{ p: { xs: 2.5, md: 3.5 }, flexGrow: 1, width: "100%" }}>
-          {/* ── Header ── */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
-              Tổng quan hệ thống iRAS-RAG
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#64748B" }}>
-              Tổng quan tình trạng vận hành toàn hệ thống iRAS-RAG
-            </Typography>
-          </Box>
+          {loading && !tanks.length ? (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 12 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
 
           {/* ── ZONE 1: Pie Charts ── */}
           <Box
@@ -301,6 +290,8 @@ const OperatorDashboard = () => {
               <RecentAlertsList limit={5} />
             </Stack>
           </Box>
+          </>
+          )}
         </Box>
       </Box>
     </Box>

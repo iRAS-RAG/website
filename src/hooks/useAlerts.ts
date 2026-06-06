@@ -17,7 +17,7 @@ type ApiResult = {
   statusCounts?: StatusCounts;
 };
 
-export const useAlerts = (initialPage = 1, initialPageSize = 10, statuses?: string[]) => {
+export const useAlerts = (initialPage = 1, initialPageSize = 10, statuses?: string[], farmingBatchId?: string) => {
   const [data, setData] = useState<IAlert[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,12 +32,14 @@ export const useAlerts = (initialPage = 1, initialPageSize = 10, statuses?: stri
   const statusesRef = useRef(statuses);
   statusesRef.current = statuses;
   const statusesKey = statuses?.join(",") ?? "";
+  const farmingBatchIdRef = useRef(farmingBatchId);
+  farmingBatchIdRef.current = farmingBatchId;
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await alertApi.getAll({ page, pageSize, statuses: statusesRef.current, sortBy: "raisedat", sortDir: "desc" });
+      const result = await alertApi.getAll({ page, pageSize, statuses: statusesRef.current, farmingBatchId: farmingBatchIdRef.current, sortBy: "raisedat", sortDir: "desc" });
 
       const items = extractArray(result) as IAlert[];
       setData(items);
@@ -62,7 +64,7 @@ export const useAlerts = (initialPage = 1, initialPageSize = 10, statuses?: stri
 
   useEffect(() => {
     fetchAlerts();
-  }, [fetchAlerts, statusesKey]);
+  }, [fetchAlerts, statusesKey, farmingBatchId]);
 
   return {
     data,

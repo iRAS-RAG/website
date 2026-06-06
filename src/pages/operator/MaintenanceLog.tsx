@@ -296,7 +296,7 @@ const MaintenanceLog: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <OperatorHeader />
+        <OperatorHeader title="Nhật ký bảo trì & Khắc phục" />
 
         <Box sx={{ p: 3 }}>
           <Stack
@@ -305,24 +305,6 @@ const MaintenanceLog: React.FC = () => {
             alignItems="flex-start"
             sx={{ mb: 4 }}
           >
-            <Box>
-              <Typography
-                variant="h1"
-                sx={{
-                  fontSize: "1.75rem",
-                  fontWeight: 700,
-                  color: theme.palette.text.primary,
-                }}
-              >
-                Nhật ký bảo trì & Khắc phục
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: theme.palette.text.secondary, mt: 0.5 }}
-              >
-                Quản lý và theo dõi lịch sử xử lý cảnh báo hệ thống
-              </Typography>
-            </Box>
             <Stack direction="row" spacing={2}>
               <Button
                 variant="contained"

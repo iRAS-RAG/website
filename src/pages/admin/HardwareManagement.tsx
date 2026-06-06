@@ -17,7 +17,6 @@ import {
   useTheme,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import ControlDeviceDetail from "../../components/admin/hardware/ControlDeviceDetail";
 import ControlDeviceFormDialog from "../../components/admin/hardware/ControlDeviceFormDialog";
@@ -167,8 +166,6 @@ const HardwareManagement: React.FC = () => {
           minWidth: 0,
         }}
       >
-        <AdminHeader />
-
         <Box component="main" sx={{ p: 3, flexGrow: 1 }}>
           <Box
             sx={{

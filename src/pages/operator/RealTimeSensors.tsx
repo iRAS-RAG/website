@@ -477,20 +477,12 @@ const RealTimeSensors = () => {
   const dailyMin: number | null = activeSensor?.latestData?.latestMin ?? activeSensor?.minValue ?? null;
   const dailyMax: number | null = activeSensor?.latestData?.latestMax ?? activeSensor?.maxValue ?? null;
   const currentValue = activeSensor?.latestData?.latestAvg ?? 0;
-  const isCurrentDanger = thresholds !== null && (currentValue < thresholds.min || currentValue > thresholds.max);
 
-  // Sensor-type absolute domain hints (min, max) for a reasonable Y-axis range.
-  // Prevents threshold values being crowded at domain boundary.
   const sensorTypeDomain = useMemo((): [number, number] | null => {
     if (!activeSensor) return null;
-    const lower = activeSensor.sensorTypeName?.toLowerCase() || "";
-    if (lower.includes("nhiệt độ") || lower.includes("temp")) return [0, 50];
-    if (lower.includes("ph")) return [0, 14];
-    if (lower.includes("tds")) return [0, 1000];
-    if (lower.includes("oxy") || lower.includes("do")) return [0, 20];
-    if (lower.includes("ammonia") || lower.includes("nh3")) return [0, 10];
-    if (lower.includes("lưu lượng")) return [0, 200];
-    if (lower.includes("mực nước")) return [0, 500];
+    const min = activeSensor.minPossibleValue;
+    const max = activeSensor.maxPossibleValue;
+    if (min != null && max != null && max > min) return [min, max];
     return null;
   }, [activeSensor]);
 
@@ -542,18 +534,9 @@ const RealTimeSensors = () => {
     <Box sx={{ display: "flex", bgcolor: theme.palette.background.default, minHeight: "100vh" }}>
       <OperatorSidebar />
       <Box sx={{ flexGrow: 1, ml: "240px", display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <OperatorHeader />
+        <OperatorHeader title="Giám sát cảm biến thời gian thực" />
 
         <Box sx={{ p: 3, flexGrow: 1 }}>
-          {/* ── Title ── */}
-          <Box sx={{ mb: 2.5 }}>
-            <Typography variant="h1" sx={{ fontSize: "2rem", fontWeight: 600, color: theme.palette.text.primary }}>
-              Giám sát cảm biến thời gian thực
-            </Typography>
-            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
-              Theo dõi chi tiết thông số cảm biến và trạng thái thiết bị của từng bể
-            </Typography>
-          </Box>
 
           {/* ── Tank selector — slider ── */}
           {(() => {
@@ -1049,20 +1032,6 @@ const RealTimeSensors = () => {
                           Mức tối ưu
                         </Typography>
                       )}
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "10px" }}>
-                        Giá trị gần nhất
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : theme.palette.text.primary }}>
-                        {currentValue.toFixed(2)}
-                        <Typography component="span" variant="body2" sx={{ ml: 0.5, color: "text.secondary", fontWeight: 500 }}>
-                          {activeSensor.unitOfMeasure}
-                        </Typography>
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: thresholds ? (isCurrentDanger ? theme.palette.error.main : theme.palette.success.main) : "text.secondary" }}>
-                        {thresholds ? (isCurrentDanger ? "Vượt ngưỡng" : "Bình thường") : "—"}
-                      </Typography>
                     </Box>
                   </>
                 )}

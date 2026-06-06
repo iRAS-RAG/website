@@ -235,7 +235,7 @@ const AIAdvisory: React.FC = () => {
           height: "100vh",
         }}
       >
-        <OperatorHeader />
+        <OperatorHeader title="Trợ lý AI Phân tích iRAS" />
 
         <Box
           sx={{
@@ -284,21 +284,13 @@ const AIAdvisory: React.FC = () => {
                   >
                     <WaterDropIcon color="primary" />
                   </Box>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                      Phân tích sự cố: {selectedTank.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Trợ lý AI sẵn sàng tư vấn cho bể này
-                    </Typography>
-                  </Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    {selectedTank.name}
+                  </Typography>
                 </Stack>
               ) : (
                 <Stack direction="row" alignItems="center" spacing={1.5}>
                   <SmartToyOutlinedIcon color="primary" />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Trợ lý AI Phân tích iRAS
-                  </Typography>
                 </Stack>
               )}
 

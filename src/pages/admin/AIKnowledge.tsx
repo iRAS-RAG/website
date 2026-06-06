@@ -23,7 +23,6 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useMemo, useState } from "react";
-import AdminHeader from "../../components/admin/AdminHeader";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import DataTable, { type Column } from "../../components/common/DataTable";
 import PaginationControls from "../../components/common/PaginationControls";
@@ -229,7 +228,6 @@ const AIKnowledge: React.FC = () => {
           minWidth: 0,
         }}
       >
-        <AdminHeader />
         <Box
           component="main"
           sx={{ p: { xs: 3, md: 4 }, flexGrow: 1, width: "100%" }}
