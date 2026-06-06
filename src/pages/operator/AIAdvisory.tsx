@@ -1,4 +1,4 @@
-import { Avatar, Box, Button, Chip, CircularProgress, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
+import { Avatar, Box, Button, Chip, CircularProgress, Link, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -49,6 +49,95 @@ const stripMarkdown = (s: string): string => {
     .replace(/^#{1,6}\s+/gm, "") // headers # / ##
     .replace(/^\s*[*+-]\s+/gm, "• ") // bullets: *, -, +
     .replace(/`([^`]+)`/g, "$1"); // `code`
+};
+
+// Phân tích câu trả lời để tách link (markdown [text](url) và raw URL) và văn bản thuần
+interface AnswerSegment {
+  type: "text" | "link";
+  content: string;
+  url?: string;
+}
+
+const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+const RAW_URL_RE = /https?:\/\/[^\s)]+/g;
+
+// Trích xuất tên file hiển thị từ URL (rút gọn Cloudinary URL chỉ còn tên file)
+const formatRawUrlDisplay = (url: string): string => {
+  try {
+    const lastSegment = url.split("/").pop() || url;
+    // Loại bỏ query string và hash nếu có
+    const filename = lastSegment.split("?")[0].split("#")[0];
+    // Xóa hậu tố trùng lặp của Cloudinary (_<6+ ký tự ngẫu nhiên> trước đuôi file)
+    const cleaned = filename.replace(/_[a-z0-9]{6,}(\.[a-z]+)$/i, "$1");
+    return decodeURIComponent(cleaned);
+  } catch {
+    return url;
+  }
+};
+
+const parseAnswerSegments = (raw: string): AnswerSegment[] => {
+  if (!raw) return [];
+  const segments: AnswerSegment[] = [];
+
+  // B1: tách các markdown link [text](url) khỏi văn bản
+  const mdLinkPositions: Array<{ start: number; end: number; text: string; url: string }> = [];
+  let mdMatch: RegExpExecArray | null;
+  MARKDOWN_LINK_RE.lastIndex = 0;
+  while ((mdMatch = MARKDOWN_LINK_RE.exec(raw)) !== null) {
+    mdLinkPositions.push({
+      start: mdMatch.index,
+      end: mdMatch.index + mdMatch[0].length,
+      text: mdMatch[1],
+      url: mdMatch[2],
+    });
+  }
+
+  // B2: xây dựng mảng segments từ các markdown link đã tìm thấy
+  let cursor = 0;
+
+  // Duyệt qua các markdown link theo thứ tự xuất hiện
+  for (const mdPos of mdLinkPositions) {
+    // phần văn bản trước markdown link
+    if (cursor < mdPos.start) {
+      const textChunk = raw.slice(cursor, mdPos.start);
+      segments.push(...parseRawUrlsInText(textChunk));
+    }
+    // markdown link
+    segments.push({ type: "link", content: mdPos.text, url: mdPos.url });
+    cursor = mdPos.end;
+  }
+
+  // phần còn lại sau markdown link cuối cùng
+  if (cursor < raw.length) {
+    segments.push(...parseRawUrlsInText(raw.slice(cursor)));
+  }
+
+  return segments;
+};
+
+// Tách raw URL trong đoạn văn bản thuần (không nằm trong markdown link)
+const parseRawUrlsInText = (text: string): AnswerSegment[] => {
+  if (!text) return [];
+  const segments: AnswerSegment[] = [];
+  const re = new RegExp(RAW_URL_RE.source, "g");
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > cursor) {
+      segments.push({ type: "text", content: text.slice(cursor, match.index) });
+    }
+    // bỏ qua dấu đóng ngoặc nếu URL kết thúc bằng )
+    let url = match[0];
+    if (url.endsWith(")")) {
+      url = url.slice(0, -1);
+    }
+    segments.push({ type: "link", content: formatRawUrlDisplay(url), url });
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < text.length) {
+    segments.push({ type: "text", content: text.slice(cursor) });
+  }
+  return segments;
 };
 
 const AIAdvisory: React.FC = () => {
@@ -462,36 +551,34 @@ const AIAdvisory: React.FC = () => {
                                 <>
                                   <Typography
                                     variant="body2"
+                                    component="div"
                                     sx={{
                                       color: ex.error ? "error.main" : "text.primary",
                                       whiteSpace: "pre-wrap",
                                     }}
                                   >
-                                    {stripMarkdown(ex.answer)}
+                                    {parseAnswerSegments(ex.answer).map((seg, si) =>
+                                      seg.type === "link" && seg.url ? (
+                                        <Link
+                                          key={si}
+                                          href={seg.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          underline="hover"
+                                          sx={{ color: "primary.main", fontWeight: 500 }}
+                                        >
+                                          {seg.content}
+                                        </Link>
+                                      ) : (
+                                        <React.Fragment key={si}>{stripMarkdown(seg.content)}</React.Fragment>
+                                      ),
+                                    )}
                                   </Typography>
 
                                   {ex.isOffTopic && !ex.error && (
                                     <Chip size="small" icon={<WarningAmberIcon />} label="Câu hỏi nằm ngoài phạm vi tư vấn" color="warning" variant="outlined" sx={{ mt: 1.5 }} />
                                   )}
 
-                                  {ex.citations && ex.citations.length > 0 && (
-                                    <Box sx={{ mt: 1.5 }}>
-                                      <Typography
-                                        variant="caption"
-                                        sx={{
-                                          fontWeight: 700,
-                                          color: "text.secondary",
-                                        }}
-                                      >
-                                        Nguồn tham khảo:
-                                      </Typography>
-                                      {ex.citations.map((c, i) => (
-                                        <Typography key={i} variant="caption" display="block" color="text.secondary">
-                                          • {c}
-                                        </Typography>
-                                      ))}
-                                    </Box>
-                                  )}
                                 </>
                               )}
                             </Paper>
@@ -517,6 +604,9 @@ const AIAdvisory: React.FC = () => {
                                       color: "success.main",
                                       bgcolor: "rgba(46, 125, 50, 0.08)",
                                     },
+                                    "&.Mui-disabled": {
+                                      color: ex.isHelpful === true ? "success.main" : "text.disabled",
+                                    },
                                     transition: "color 0.2s, background-color 0.2s",
                                   }}
                                 >
@@ -539,6 +629,9 @@ const AIAdvisory: React.FC = () => {
                                     "&:hover": {
                                       color: "error.main",
                                       bgcolor: "rgba(211, 47, 47, 0.08)",
+                                    },
+                                    "&.Mui-disabled": {
+                                      color: ex.isHelpful === false ? "error.main" : "text.disabled",
                                     },
                                     transition: "color 0.2s, background-color 0.2s",
                                   }}
