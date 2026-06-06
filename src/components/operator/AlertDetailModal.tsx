@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -12,15 +12,91 @@ import {
   Divider,
   CircularProgress,
   useTheme,
+  Collapse,
+  Tooltip,
+  Link,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { alertApi } from "../../api/alerts";
+import { advisoryApi } from "../../api/advisory";
+import type { AdvisoryChatResponse } from "../../api/advisory";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
+
+// --- Định dạng câu trả lời AI (giống AIAdvisory) ---
+const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+const RAW_URL_RE = /https?:\/\/[^\s)]+/g;
+
+const formatRawUrlDisplay = (url: string): string => {
+  try {
+    const lastSegment = url.split("/").pop() || url;
+    const filename = lastSegment.split("?")[0].split("#")[0];
+    const cleaned = filename.replace(/_[a-z0-9]{6,}(\.[a-z]+)$/i, "$1");
+    return decodeURIComponent(cleaned);
+  } catch {
+    return url;
+  }
+};
+
+interface AISegment {
+  type: "text" | "bold" | "link";
+  content: string;
+  url?: string;
+}
+
+function parseBold(text: string): AISegment[] {
+  const segs: AISegment[] = [];
+  const parts = text.split(/\*\*([\s\S]+?)\*\*/g);
+  for (let i = 0; i < parts.length; i++) {
+    if (!parts[i]) continue;
+    segs.push({ type: i % 2 === 0 ? "text" : "bold", content: parts[i] });
+  }
+  return segs;
+}
+
+function parseRawUrlsInText(text: string): AISegment[] {
+  if (!text) return [];
+  const segs: AISegment[] = [];
+  const re = new RegExp(RAW_URL_RE.source, "g");
+  let cursor = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > cursor) segs.push(...parseBold(text.slice(cursor, m.index)));
+    let url = m[0];
+    if (url.endsWith(")")) url = url.slice(0, -1);
+    segs.push({ type: "link", content: formatRawUrlDisplay(url), url });
+    cursor = m.index + m[0].length;
+  }
+  if (cursor < text.length) segs.push(...parseBold(text.slice(cursor)));
+  return segs;
+}
+
+function parseAiResponse(text: string): AISegment[] {
+  if (!text) return [];
+  const segs: AISegment[] = [];
+  const positions: Array<{ start: number; end: number; text: string; url: string }> = [];
+  let m: RegExpExecArray | null;
+  const mdRe = new RegExp(MD_LINK_RE.source, "g");
+  while ((m = mdRe.exec(text)) !== null) {
+    positions.push({ start: m.index, end: m.index + m[0].length, text: m[1], url: m[2] });
+  }
+  let cursor = 0;
+  for (const pos of positions) {
+    if (cursor < pos.start) segs.push(...parseRawUrlsInText(text.slice(cursor, pos.start)));
+    segs.push({ type: "link", content: pos.text, url: pos.url });
+    cursor = pos.end;
+  }
+  if (cursor < text.length) segs.push(...parseRawUrlsInText(text.slice(cursor)));
+  return segs;
+}
 
 // 1. CẬP NHẬT INTERFACE: Xóa level, sửa status
 export interface AlertData {
@@ -58,23 +134,84 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   const [localStatus, setLocalStatus] = useState<AlertData["status"] | null>(null);
   const currentStatus = localStatus ?? data?.status;
 
-  // Reset local status when modal opens with a different alert
+  // --- AI tư vấn tự động khi mở modal ---
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiExpanded, setAiExpanded] = useState(true);
+
+  // Cache Map: lưu kết quả AI theo alert ID để không gọi lại API mỗi lần mở modal
+  const aiCacheRef = useRef(new Map<string | number, { response: string | null; error: string | null }>());
+
+  const constructPrompt = (d: AlertData): string =>
+    `${d.tank} đang có chỉ số ${d.sensorName} là ${d.value} ` +
+    `(vượt ngưỡng an toàn ${d.limit}). ` +
+    `Hãy hướng dẫn tôi quy trình xử lý SOP khẩn cấp cho tình huống này.`;
+
+  const fetchAiSuggestion = useCallback((alertId: string | number, tankId: string) => {
+    setAiResponse(null);
+    setAiError(null);
+    setAiLoading(true);
+    setAiExpanded(true);
+
+    const prompt = constructPrompt(data!);
+    advisoryApi
+      .chat(tankId, prompt)
+      .then((res: AdvisoryChatResponse) => {
+        const response = res.answer?.trim() || null;
+        const error = !response ? "AI chưa trả về nội dung tư vấn." : null;
+        // Lưu vào cache
+        aiCacheRef.current.set(alertId, { response, error });
+        setAiResponse(response);
+        setAiError(error);
+      })
+      .catch((err: unknown) => {
+        console.error("Lỗi gọi AI tư vấn:", err);
+        const error = "Không thể kết nối tới trợ lý AI. Vui lòng thử lại sau.";
+        aiCacheRef.current.set(alertId, { response: null, error });
+        setAiError(error);
+      })
+      .finally(() => {
+        setAiLoading(false);
+      });
+  }, [data]);
+
+  // Khi mở modal (data thay đổi), kiểm tra cache trước, chỉ gọi API nếu chưa có
   useEffect(() => {
+    if (!data) return;
     setLocalStatus(null);
-  }, [data?.id]);
+
+    const cached = aiCacheRef.current.get(data.id);
+    if (cached) {
+      // Có cache → show luôn, không gọi lại API
+      setAiResponse(cached.response);
+      setAiError(cached.error);
+      setAiLoading(false);
+      setAiExpanded(true);
+      return;
+    }
+
+    // Chưa có cache → gọi API
+    fetchAiSuggestion(data.id, data.tankId);
+  }, [data?.id, data?.tankId]);
+
+  // Regenerate: xoá cache cho alert hiện tại và gọi lại API
+  const handleRegenerate = () => {
+    if (!data || aiLoading) return;
+    aiCacheRef.current.delete(data.id);
+    fetchAiSuggestion(data.id, data.tankId);
+  };
 
   // Task 1: chuyển sang trang AI Advisor với prompt mở đầu điền sẵn
   const handleConsultAI = () => {
     if (!data) return;
-    const prompt =
-      `${data.tank} đang có chỉ số ${data.sensorName} là ${data.value} ` +
-      `(vượt ngưỡng an toàn ${data.limit}). ` +
-      `Hãy hướng dẫn tôi quy trình xử lý SOP khẩn cấp cho tình huống này.`;
+    const prompt = constructPrompt(data);
     navigate("/operator/ai-advisory", {
       state: {
         tankId: data.tankId,
         tankName: data.tank,
         prefillPrompt: prompt,
+        autoSend: true,
       },
     });
     onClose();
@@ -341,6 +478,155 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
             </Typography>
           </Box>
         </Stack>
+
+        {/* ---- AI TƯ VẤN TỰ ĐỘNG ---- */}
+        <Box
+          sx={{
+            mb: 3,
+            borderRadius: "12px",
+            border: `1px solid ${
+              aiError ? theme.palette.error.light : theme.palette.primary.light
+            }`,
+            overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 2,
+              py: 1.5,
+              bgcolor: aiError ? "#FEF2F2" : "#EFF6FF",
+              cursor: "pointer",
+            }}
+            onClick={() => !aiLoading && setAiExpanded((prev) => !prev)}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              {aiLoading ? (
+                <CircularProgress size={18} />
+              ) : (
+                <LightbulbOutlinedIcon
+                  sx={{
+                    fontSize: 20,
+                    color: aiError ? theme.palette.error.main : theme.palette.primary.main,
+                  }}
+                />
+              )}
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 600,
+                  color: aiError ? theme.palette.error.main : theme.palette.primary.main,
+                }}
+              >
+                {aiLoading
+                  ? "AI đang phân tích..."
+                  : aiError
+                    ? "AI tư vấn chưa sẵn sàng"
+                    : "Gợi ý từ AI"}
+              </Typography>
+            </Stack>
+
+            {/* Actions: Regenerate + Expand/Collapse */}
+            {!aiLoading && (
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                {/* Nút Regenerate — chỉ hiện khi đã có phản hồi (kể cả lỗi) */}
+                {(aiResponse || aiError) && (
+                  <Tooltip title="Tạo lại gợi ý AI">
+                    <IconButton
+                      size="small"
+                      sx={{ p: 0.5 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRegenerate();
+                      }}
+                    >
+                      <RefreshIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <IconButton size="small" sx={{ p: 0.5 }}>
+                  {aiExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                </IconButton>
+              </Stack>
+            )}
+          </Box>
+
+          {/* Body */}
+          <Collapse in={aiExpanded && !aiLoading}>
+            <Box sx={{ p: 2, bgcolor: "#fff" }}>
+              {aiLoading ? (
+                <Stack spacing={1}>
+                  <Box
+                    sx={{
+                      height: 12,
+                      width: "100%",
+                      bgcolor: "#E2E8F0",
+                      borderRadius: "6px",
+                      animation: "pulse 1.5s infinite",
+                      "@keyframes pulse": { "0%, 100%": { opacity: 0.4 }, "50%": { opacity: 1 } },
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      height: 12,
+                      width: "80%",
+                      bgcolor: "#E2E8F0",
+                      borderRadius: "6px",
+                      animation: "pulse 1.5s infinite",
+                      "@keyframes pulse": { "0%, 100%": { opacity: 0.4 }, "50%": { opacity: 1 } },
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      height: 12,
+                      width: "60%",
+                      bgcolor: "#E2E8F0",
+                      borderRadius: "6px",
+                      animation: "pulse 1.5s infinite",
+                      "@keyframes pulse": { "0%, 100%": { opacity: 0.4 }, "50%": { opacity: 1 } },
+                    }}
+                  />
+                </Stack>
+              ) : aiError ? (
+                <Typography variant="body2" sx={{ color: theme.palette.error.main }}>
+                  {aiError}
+                </Typography>
+              ) : aiResponse ? (
+                <Typography
+                  variant="body2"
+                  component="div"
+                  sx={{
+                    color: theme.palette.text.primary,
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {aiResponse && parseAiResponse(aiResponse).map((seg, idx) => {
+                    if (seg.type === "bold")
+                      return <strong key={idx}>{seg.content}</strong>;
+                    if (seg.type === "link" && seg.url)
+                      return (
+                        <Link
+                          key={idx}
+                          href={seg.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          underline="hover"
+                          sx={{ color: "primary.main", fontWeight: 500 }}
+                        >
+                          {seg.content}
+                        </Link>
+                      );
+                    return <React.Fragment key={idx}>{seg.content}</React.Fragment>;
+                  })}
+                </Typography>
+              ) : null}
+            </Box>
+          </Collapse>
+        </Box>
 
         <Divider sx={{ mb: 3 }} />
 

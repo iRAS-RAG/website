@@ -179,8 +179,10 @@ const AIKnowledge: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      if (!title) setTitle(e.target.files[0].name);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      // Luôn cập nhật title từ tên file khi chọn file mới
+      setTitle(selectedFile.name);
     }
   };
 
@@ -333,7 +335,12 @@ const AIKnowledge: React.FC = () => {
       {/* Dialog Tải lên */}
       <Dialog
         open={openUpload}
-        onClose={() => !isUploading && setOpenUpload(false)}
+        onClose={() => {
+          if (isUploading) return;
+          setFile(null);
+          setTitle("");
+          setOpenUpload(false);
+        }}
         fullWidth
         maxWidth="sm"
       >
@@ -365,7 +372,11 @@ const AIKnowledge: React.FC = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
           <Button
-            onClick={() => setOpenUpload(false)}
+            onClick={() => {
+              setFile(null);
+              setTitle("");
+              setOpenUpload(false);
+            }}
             color="inherit"
             disabled={isUploading}
           >

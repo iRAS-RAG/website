@@ -155,6 +155,9 @@ const AIAdvisory: React.FC = () => {
 
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
 
+  // Ref trỏ đến handleSend mới nhất — gán sau khi handleSend được định nghĩa
+  const handleSendRef = useRef<(() => Promise<void>) | null>(null);
+
   useEffect(() => {
     const loadTanks = async () => {
       try {
@@ -176,6 +179,7 @@ const AIAdvisory: React.FC = () => {
     const navState = location.state as {
       tankId?: string;
       prefillPrompt?: string;
+      autoSend?: boolean;
     } | null;
     if (!navState?.tankId) return;
 
@@ -183,7 +187,16 @@ const AIAdvisory: React.FC = () => {
     if (matched) {
       prefillApplied.current = true;
       setSelectedTank(matched);
-      if (navState.prefillPrompt) setMessage(navState.prefillPrompt);
+      if (navState.prefillPrompt) {
+        setMessage(navState.prefillPrompt);
+        // Tự động gửi câu hỏi nếu điều hướng từ alert (autoSend=true)
+        if (navState.autoSend) {
+          // setTimeout để React kịp flush state updates trước khi gửi
+          setTimeout(() => {
+            handleSendRef.current?.();
+          }, 100);
+        }
+      }
     }
   }, [tanks, location.state]);
 
@@ -304,6 +317,8 @@ const AIAdvisory: React.FC = () => {
       setSending(false);
     }
   };
+  // Luôn cập nhật ref để auto-send dùng được handleSend mới nhất
+  handleSendRef.current = handleSend;
 
   return (
     <Box
