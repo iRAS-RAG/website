@@ -145,6 +145,7 @@ const AIAdvisory: React.FC = () => {
   const toast = useToast();
   const location = useLocation();
   const prefillApplied = useRef(false);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [loadingTanks, setLoadingTanks] = useState(true);
@@ -154,6 +155,13 @@ const AIAdvisory: React.FC = () => {
   const [sending, setSending] = useState(false);
 
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
+
+  // Tự động cuộn xuống cuối khi có tin nhắn mới hoặc câu trả lời
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [exchanges]);
 
   // Ref trỏ đến handleSend mới nhất — gán sau khi handleSend được định nghĩa
   const handleSendRef = useRef<(() => Promise<void>) | null>(null);
@@ -244,15 +252,6 @@ const AIAdvisory: React.FC = () => {
   const handleSend = async () => {
     const question = message.trim();
     if (!selectedTank || !question || sending) return;
-
-    // Đánh giá ngầm: nếu câu trả lời cuối chưa được đánh giá thì tự gửi helpful=true
-    const lastIndex = exchanges.length - 1;
-    if (lastIndex >= 0) {
-      const lastEx = exchanges[lastIndex];
-      if (lastEx && !lastEx.error && !lastEx.feedbackSubmitted && lastEx.answer) {
-        handleFeedback(lastIndex, true);
-      }
-    }
 
     setMessage("");
     setSending(true);
@@ -417,7 +416,7 @@ const AIAdvisory: React.FC = () => {
             </Paper>
 
             {/* Vùng nội dung chat */}
-            <Box sx={{ flexGrow: 1, p: 3, overflowY: "auto", minHeight: 0 }}>
+            <Box ref={chatContainerRef} sx={{ flexGrow: 1, p: 3, overflowY: "auto", minHeight: 0 }}>
               <Stack spacing={3}>
                 {/* LỜI CHÀO & TANK CHIPS */}
                 <Box
