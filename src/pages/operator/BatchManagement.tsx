@@ -100,6 +100,7 @@ const BatchManagement = () => {
   const [openFeedDialog, setOpenFeedDialog] = useState(false);
   const [feedInput, setFeedInput] = useState("");
   const [feedTypeIdInput, setFeedTypeIdInput] = useState("");
+  const [feedWarning, setFeedWarning] = useState<string | null>(null);
 
   // Mortality dialog
   const [openDeathDialog, setOpenDeathDialog] = useState(false);
@@ -125,6 +126,29 @@ const BatchManagement = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [deathInput, selectedBatch]);
+
+  // Validate mortality weight against expected range as the user types
+  useEffect(() => {
+    const qty = parseInt(deathInput, 10);
+    const weight = parseFloat(deathWeightInput);
+    if (!selectedBatch || isNaN(qty) || qty <= 0 || isNaN(weight) || weight <= 0) {
+      setMortalityWarning(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await operatorBatchesApi.validateMortality(selectedBatch.id, qty, weight, new Date().toISOString());
+        if (!res.isWithinRange) {
+          setMortalityWarning(res.message || "Số liệu vượt ngưỡng cho phép.");
+        } else {
+          setMortalityWarning(null);
+        }
+      } catch {
+        // silent — let handleSaveMortality decide on save
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [deathInput, deathWeightInput, selectedBatch]);
 
   // Reset tab when batch changes
   useEffect(() => {
@@ -226,6 +250,43 @@ const BatchManagement = () => {
       suggestedAmount,
     };
   }, [activeStage, feedingLogs]);
+
+  // Warn when feed amount exceeds suggested daily guidance
+  useEffect(() => {
+    const amount = parseFloat(feedInput);
+    if (isNaN(amount) || amount <= 0 || !feedingGuidance) {
+      setFeedWarning(null);
+      return;
+    }
+
+    const { suggestedAmount, remainingAmount, dailyTargetKg, isOverfed, todayFeedAmount } = feedingGuidance;
+
+    // Nếu hôm nay đã vượt mục tiêu
+    if (isOverfed) {
+      setFeedWarning(`Hôm nay đã vượt mục tiêu ${dailyTargetKg?.toFixed(2)} kg/ngày. Không nên cho ăn thêm để tránh lãng phí và ô nhiễm nước.`);
+      return;
+    }
+
+    // Nếu lượng nhập vượt quá lượng còn lại trong ngày
+    if (remainingAmount != null && amount > remainingAmount) {
+      setFeedWarning(
+        `Lượng nhập (${amount.toFixed(2)} kg) vượt quá lượng còn lại trong ngày (${remainingAmount.toFixed(2)} kg). ` +
+        `Tổng mục tiêu hôm nay là ${dailyTargetKg?.toFixed(2)} kg, đã cho ăn ${todayFeedAmount.toFixed(2)} kg.`,
+      );
+      return;
+    }
+
+    // Nếu lượng nhập cao hơn nhiều so với mức đề xuất mỗi lần
+    if (suggestedAmount != null && amount > suggestedAmount * 1.5) {
+      setFeedWarning(
+        `Lượng nhập (${amount.toFixed(2)} kg) cao hơn nhiều so với mức đề xuất mỗi lần (${suggestedAmount.toFixed(2)} kg). ` +
+        `Mục tiêu hôm nay là ${dailyTargetKg?.toFixed(2)} kg chia làm ${feedingGuidance.dailyFrequency ?? "?"} lần.`,
+      );
+      return;
+    }
+
+    setFeedWarning(null);
+  }, [feedInput, feedingGuidance]);
 
   // Harvested-state derived values (mirrors supervisor TabOverview logic)
   const isHarvested = selectedBatch ? normalizeStatus(selectedBatch.status) === "1" : false;
@@ -775,7 +836,7 @@ const BatchManagement = () => {
                                     fontSize: "10px",
                                   }}
                                 >
-                                  Còn lại
+                                  {feedingGuidance.isOverfed ? "Vượt mức" : "Còn lại"}
                                 </Typography>
                                 <Typography
                                   variant="body2"
@@ -796,8 +857,14 @@ const BatchManagement = () => {
                                         : "Đã đạt mục tiêu"
                                     : "—"}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {feedingGuidance.remainingFeedings != null ? (feedingGuidance.remainingFeedings > 0 ? `Còn ${feedingGuidance.remainingFeedings} lần` : "Đã đủ số lần") : ""}
+                                <Typography variant="caption" color={feedingGuidance.isOverfed ? "error" : "text.secondary"}>
+                                  {feedingGuidance.isOverfed
+                                    ? "Đã vượt mức khuyến nghị"
+                                    : feedingGuidance.remainingFeedings != null
+                                      ? feedingGuidance.remainingFeedings > 0
+                                        ? `Còn ${feedingGuidance.remainingFeedings} lần`
+                                        : "Đã đủ số lần"
+                                      : ""}
                                 </Typography>
                               </Box>
                             </Box>
@@ -838,8 +905,11 @@ const BatchManagement = () => {
                             startIcon={<AddIcon />}
                             onClick={() => {
                               // Prefill suggested amount unless already over limit
+                              setFeedWarning(null);
                               if (feedingGuidance?.suggestedAmount != null && !feedingGuidance.isOverfed) {
                                 setFeedInput(feedingGuidance.suggestedAmount.toFixed(2));
+                              } else {
+                                setFeedInput("");
                               }
                               setOpenFeedDialog(true);
                             }}
@@ -1000,7 +1070,16 @@ const BatchManagement = () => {
       </Box>
 
       {/* DIALOG CHO ĂN */}
-      <Dialog open={openFeedDialog} onClose={() => setOpenFeedDialog(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={openFeedDialog}
+        onClose={() => {
+          setOpenFeedDialog(false);
+          setFeedInput("");
+          setFeedWarning(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>Ghi nhận cho ăn</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           <FormControl fullWidth size="small">
@@ -1036,11 +1115,54 @@ const BatchManagement = () => {
             value={feedInput}
             onChange={(e) => setFeedInput(e.target.value)}
           />
+          {feedingGuidance?.suggestedAmount != null && (
+            <Typography variant="caption" color="text.secondary">
+              Lượng đề xuất mỗi lần: <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>{feedingGuidance.suggestedAmount.toFixed(2)} kg</Box>
+              {feedingGuidance.dailyTargetKg != null && (
+                <> — Mục tiêu hôm nay: <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>{feedingGuidance.dailyTargetKg.toFixed(2)} kg</Box></>
+              )}
+            </Typography>
+          )}
+          {feedWarning && (
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                p: 1.5,
+                borderRadius: "8px",
+                bgcolor: "#FFF7ED",
+                border: "1px solid #FDBA74",
+              }}
+            >
+              <ErrorOutlineIcon sx={{ color: "#F97316", fontSize: 20, flexShrink: 0, mt: 0.1 }} />
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: "#C2410C", display: "block" }}>
+                  Cảnh báo vượt mức khuyến nghị
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#9A3412" }}>
+                  {feedWarning}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenFeedDialog(false)}>Hủy</Button>
-          <Button variant="contained" onClick={handleSaveFeeding} sx={{ boxShadow: "none" }}>
-            Lưu dữ liệu
+          <Button
+            onClick={() => {
+              setOpenFeedDialog(false);
+              setFeedInput("");
+              setFeedWarning(null);
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveFeeding}
+            color={feedWarning ? "warning" : "primary"}
+            sx={{ boxShadow: "none" }}
+          >
+            {feedWarning ? "Vẫn lưu" : "Lưu dữ liệu"}
           </Button>
         </DialogActions>
       </Dialog>
