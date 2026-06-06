@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -30,6 +30,9 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+
+// Module-level cache: giữa liệu khi component unmount/remount
+const _aiSuggestionCache = new Map<string | number, { response: string | null; error: string | null }>();
 
 // --- Định dạng câu trả lời AI (giống AIAdvisory) ---
 const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -140,8 +143,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiExpanded, setAiExpanded] = useState(true);
 
-  // Cache Map: lưu kết quả AI theo alert ID để không gọi lại API mỗi lần mở modal
-  const aiCacheRef = useRef(new Map<string | number, { response: string | null; error: string | null }>());
+  // Cache module-level: giữa liệu khi component unmount/remount
 
   const constructPrompt = (d: AlertData): string =>
     `${d.tank} đang có chỉ số ${d.sensorName} là ${d.value} ` +
@@ -161,14 +163,14 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
         const response = res.answer?.trim() || null;
         const error = !response ? "AI chưa trả về nội dung tư vấn." : null;
         // Lưu vào cache
-        aiCacheRef.current.set(alertId, { response, error });
+        _aiSuggestionCache.set(alertId, { response, error });
         setAiResponse(response);
         setAiError(error);
       })
       .catch((err: unknown) => {
         console.error("Lỗi gọi AI tư vấn:", err);
         const error = "Không thể kết nối tới trợ lý AI. Vui lòng thử lại sau.";
-        aiCacheRef.current.set(alertId, { response: null, error });
+        _aiSuggestionCache.set(alertId, { response: null, error });
         setAiError(error);
       })
       .finally(() => {
@@ -181,7 +183,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
     if (!data) return;
     setLocalStatus(null);
 
-    const cached = aiCacheRef.current.get(data.id);
+    const cached = _aiSuggestionCache.get(data.id);
     if (cached) {
       // Có cache → show luôn, không gọi lại API
       setAiResponse(cached.response);
@@ -198,7 +200,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   // Regenerate: xoá cache cho alert hiện tại và gọi lại API
   const handleRegenerate = () => {
     if (!data || aiLoading) return;
-    aiCacheRef.current.delete(data.id);
+    _aiSuggestionCache.delete(data.id);
     fetchAiSuggestion(data.id, data.tankId);
   };
 
