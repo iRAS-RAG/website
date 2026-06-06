@@ -28,6 +28,7 @@ import StructureList from "../../components/admin/hardware/StructureList";
 import TankDetail from "../../components/admin/hardware/TankDetail";
 import TankFormDialog from "../../components/admin/hardware/TankFormDialog";
 import { useToast } from "../../components/common/toastContext";
+import { isApiError } from "../../api/client";
 import useControlDevices from "../../hooks/useControlDevices";
 import useMasterBoards from "../../hooks/useMasterBoards";
 import useSensorTypes from "../../hooks/useSensorTypes";
@@ -704,8 +705,9 @@ const HardwareManagement: React.FC = () => {
               setConfirmDialog((prev) => ({ ...prev, isProcessing: true }));
               try {
                 await confirmDialog.onConfirm();
-              } catch {
-                toast.error("Có lỗi xảy ra khi xóa.");
+              } catch (e) {
+                const apiMsg = isApiError(e) ? ((e.data as Record<string, unknown>)?.message as string) : undefined;
+                toast.error(apiMsg || "Có lỗi xảy ra khi xóa.");
               } finally {
                 setConfirmDialog((prev) => ({
                   ...prev,
