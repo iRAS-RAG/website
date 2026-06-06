@@ -747,7 +747,7 @@ const BatchManagement = () => {
                             <KPICard
                               icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />}
                               label="FCR"
-                              value={selectedBatch.fcr != null ? stripZerosOp(selectedBatch.fcr) : "—"}
+                              value={selectedBatch.fcr != null ? String(Number(selectedBatch.fcr.toFixed(4))) : "—"}
                               desc="Hệ số chuyển đổi thức ăn"
                             />
                             <KPICard icon={<SetMealIcon sx={{ color: theme.palette.success.main }} />} label="Tổng lượng cám tiêu thụ" value={`${totalFeed.toFixed(1)} kg`} desc="Hiệu suất tiêu thụ" />

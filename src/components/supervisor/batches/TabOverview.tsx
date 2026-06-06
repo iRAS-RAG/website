@@ -417,7 +417,7 @@ const TabOverview: React.FC<Props> = ({ batch }) => {
           <KPICard
             icon={<SetMealIcon sx={{ color: theme.palette.primary.main }} />}
             label="FCR"
-            value={batch.fcr != null ? stripZeros(batch.fcr) : "—"}
+            value={batch.fcr != null ? String(Number(batch.fcr.toFixed(4))) : "—"}
             desc="Hệ số chuyển đổi thức ăn"
           />
           <KPICard
