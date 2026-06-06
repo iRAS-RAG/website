@@ -108,6 +108,7 @@ export default function useSpeciesConfigs() {
 
     return () => {
       isMounted = false;
+      fetchedRef.current = false; // Allow re-fetch on StrictMode re-mount
     };
   }, []);
 
