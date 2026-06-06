@@ -1,6 +1,8 @@
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import SetMealIcon from "@mui/icons-material/SetMeal";
 import { Alert, Box, Button, Chip, CircularProgress, Collapse, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { advisoryApi, type MortalityDiagnosisResponse } from "../../../api/advisory";
@@ -82,6 +84,12 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
   const [diagnosisResult, setDiagnosisResult] = useState<MortalityDiagnosisResponse | null>(null);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [diagnosisExpanded, setDiagnosisExpanded] = useState(false);
+
+  // Date range filters — mặc định 7 ngày gần nhất
+  const [feedDateFrom, setFeedDateFrom] = useState<Dayjs | null>(dayjs().subtract(7, "day"));
+  const [feedDateTo, setFeedDateTo] = useState<Dayjs | null>(dayjs());
+  const [mortDateFrom, setMortDateFrom] = useState<Dayjs | null>(dayjs().subtract(7, "day"));
+  const [mortDateTo, setMortDateTo] = useState<Dayjs | null>(dayjs());
 
   const fetchDiagnosis = useCallback(async (tankId: string, batchId: string, cacheResult: boolean) => {
     setDiagnosisLoading(true);
@@ -176,6 +184,26 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
       isOverfed,
     };
   }, [activeStage, feedingLogs]);
+
+  // Date-filtered feeding logs
+  const filteredFeedingLogs = useMemo(() => {
+    return feedingLogs.filter((log) => {
+      const d = dayjs(log.createdDate);
+      if (feedDateFrom && d.isBefore(feedDateFrom, "day")) return false;
+      if (feedDateTo && d.isAfter(feedDateTo, "day")) return false;
+      return true;
+    });
+  }, [feedingLogs, feedDateFrom, feedDateTo]);
+
+  // Date-filtered mortality logs
+  const filteredMortalityLogs = useMemo(() => {
+    return mortalityLogs.filter((log) => {
+      const d = dayjs(log.date);
+      if (mortDateFrom && d.isBefore(mortDateFrom, "day")) return false;
+      if (mortDateTo && d.isAfter(mortDateTo, "day")) return false;
+      return true;
+    });
+  }, [mortalityLogs, mortDateFrom, mortDateTo]);
 
   return (
     <Box>
@@ -297,6 +325,23 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
         <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
           Lịch sử Dinh dưỡng
         </Typography>
+        {/* Date range filter */}
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap">
+          <DatePicker label="Từ ngày" value={feedDateFrom} onChange={(v) => setFeedDateFrom(v)} maxDate={feedDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
+          <DatePicker label="Đến ngày" value={feedDateTo} onChange={(v) => setFeedDateTo(v)} minDate={feedDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
+          {(feedDateFrom?.isAfter(dayjs().subtract(7, "day")) === false || feedDateTo?.isBefore(dayjs()) === false) && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                setFeedDateFrom(dayjs().subtract(7, "day"));
+                setFeedDateTo(dayjs());
+              }}
+            >
+              Reset 7 ngày
+            </Button>
+          )}
+        </Stack>
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
           <Table size="small">
             <TableHead sx={{ bgcolor: "action.hover" }}>
@@ -309,14 +354,14 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {feedingLogs.length === 0 ? (
+              {filteredFeedingLogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} align="center" sx={{ py: 3, color: "text.secondary" }}>
                     Chưa có dữ liệu.
                   </TableCell>
                 </TableRow>
               ) : (
-                feedingLogs.map((log) => (
+                filteredFeedingLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>{dayjs(log.createdDate).format("DD/MM/YYYY HH:mm")}</TableCell>
                     <TableCell>
@@ -348,6 +393,23 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
         <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
           Theo dõi Hao hụt
         </Typography>
+        {/* Date range filter */}
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap">
+          <DatePicker label="Từ ngày" value={mortDateFrom} onChange={(v) => setMortDateFrom(v)} maxDate={mortDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
+          <DatePicker label="Đến ngày" value={mortDateTo} onChange={(v) => setMortDateTo(v)} minDate={mortDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
+          {(mortDateFrom?.isAfter(dayjs().subtract(7, "day")) === false || mortDateTo?.isBefore(dayjs()) === false) && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                setMortDateFrom(dayjs().subtract(7, "day"));
+                setMortDateTo(dayjs());
+              }}
+            >
+              Reset 7 ngày
+            </Button>
+          )}
+        </Stack>
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead sx={{ bgcolor: "action.hover" }}>
@@ -359,14 +421,14 @@ const TabOperationsLog: React.FC<Props> = ({ batch }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {mortalityLogs.length === 0 ? (
+              {filteredMortalityLogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={2} align="center" sx={{ py: 3, color: "text.secondary" }}>
                     Chưa có dữ liệu.
                   </TableCell>
                 </TableRow>
               ) : (
-                mortalityLogs.map((log) => (
+                filteredMortalityLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>{dayjs(log.date).format("DD/MM/YYYY HH:mm")}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600, color: "error.main" }}>

@@ -102,11 +102,11 @@ const BatchManagement = () => {
   const [tankFilter, setTankFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("0"); // default: ACTIVE
 
-  // Date range filters
-  const [feedDateFrom, setFeedDateFrom] = useState<Dayjs | null>(null);
-  const [feedDateTo, setFeedDateTo] = useState<Dayjs | null>(null);
-  const [mortDateFrom, setMortDateFrom] = useState<Dayjs | null>(null);
-  const [mortDateTo, setMortDateTo] = useState<Dayjs | null>(null);
+  // Date range filters — mặc định 7 ngày gần nhất
+  const [feedDateFrom, setFeedDateFrom] = useState<Dayjs | null>(dayjs().subtract(7, "day"));
+  const [feedDateTo, setFeedDateTo] = useState<Dayjs | null>(dayjs());
+  const [mortDateFrom, setMortDateFrom] = useState<Dayjs | null>(dayjs().subtract(7, "day"));
+  const [mortDateTo, setMortDateTo] = useState<Dayjs | null>(dayjs());
 
   // Feed dialog
   const [openFeedDialog, setOpenFeedDialog] = useState(false);
@@ -893,16 +893,28 @@ const BatchManagement = () => {
                         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                           <DatePicker label="Từ ngày" value={feedDateFrom} onChange={(v) => setFeedDateFrom(v)} maxDate={feedDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
                           <DatePicker label="Đến ngày" value={feedDateTo} onChange={(v) => setFeedDateTo(v)} minDate={feedDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
-                          {(feedDateFrom || feedDateTo) && (
+                          {(feedDateFrom?.isAfter(dayjs().subtract(7, "day")) === false || feedDateTo?.isBefore(dayjs()) === false) && (
                             <Button
                               size="small"
                               variant="outlined"
                               onClick={() => {
-                                setFeedDateFrom(null);
-                                setFeedDateTo(null);
+                                setFeedDateFrom(dayjs().subtract(7, "day"));
+                                setFeedDateTo(dayjs());
                               }}
                             >
-                              Xóa lọc
+                              Reset 7 ngày
+                            </Button>
+                          )}
+                          {(!feedDateFrom || !feedDateTo) && (
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => {
+                                setFeedDateFrom(dayjs().subtract(7, "day"));
+                                setFeedDateTo(dayjs());
+                              }}
+                            >
+                              Đặt 7 ngày
                             </Button>
                           )}
                         </Stack>
@@ -992,16 +1004,28 @@ const BatchManagement = () => {
                         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                           <DatePicker label="Từ ngày" value={mortDateFrom} onChange={(v) => setMortDateFrom(v)} maxDate={mortDateTo ?? undefined} slotProps={{ textField: { size: "small" } }} />
                           <DatePicker label="Đến ngày" value={mortDateTo} onChange={(v) => setMortDateTo(v)} minDate={mortDateFrom ?? undefined} slotProps={{ textField: { size: "small" } }} />
-                          {(mortDateFrom || mortDateTo) && (
+                          {(mortDateFrom?.isAfter(dayjs().subtract(7, "day")) === false || mortDateTo?.isBefore(dayjs()) === false) && (
                             <Button
                               size="small"
                               variant="outlined"
                               onClick={() => {
-                                setMortDateFrom(null);
-                                setMortDateTo(null);
+                                setMortDateFrom(dayjs().subtract(7, "day"));
+                                setMortDateTo(dayjs());
                               }}
                             >
-                              Xóa lọc
+                              Reset 7 ngày
+                            </Button>
+                          )}
+                          {(!mortDateFrom || !mortDateTo) && (
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => {
+                                setMortDateFrom(dayjs().subtract(7, "day"));
+                                setMortDateTo(dayjs());
+                              }}
+                            >
+                              Đặt 7 ngày
                             </Button>
                           )}
                         </Stack>
