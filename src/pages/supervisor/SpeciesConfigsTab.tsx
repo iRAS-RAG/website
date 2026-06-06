@@ -4,6 +4,8 @@ import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconBut
 import React, { useState } from "react";
 import { createSpecies, deleteSpecies, updateSpecies } from "../../api/species";
 import { getSpeciesStageConfigsBySpecies } from "../../api/species-stage-configs";
+import { getGrowthStagesBySpecies } from "../../api/growth-stages";
+import type { GrowthStage } from "../../types/growth-stage";
 import { useToast } from "../../components/common/toastContext";
 import SpeciesDetail from "../../components/supervisor/species-configs/SpeciesDetail";
 import SpeciesList from "../../components/supervisor/species-configs/SpeciesList";
@@ -32,11 +34,22 @@ const SpeciesConfigsTab: React.FC = () => {
   }
 
   async function fetchStagesForSpecies(speciesId: string) {
-    // The by-species endpoint now returns thresholds nested inside each config.
-    const configs = await getSpeciesStageConfigsBySpecies(speciesId);
+    // Fetch both saved configs and raw growth stages (which may not have configs yet).
+    const [configs, growthStages] = await Promise.all([
+      getSpeciesStageConfigsBySpecies(speciesId),
+      getGrowthStagesBySpecies(speciesId),
+    ]);
 
-    return configs.map((c) => {
-      const mappedThresholds = (c.thresholds ?? []).map((t) => ({
+    // Build a map of growthStageId → config for lookup.
+    const configByGrowthStageId = new Map<string, (typeof configs)[number]>();
+    for (const c of configs) {
+      if (c.growthStageId) configByGrowthStageId.set(c.growthStageId, c);
+    }
+
+    // Helper: map a config + optional growth stage fallback to a Stage.
+    const toStage = (gs: GrowthStage, cfg?: (typeof configs)[number]) => {
+      const c = cfg;
+      const mappedThresholds = (c?.thresholds ?? []).map((t) => ({
         id: t.id,
         sensor: t.sensorTypeName,
         sensorTypeId: t.sensorTypeId,
@@ -46,21 +59,40 @@ const SpeciesConfigsTab: React.FC = () => {
 
       return {
         id: generateId(),
-        name: c.growthStageName ?? "",
-        growthStageId: c.growthStageId,
-        configId: c.id,
-        feedType: (c.feedTypeNames?.join(", ")) ?? c.feedTypeIds?.[0] ?? "",
-        feedTypeIds: c.feedTypeIds,
-        feedPer100: c.amountPer100Fish ?? 0,
-        frequencyPerDay: c.frequencyPerDay ?? 0,
-        maxStockingDensity: c.maxStockingDensity ?? 0,
-        expectedDurationDays: c.expectedDurationDays ?? 0,
-        expectedWeightKgPerFish: c.expectedWeightKgPerFish ?? 0,
-        survivalRate: c.survivalRate ?? 1,
-        sequence: c.sequence,
+        name: c?.growthStageName ?? gs.name,
+        growthStageId: gs.id,
+        configId: c?.id,
+        feedType: (c?.feedTypeNames?.join(", ")) ?? c?.feedTypeIds?.[0] ?? "",
+        feedTypeIds: c?.feedTypeIds,
+        feedPer100: c?.amountPer100Fish ?? 0,
+        frequencyPerDay: c?.frequencyPerDay ?? 0,
+        maxStockingDensity: c?.maxStockingDensity ?? 0,
+        expectedDurationDays: c?.expectedDurationDays ?? 0,
+        expectedWeightKgPerFish: c?.expectedWeightKgPerFish ?? 0,
+        survivalRate: c?.survivalRate ?? 1,
+        sequence: c?.sequence,
         thresholds: mappedThresholds,
       };
-    });
+    };
+
+    const stages: ReturnType<typeof toStage>[] = [];
+
+    // First, emit stages that have a saved config (ordered by sequence).
+    for (const c of configs) {
+      const gs = growthStages.find((g) => g.id === c.growthStageId);
+      if (gs) {
+        stages.push(toStage(gs, c));
+      }
+    }
+
+    // Then, add growth stages that have NO config yet (unsaved ones).
+    for (const gs of growthStages) {
+      if (!configByGrowthStageId.has(gs.id)) {
+        stages.push(toStage(gs));
+      }
+    }
+
+    return stages;
   }
 
   async function handleCreateSpecies() {
