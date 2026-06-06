@@ -30,9 +30,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
-
-// Module-level cache: giữa liệu khi component unmount/remount
-const _aiSuggestionCache = new Map<string | number, { response: string | null; error: string | null }>();
+import { aiSuggestionCache } from "../../cache/aiSuggestionCache";
 
 // --- Định dạng câu trả lời AI (giống AIAdvisory) ---
 const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -156,21 +154,36 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
     setAiLoading(true);
     setAiExpanded(true);
 
-    const prompt = constructPrompt(data!);
-    advisoryApi
-      .chat(tankId, prompt)
-      .then((res: AdvisoryChatResponse) => {
-        const response = res.answer?.trim() || null;
-        const error = !response ? "AI chưa trả về nội dung tư vấn." : null;
-        // Lưu vào cache
-        _aiSuggestionCache.set(alertId, { response, error });
-        setAiResponse(response);
-        setAiError(error);
+    // Bước 1: thử lấy khuyến nghị đã được backend tạo tự động
+    alertApi
+      .getRecommendation(String(alertId))
+      .then((res: unknown) => {
+        const recData = (res as { data?: { suggestionText?: string } })?.data;
+        const response = recData?.suggestionText?.trim() || null;
+        if (response) {
+          aiSuggestionCache.set(alertId, { response, error: null });
+          setAiResponse(response);
+          setAiLoading(false);
+          return;
+        }
+        // recommendation rỗng → fallback
+        throw new Error("empty_recommendation");
+      })
+      .catch(() => {
+        // Bước 2: fallback — gọi advisory chat API trực tiếp
+        const prompt = constructPrompt(data!);
+        return advisoryApi.chat(tankId, prompt).then((res: AdvisoryChatResponse) => {
+          const response = res.answer?.trim() || null;
+          const error = !response ? "AI chưa trả về nội dung tư vấn." : null;
+          aiSuggestionCache.set(alertId, { response, error });
+          setAiResponse(response);
+          setAiError(error);
+        });
       })
       .catch((err: unknown) => {
         console.error("Lỗi gọi AI tư vấn:", err);
         const error = "Không thể kết nối tới trợ lý AI. Vui lòng thử lại sau.";
-        _aiSuggestionCache.set(alertId, { response: null, error });
+        aiSuggestionCache.set(alertId, { response: null, error });
         setAiError(error);
       })
       .finally(() => {
@@ -183,7 +196,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
     if (!data) return;
     setLocalStatus(null);
 
-    const cached = _aiSuggestionCache.get(data.id);
+    const cached = aiSuggestionCache.get(data.id);
     if (cached) {
       // Có cache → show luôn, không gọi lại API
       setAiResponse(cached.response);
@@ -200,7 +213,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   // Regenerate: xoá cache cho alert hiện tại và gọi lại API
   const handleRegenerate = () => {
     if (!data || aiLoading) return;
-    _aiSuggestionCache.delete(data.id);
+    aiSuggestionCache.delete(data.id);
     fetchAiSuggestion(data.id, data.tankId);
   };
 

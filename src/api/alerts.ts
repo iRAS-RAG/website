@@ -45,4 +45,12 @@ export const alertApi = {
       method: "DELETE",
     });
   },
+
+  // Lấy khuyến nghị AI được tạo tự động cho cảnh báo
+  getRecommendation: async (alertId: string) => {
+    return await apiFetch<{ data: { id: string; suggestionText: string; alertId: string } }>(
+      `/recommendations/by-alert/${alertId}`,
+      { method: "GET" },
+    );
+  },
 };

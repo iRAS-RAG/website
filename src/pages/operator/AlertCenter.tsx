@@ -29,7 +29,9 @@ import { AlertDetailModal } from "../../components/operator/AlertDetailModal";
 import { OperatorHeader } from "../../components/operator/OperatorHeader";
 import { OperatorSidebar } from "../../components/operator/OperatorSidebar";
 import { useAlerts } from "../../hooks/useAlerts";
+import { advisoryApi } from "../../api/advisory";
 import { alertApi } from "../../api/alerts";
+import { aiSuggestionCache } from "../../cache/aiSuggestionCache";
 import { operatorBatchesApi } from "../../api/operatorBatchesApi";
 import { useAlertSignalR } from "../../hooks/useAlertSignalR";
 import type { IAlert } from "../../types/alert";
@@ -112,7 +114,27 @@ const AlertCenter = () => {
     refetch,
   } = useAlerts(1, 10, filterStatuses, filterBatchId);
 
-  useAlertSignalR({ onAlertCreated: () => refetch(), onAlertStatusChanged: () => refetch() });
+  useAlertSignalR({
+    onAlertCreated: async (notification) => {
+      refetch();
+      // Proactively fetch AI suggestion for this alert so it's ready when the
+      // user opens the detail modal.
+      try {
+        const alert = await alertApi.getById(notification.alertId);
+        const prompt =
+          `${alert.fishTankName} đang có chỉ số ${alert.sensorTypeName} là ${alert.triggerValue} ` +
+          `(vượt ngưỡng an toàn ${alert.minThreshold} - ${alert.maxThreshold} ${alert.unitOfMeasure}). ` +
+          `Hãy hướng dẫn tôi quy trình xử lý SOP khẩn cấp cho tình huống này.`;
+        const res = await advisoryApi.chat(alert.fishTankId, prompt);
+        const response = (res as { answer?: string })?.answer?.trim() || null;
+        const error = !response ? "AI chưa trả về nội dung tư vấn." : null;
+        aiSuggestionCache.set(notification.alertId, { response, error });
+      } catch {
+        // Best-effort — if it fails, the modal will call the API on open.
+      }
+    },
+    onAlertStatusChanged: () => refetch(),
+  });
 
   const handleStatusFilterChange = (e: SelectChangeEvent) => {
     setStatusFilter(e.target.value);
